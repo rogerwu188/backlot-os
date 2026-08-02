@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/shot-recipe-repair-tasks-v1.json",
+  "title": "AgentCut shot recipe repair tasks v1",
+  "type": "object",
+  "required": ["schema", "taskCount", "tasks", "platformMutationAuthorized"],
+  "properties": {
+    "schema": {"const": "agentcut.shot_recipe_repair_tasks.v1"},
+    "taskCount": {"type": "integer", "minimum": 0},
+    "platformMutationAuthorized": {"const": false},
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["taskId", "code", "clipId", "timeRange", "frameRange", "action", "platformMutationAuthorized"],
+        "properties": {
+          "taskId": {"type": "string", "minLength": 1},
+          "code": {"type": "string", "minLength": 1},
+          "message": {"type": "string"},
+          "clipId": {"type": "string", "minLength": 1},
+          "trackId": {"type": ["string", "null"]},
+          "recipeId": {"type": ["string", "null"]},
+          "recipeVersion": {"type": ["string", "null"]},
+          "phaseId": {"type": ["string", "null"]},
+          "timeRange": {"type": "object"},
+          "frameRange": {"type": "object"},
+          "requestedAggregateRange": {"type": ["object", "null"]},
+          "rollback": {"type": ["object", "null"]},
+          "action": {"type": "string", "minLength": 1},
+          "platformMutationAuthorized": {"const": false}
+        }
+      }
+    }
+  }
+}

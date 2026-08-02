@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "output": {"path": "outputs/e19r-dia040-clean.mp4", "width": 720, "height": 1280, "fps": 30},
+  "requireBurnedSubtitles": true,
+  "expectedDialogueIds": ["DIA-040"],
+  "timeline": {
+    "videoTracks": [{"id": "Video.Main", "clips": [{
+      "id": "DIA-040-video",
+      "source": "/absolute/path/to/E19R_DIA-040_source.mp4",
+      "start": 0, "in": 0, "duration": 3.49,
+      "cleanupRegions": [{"mode": "delogo", "x": 250, "y": 850, "width": 230, "height": 110, "start": 0, "duration": 3.49}]
+    }]}],
+    "subtitleTracks": [{
+      "id": "zh-CN",
+      "style": {"font": "/System/Library/Fonts/STHeiti Medium.ttc", "size": 44, "outline": 3, "alignment": "bottom-center", "margins": {"left": 72, "right": 72, "top": 96, "bottom": 160}},
+      "clips": [{"dialogue_id": "DIA-040", "text": "最终烧录字幕", "start": 0, "duration": 3.49}]
+    }]
+  }
+}

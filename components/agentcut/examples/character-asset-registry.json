@@ -1,0 +1,9 @@
+{
+  "schema": "ai_drama.continuity_asset_registry.v1",
+  "project_id": "qingshan",
+  "assets": {
+    "characters": {},
+    "scenes": {},
+    "props": {}
+  }
+}

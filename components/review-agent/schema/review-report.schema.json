@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Qingshan review report v2",
+  "type": "object",
+  "required": ["schema", "review_id", "status", "content_status", "validity", "scoring", "capabilities", "summary", "issues"],
+  "properties": {
+    "schema": {"const": "qingshan.review.report.v2"},
+    "status": {"enum": ["PASS", "WARN", "FAIL", "CAPABILITY_FAIL"]},
+    "content_status": {"enum": ["PASS", "CONTENT_FAIL", "CAPABILITY_FAIL"]},
+    "validity": {"enum": ["VALID", "INVALID"]},
+    "invalid_time_ranges": {"type": "array"},
+    "story_duration": {"type": ["object", "null"]},
+    "episode_runtime": {"type": ["object", "null"]},
+    "visual_pacing": {"type": ["object", "null"]},
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status", "requirement"],
+        "properties": {
+          "status": {"enum": ["PASS", "WARN", "FAIL", "NOT_RUN", "ERROR", "CAPABILITY_FAIL", "NOT_APPLICABLE"]},
+          "requirement": {"enum": ["REQUIRED", "OPTIONAL", "NOT_APPLICABLE"]}
+        }
+      }
+    },
+    "summary": {"type": "object", "required": ["raw_issue_count", "deduped_issue_count", "blocking_count", "invalid_time_range_count"]},
+    "deduction_cap": {"type": "object"},
+    "issues": {"type": "array"}
+  }
+}

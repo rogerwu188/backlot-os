@@ -1,0 +1,37 @@
+{
+  "claim": "resume own running task else same-filesystem atomic rename of one own inbox task",
+  "cron": {
+    "cron_id": "5248668f-d0f6-586b-9cf4-608fa2ca00f9",
+    "enable_gate": "producer semantic canary PASS",
+    "enabled": false,
+    "offset_seconds": 0,
+    "period_seconds": 60
+  },
+  "directories": [
+    "inbox",
+    "running",
+    "done",
+    "failed",
+    "checkpoints",
+    "heartbeat"
+  ],
+  "forbidden": [
+    "sessions_send",
+    "sessions_list",
+    "sessions_history",
+    "cross-Agent chat",
+    "pure-exec semantic completion",
+    "loops",
+    "cron mutation",
+    "live mutation",
+    "ch482 mutation"
+  ],
+  "owner": "qingshan-producer-supervisor",
+  "queue_root": "queue_v2.0.17/producer",
+  "role": "producer",
+  "schema": "qingshan.semantic_agent_tick.role_contract.v1",
+  "scope": "orchestration, monitoring, and highlighting explicit human confirmation only",
+  "tick": "one task and exactly one semantic microstep",
+  "transport": "shared-disk JSON+SHA only",
+  "version": "2.0.17-file-native-workers"
+}

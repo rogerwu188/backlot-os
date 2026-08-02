@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "output": {"path": "outputs/narrative-gated.mp4", "width": 720, "height": 1280},
+  "narrativeGate": {
+    "enabled": true,
+    "requireMetadata": true,
+    "rejectDuplicateSemantics": true,
+    "maxSemanticRepeats": 1,
+    "maxSemanticGroupRatio": 0.15,
+    "rejectNoInformation": true,
+    "requireCutawayRelevance": true,
+    "minCutawayRelevance": 0.5,
+    "maxBackgroundBedRatio": 0.2,
+    "maxBackgroundBedSeconds": 4,
+    "requiredShotIds": ["reveal-box", "hero-decision"]
+  },
+  "timeline": {
+    "videoTracks": [{
+      "id": "Video.Main",
+      "clips": [
+        {"id": "reveal-box", "source": "media/reveal.mp4", "start": 0, "duration": 2,
+         "metadata": {"shot_id": "reveal-box", "narrative_role": "action", "semantic_id": "box-is-opened", "information_ids": ["fact-box-content"]}},
+        {"id": "hero-decision", "source": "media/decision.mp4", "start": 2, "duration": 2,
+         "metadata": {"shot_id": "hero-decision", "narrative_role": "reaction", "semantic_id": "hero-decides-to-leave", "information_ids": ["decision-leave"], "beat_id": "beat-decision"}},
+        {"id": "door-cutaway", "source": "media/door.mp4", "start": 4, "duration": 1,
+         "metadata": {"narrative_role": "cutaway", "semantic_id": "exit-route", "information_ids": ["door-unlocked"], "relevance_to": ["decision-leave"], "relevance_score": 0.9}}
+      ]
+    }]
+  }
+}

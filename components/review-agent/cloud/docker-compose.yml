@@ -1,0 +1,18 @@
+services:
+  qingshan-review:
+    build:
+      context: ..
+      dockerfile: cloud/Dockerfile
+    environment:
+      QINGSHAN_WORKERS: "4"
+      QINGSHAN_PRODUCTION_ROOT: /srv/qingshan
+      QINGSHAN_ISSUE_LEDGER: /state/issues.ndjson
+      QINGSHAN_RULE_REGISTRY: /state/anti_recurrence_rules.ndjson
+      QINGSHAN_IMAGE_ANALYSIS_COMMAND: ${QINGSHAN_IMAGE_ANALYSIS_COMMAND:-}
+    volumes:
+      - ${QINGSHAN_MEDIA_DIR:-./media}:/data:ro
+      - ${QINGSHAN_EVIDENCE_DIR:-./evidence}:/evidence:ro
+      - ${QINGSHAN_STATE_DIR:-./state}:/state
+      - ${QINGSHAN_TOOLS_DIR:-./runtime_tools}:/srv/qingshan/tools:ro
+    stdin_open: true
+    tty: false

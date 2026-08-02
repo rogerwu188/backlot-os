@@ -1,0 +1,21 @@
+{
+  "schema": "qingshan.image_visual_adjudication.v1",
+  "episode": "E00",
+  "status": "PASS",
+  "confidence": 0.95,
+  "required_checks": ["canonical_identity_continuity", "scene_authority", "story_action_clarity", "no_text_or_pseudotext", "no_extra_or_duplicated_bodies", "native_anatomy"],
+  "evidence": [{
+    "source_id": "E00-S001",
+    "sha256": "REPLACE_WITH_EXACT_CANDIDATE_SHA256",
+    "checks": {
+      "canonical_identity_continuity": "PASS",
+      "scene_authority": "PASS",
+      "story_action_clarity": "PASS",
+      "no_text_or_pseudotext": "PASS",
+      "no_extra_or_duplicated_bodies": "PASS",
+      "native_anatomy": "PASS"
+    },
+    "regions": {}
+  }],
+  "rollback": "Preserve original candidate and evidence."
+}

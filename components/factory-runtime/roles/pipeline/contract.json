@@ -1,0 +1,37 @@
+{
+  "claim": "resume own running task else same-filesystem atomic rename of one own inbox task",
+  "cron": {
+    "cron_id": "9375ba33-cd1a-5f05-ba5c-d3e91f4da77a",
+    "enable_gate": "pipeline semantic canary PASS",
+    "enabled": false,
+    "offset_seconds": 24,
+    "period_seconds": 60
+  },
+  "directories": [
+    "inbox",
+    "running",
+    "done",
+    "failed",
+    "checkpoints",
+    "heartbeat"
+  ],
+  "forbidden": [
+    "sessions_send",
+    "sessions_list",
+    "sessions_history",
+    "cross-Agent chat",
+    "pure-exec semantic completion",
+    "loops",
+    "cron mutation",
+    "live mutation",
+    "ch482 mutation"
+  ],
+  "owner": "qingshan-ai-drama-pipeline",
+  "queue_root": "queue_v2.0.17/pipeline",
+  "role": "pipeline",
+  "schema": "qingshan.semantic_agent_tick.role_contract.v1",
+  "scope": "storyboard and source-asset generation tasks only",
+  "tick": "one task and exactly one semantic microstep",
+  "transport": "shared-disk JSON+SHA only",
+  "version": "2.0.17-file-native-workers"
+}

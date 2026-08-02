@@ -1,0 +1,37 @@
+{
+  "claim": "resume own running task else same-filesystem atomic rename of one own inbox task",
+  "cron": {
+    "cron_id": "e18062c7-02c7-5d55-9da2-23957cb2116a",
+    "enable_gate": "audit semantic canary PASS",
+    "enabled": false,
+    "offset_seconds": 48,
+    "period_seconds": 60
+  },
+  "directories": [
+    "inbox",
+    "running",
+    "done",
+    "failed",
+    "checkpoints",
+    "heartbeat"
+  ],
+  "forbidden": [
+    "sessions_send",
+    "sessions_list",
+    "sessions_history",
+    "cross-Agent chat",
+    "pure-exec semantic completion",
+    "loops",
+    "cron mutation",
+    "live mutation",
+    "ch482 mutation"
+  ],
+  "owner": "qingshan-ai-aduit",
+  "queue_root": "queue_v2.0.17/audit",
+  "role": "audit",
+  "schema": "qingshan.semantic_agent_tick.role_contract.v1",
+  "scope": "QA judgment and release-gate decisions only",
+  "tick": "one task and exactly one semantic microstep",
+  "transport": "shared-disk JSON+SHA only",
+  "version": "2.0.17-file-native-workers"
+}

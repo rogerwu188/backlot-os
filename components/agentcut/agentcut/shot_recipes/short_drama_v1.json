@@ -1,0 +1,3594 @@
+{
+  "schema": "agentcut.shot_recipe_registry.v1",
+  "registry_id": "agentcut.short_drama.director_recipes",
+  "version": "1.0.0",
+  "source": {
+    "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+    "commit": "d4915443232e89527fdc9d7e79f132ba411fc440"
+  },
+  "license": {
+    "spdx": "Apache-2.0",
+    "notice": "NOTICE"
+  },
+  "selection_policy": {
+    "target": "live-action and generated short drama",
+    "ui_only_default": false,
+    "remotion_dependency": false,
+    "audio_assets_imported": false,
+    "layer": "per_shot_director_execution",
+    "style_template_behavior": "preserve_project_style",
+    "style_override_allowed": false
+  },
+  "recipes": [
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.slow_push_in",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/tension-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Slow push-in that accumulates pressure before a decisive cut.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.25,
+      "energy_after": 0.72,
+      "suggested_duration": {
+        "min_seconds": 2.5,
+        "target_seconds": 4.0,
+        "max_seconds": 5.5
+      },
+      "camera_motion": {
+        "type": "slow_push_in",
+        "direction": "forward",
+        "intensity": 0.72
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.25
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.72
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.72
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "tension_peak"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.pull_back_isolation",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/tension-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Pull back to isolate one subject as surrounding context falls away.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.5,
+      "energy_after": 0.18,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "pull_back",
+        "direction": "backward",
+        "intensity": 0.5
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.5
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.5
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.18
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "isolation_result"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.dutch_roll_to_level",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/tension-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Roll an unstable frame back to level to mark correction or regained control.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.62,
+      "energy_after": 0.42,
+      "suggested_duration": {
+        "min_seconds": 2.0,
+        "target_seconds": 3.5,
+        "max_seconds": 5.0
+      },
+      "camera_motion": {
+        "type": "dutch_roll",
+        "direction": "clockwise_to_level",
+        "intensity": 0.62
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.62
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.62
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.42
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "level_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.bullet_time_orbit",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/tension-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Freeze subject action while camera motion examines a decisive instant.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.7,
+      "energy_after": 0.82,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "orbit",
+        "direction": "lateral_arc",
+        "intensity": 0.82
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.7
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.82
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.82
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "freeze_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.crash_zoom_punch",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/crash-zoom-punch.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Force attention from an establishing frame into a decisive detail.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.42,
+      "energy_after": 0.92,
+      "suggested_duration": {
+        "min_seconds": 1.5,
+        "target_seconds": 2.5,
+        "max_seconds": 4.0
+      },
+      "camera_motion": {
+        "type": "crash_zoom",
+        "direction": "forward",
+        "intensity": 0.92
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.42
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.92
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.92
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "zoom_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.overhead_reveal",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/overhead-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Use a changing overhead angle to reveal space, evidence, or arrangement.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.22,
+      "energy_after": 0.6,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "tilt_reveal",
+        "direction": "overhead_to_level",
+        "intensity": 0.6
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.22
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.6
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.6
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "reveal_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.tabletop_drop",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/overhead-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Survey an arrangement from above, then commit to one target.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.38,
+      "energy_after": 0.76,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "tabletop_drop",
+        "direction": "pan_then_drop",
+        "intensity": 0.76
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.38
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.76
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.76
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "target_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.crane_rise_reveal",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/opening/crane-rise-reveal.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Move from a readable detail to a wider spatial revelation.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.3,
+      "energy_after": 0.66,
+      "suggested_duration": {
+        "min_seconds": 3.5,
+        "target_seconds": 5.0,
+        "max_seconds": 6.5
+      },
+      "camera_motion": {
+        "type": "crane_rise",
+        "direction": "up_and_back",
+        "intensity": 0.66
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.3
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.66
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.66
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "wide_result"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.drone_dive_landing",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/space-camera-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Descend from global context to one dramatic subject or clue.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.48,
+      "energy_after": 0.82,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "drone_dive",
+        "direction": "down_and_forward",
+        "intensity": 0.82
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.48
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.82
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.82
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "landing_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.graze_face_tour",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/graze-face-tour.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Graze across face or object details while preserving a stable subject anchor.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.32,
+      "energy_after": 0.55,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.5
+      },
+      "camera_motion": {
+        "type": "lateral_graze",
+        "direction": "left_to_right",
+        "intensity": 0.55
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.32
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.55
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.55
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "detail_result"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.steep_tilt_glide",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/steep-tilt-glide.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Glide through a steep tilt to make entry or discovery feel physically motivated.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.35,
+      "energy_after": 0.68,
+      "suggested_duration": {
+        "min_seconds": 2.5,
+        "target_seconds": 4.0,
+        "max_seconds": 5.5
+      },
+      "camera_motion": {
+        "type": "tilt_glide",
+        "direction": "diagonal",
+        "intensity": 0.68
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.35
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.68
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.68
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "glide_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "camera.depth_layer_parallax",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/camera/depth-layer-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Separate foreground, subject, and background motion to reveal depth without a cut.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.26,
+      "energy_after": 0.54,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 5.0,
+        "max_seconds": 7.0
+      },
+      "camera_motion": {
+        "type": "parallax",
+        "direction": "lateral",
+        "intensity": 0.54
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.26
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.54
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.54
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "depth_result"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.speed_ramp_focus",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/speed-ramp-freeze.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Accelerate through setup, slow for the informative action, then recover speed.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.55,
+      "energy_after": 0.72,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "speed_ramp",
+        "direction": "forward",
+        "intensity": 0.72
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.55
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.72
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.72
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "focus_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.freeze_annotate",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/speed-ramp-freeze.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Freeze a decisive frame long enough for an explicit visual annotation or clue read.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.48,
+      "energy_after": 0.58,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "freeze",
+        "direction": "none",
+        "intensity": 0.58
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.48
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.58
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.58
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "annotation_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.blackout_slam",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/montage-rhythm-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Use one evidence-backed intentional blackout as silence before a climax impact.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.58,
+      "energy_after": 0.95,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.3,
+        "max_seconds": 5.5
+      },
+      "camera_motion": {
+        "type": "slam",
+        "direction": "forward",
+        "intensity": 0.95
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.58
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.95
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.95
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": {
+          "reference_fps": 30,
+          "reference_start_frame": 48,
+          "reference_duration_frames": 12,
+          "reason": "one silent blackout beat accumulates pressure before the unique climax slam",
+          "approval_policy": "release_gate_required"
+        }
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "slam_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "slam_contact",
+          "semantic": "climax impact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.wright_triple_cut",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/montage-rhythm-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Compress a three-step physical process into three readable close-up contacts.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.48,
+      "energy_after": 0.82,
+      "suggested_duration": {
+        "min_seconds": 2.5,
+        "target_seconds": 4.3,
+        "max_seconds": 5.5
+      },
+      "camera_motion": {
+        "type": "triple_cut",
+        "direction": "matched_center",
+        "intensity": 0.82
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.48
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.82
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.82
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "third_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.domino_cascade",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/montage-rhythm-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Carry visible force from one action result into the next setup.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.4,
+      "energy_after": 0.78,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 5.0,
+        "max_seconds": 6.5
+      },
+      "camera_motion": {
+        "type": "cascade",
+        "direction": "causal_chain",
+        "intensity": 0.78
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.4
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.78
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.78
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "chain_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.beat_cut_accelerando",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/beat-cut-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Shorten successive shot intervals to increase urgency toward a beat.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.34,
+      "energy_after": 0.86,
+      "suggested_duration": {
+        "min_seconds": 2.5,
+        "target_seconds": 4.5,
+        "max_seconds": 7.0
+      },
+      "camera_motion": {
+        "type": "accelerando_cuts",
+        "direction": "forward",
+        "intensity": 0.86
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.34
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.86
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.86
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "final_beat"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.interrupt_reset",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/rhythm-interrupt-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Interrupt an established cadence once to signal new information or a power shift.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.52,
+      "energy_after": 0.4,
+      "suggested_duration": {
+        "min_seconds": 2.0,
+        "target_seconds": 3.5,
+        "max_seconds": 5.0
+      },
+      "camera_motion": {
+        "type": "rhythm_interrupt",
+        "direction": "stop_then_resume",
+        "intensity": 0.52
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.52
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.52
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.4
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "interrupt_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "rhythm.trailer_tension_release",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/rhythm/trailer-grammar-moves.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Stage setup, compression, and release as a compact trailer grammar.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.28,
+      "energy_after": 0.9,
+      "suggested_duration": {
+        "min_seconds": 4.0,
+        "target_seconds": 6.0,
+        "max_seconds": 9.0
+      },
+      "camera_motion": {
+        "type": "tension_release",
+        "direction": "forward",
+        "intensity": 0.9
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.28
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.9
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.9
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "release_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "transition.invisible_foreground_cut",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/transition/transition-hidden-cut.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Hide one cut inside a fully occluding motivated foreground pass.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.5,
+      "energy_after": 0.52,
+      "suggested_duration": {
+        "min_seconds": 1.0,
+        "target_seconds": 2.0,
+        "max_seconds": 3.0
+      },
+      "camera_motion": {
+        "type": "occlusion_pass",
+        "direction": "lateral",
+        "intensity": 0.52
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.5
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.52
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.52
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "between_shots",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "occlusion_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "transition.light_leak_hidden_cut",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/transition/transition-hidden-cut.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Hide a cut at a controlled light peak without treating light as decoration.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.42,
+      "energy_after": 0.6,
+      "suggested_duration": {
+        "min_seconds": 1.5,
+        "target_seconds": 2.5,
+        "max_seconds": 4.0
+      },
+      "camera_motion": {
+        "type": "light_peak",
+        "direction": "diagonal",
+        "intensity": 0.6
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.42
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.6
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.6
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "between_shots",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "light_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "transition.circle_match_iris",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/transition/circle-match-iris.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Match subject position through a circular iris for a motivated spatial handoff.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.38,
+      "energy_after": 0.58,
+      "suggested_duration": {
+        "min_seconds": 1.0,
+        "target_seconds": 2.0,
+        "max_seconds": 3.0
+      },
+      "camera_motion": {
+        "type": "iris",
+        "direction": "inward_then_out",
+        "intensity": 0.58
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.38
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.58
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.58
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "between_shots",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "iris_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "transition.page_turn",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/transition/page-turn-transitions.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Use a physical page turn only when paper, dossier, or chapter semantics justify it.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.34,
+      "energy_after": 0.5,
+      "suggested_duration": {
+        "min_seconds": 1.5,
+        "target_seconds": 2.5,
+        "max_seconds": 4.0
+      },
+      "camera_motion": {
+        "type": "page_turn",
+        "direction": "right_to_left",
+        "intensity": 0.5
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.34
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.5
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.5
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "between_shots",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "page_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "title.paper_title_card",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/typography/paper-title-card.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Hold a chapter title on a materially motivated paper card before returning to action.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.24,
+      "energy_after": 0.35,
+      "suggested_duration": {
+        "min_seconds": 1.5,
+        "target_seconds": 2.5,
+        "max_seconds": 4.0
+      },
+      "camera_motion": {
+        "type": "title_hold",
+        "direction": "none",
+        "intensity": 0.35
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.24
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.35
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.35
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "title_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "title.marker_underline",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/typography/marker-underline-title.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Underline one exact phrase as a beat anchor instead of decorating all text.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.3,
+      "energy_after": 0.48,
+      "suggested_duration": {
+        "min_seconds": 1.5,
+        "target_seconds": 2.5,
+        "max_seconds": 4.0
+      },
+      "camera_motion": {
+        "type": "underline_draw",
+        "direction": "left_to_right",
+        "intensity": 0.48
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.3
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.48
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.48
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "underline_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    },
+    {
+      "schema": "agentcut.shot_recipe.v1",
+      "recipe_id": "outro.brand_morph",
+      "version": "1.0.0",
+      "source": {
+        "repository": "https://github.com/Vincentwei1021/video-shotcraft",
+        "commit": "d4915443232e89527fdc9d7e79f132ba411fc440",
+        "path": "references/shots/outro/ui-to-brand-morph.md",
+        "adaptation": "structure and motion-language study; no Remotion code or media copied"
+      },
+      "license": {
+        "spdx": "Apache-2.0",
+        "notice": "NOTICE",
+        "audio_included": false
+      },
+      "dramatic_intent": "Resolve a recurring story object into the approved brand mark at the end card.",
+      "applicability": {
+        "media_kinds": [
+          "live_action",
+          "generated_short_drama",
+          "hybrid"
+        ],
+        "ui_only": false,
+        "default_short_drama_registry": true
+      },
+      "energy_before": 0.42,
+      "energy_after": 0.28,
+      "suggested_duration": {
+        "min_seconds": 3.0,
+        "target_seconds": 4.5,
+        "max_seconds": 6.0
+      },
+      "camera_motion": {
+        "type": "brand_morph",
+        "direction": "inward",
+        "intensity": 0.42
+      },
+      "motion_arc": {
+        "phases": [
+          {
+            "phase_id": "setup",
+            "start_ratio": 0.0,
+            "end_ratio": 0.22,
+            "description": "establish subject and causal setup",
+            "camera_state": {
+              "energy": 0.42
+            }
+          },
+          {
+            "phase_id": "contact",
+            "start_ratio": 0.22,
+            "end_ratio": 0.72,
+            "description": "execute the named camera/action contact",
+            "camera_state": {
+              "energy": 0.42
+            }
+          },
+          {
+            "phase_id": "result",
+            "start_ratio": 0.72,
+            "end_ratio": 1.0,
+            "description": "hold the changed state long enough to read",
+            "camera_state": {
+              "energy": 0.28
+            }
+          }
+        ]
+      },
+      "subject_anchor": {
+        "x_ratio": 0.5,
+        "y_ratio": 0.46,
+        "tolerance_ratio": 0.18,
+        "safe_for_9x16": true
+      },
+      "action": {
+        "setup": "establish a readable pre-action state",
+        "contact": "show the decisive physical or editorial contact",
+        "result": "show a visibly changed state"
+      },
+      "planned_hold": {
+        "windows": [
+          {
+            "phase_id": "result_read",
+            "hold_id": "result_read",
+            "start_ratio": 0.82,
+            "end_ratio": 1.0,
+            "reason": "result readability"
+          }
+        ]
+      },
+      "transition_intent": {
+        "kind": "within_shot",
+        "intentional_black": null
+      },
+      "beat_anchor": {
+        "phase_id": "contact",
+        "semantic": "brand_contact"
+      },
+      "sfx_cues": [
+        {
+          "cue_id": "primary_contact",
+          "semantic": "editorial contact accent",
+          "phase_id": "contact",
+          "offset_seconds": 0,
+          "asset_path": null,
+          "license": null,
+          "license_status": "symbolic_only"
+        }
+      ],
+      "known_pitfalls": [
+        "do not use the recipe to excuse missing story information",
+        "do not stack another recipe with the same dominant motion family on the same clip",
+        "review normal-speed playback; still-frame novelty is not acceptance"
+      ],
+      "qa_contract": {
+        "required_checks": [
+          "source_admission",
+          "narrative_gate",
+          "cadence",
+          "black_frame",
+          "dialogue_coverage",
+          "audio_safety"
+        ],
+        "reject_unmotivated_hold": true,
+        "preserve_existing_hard_gates": true
+      },
+      "rollback": {
+        "strategy": "remove the shot_recipe reference or restore the prior clip metadata, then recompile and rerender",
+        "source_media_modified": false,
+        "platform_mutation_authorized": false
+      }
+    }
+  ]
+}

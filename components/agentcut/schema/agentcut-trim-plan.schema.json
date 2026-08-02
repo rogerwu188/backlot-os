@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/trim-plan-v1.json",
+  "title": "AgentCut Timeline Trim Plan v1",
+  "type": "object",
+  "required": ["version", "operations"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": "1.0"},
+    "expectedOperationCount": {"type": "integer", "minimum": 1},
+    "expectedTotalTrim": {"type": "number", "minimum": 0},
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "match", "headTrim", "contentGuard"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "match": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "clipId": {"type": "string", "minLength": 1},
+              "dialogueId": {"type": "string", "minLength": 1}
+            }
+          },
+          "headTrim": {"type": "number", "exclusiveMinimum": 0},
+          "contentGuard": {"const": "silence-head", "description": "Explicit assertion that the removed source region contains no spoken sentence content"},
+          "requiredTrackKinds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"enum": ["video", "audio"]}
+          }
+        }
+      }
+    },
+    "protections": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "beatIds": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "clipIds": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "dialogueIds": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "frozenBeatIds": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "frozenClipIds": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "timeRanges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start", "end"],
+            "additionalProperties": false,
+            "properties": {
+              "start": {"type": "number", "minimum": 0},
+              "end": {"type": "number", "exclusiveMinimum": 0},
+              "reason": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ripple": {"type": "boolean", "default": true},
+        "requireSynchronizedStart": {"type": "boolean", "default": true},
+        "requiredTrackKinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["video", "audio"]}
+        },
+        "syncTolerance": {"type": "number", "minimum": 0, "default": 0.001},
+        "maxHeadTrim": {"type": "number", "exclusiveMinimum": 0},
+        "preserveTrackOrder": {"type": "boolean", "default": true}
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "claim": "resume own running task else same-filesystem atomic rename of one own inbox task",
+  "cron": {
+    "cron_id": "01f96e1c",
+    "enable_gate": "writer semantic canary PASS",
+    "enabled": false,
+    "offset_seconds": 12,
+    "period_seconds": 60
+  },
+  "directories": [
+    "inbox",
+    "running",
+    "done",
+    "failed",
+    "checkpoints",
+    "heartbeat"
+  ],
+  "forbidden": [
+    "sessions_send",
+    "sessions_list",
+    "sessions_history",
+    "cross-Agent chat",
+    "pure-exec semantic completion",
+    "loops",
+    "cron mutation",
+    "live mutation",
+    "ch482 mutation"
+  ],
+  "official_phases": [
+    "READ_EVIDENCE",
+    "MERGE_EVIDENCE",
+    "DRAFT_FULL_FACT",
+    "VALIDATE",
+    "APPEND_ATOMIC",
+    "NEXT_CHAPTER"
+  ],
+  "owner": "qingshan-claude-writer",
+  "queue_root": "queue_v2.0.17/writer",
+  "role": "writer",
+  "schema": "qingshan.semantic_agent_tick.role_contract.v1",
+  "scope": "the six official phases READ_EVIDENCE, MERGE_EVIDENCE, DRAFT_FULL_FACT, VALIDATE, APPEND_ATOMIC, NEXT_CHAPTER only",
+  "tick": "one task and exactly one semantic microstep",
+  "transport": "shared-disk JSON+SHA only",
+  "version": "2.0.17-file-native-workers"
+}

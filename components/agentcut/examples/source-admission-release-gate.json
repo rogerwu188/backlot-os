@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "output": {
+    "path": "/absolute/exports/E27_FINAL_CANDIDATE.mp4",
+    "width": 720,
+    "height": 1280,
+    "fps": 24
+  },
+  "sourceAdmissionPolicy": {
+    "enabled": true,
+    "requirePerShotCadence": true,
+    "maxActionNearDuplicateRatio": 0.15,
+    "requireActionTrajectory": true,
+    "singleStillAction": "block"
+  },
+  "releaseGate": {
+    "required": true,
+    "fullCutVisualReviewPath": "/absolute/qa/E27_FINAL_FULL_CUT_REVIEW.json"
+  },
+  "timeline": {
+    "videoTracks": [
+      {
+        "id": "Video.Main",
+        "clips": [
+          {
+            "id": "E27-N19-VIDEO",
+            "source": "/absolute/candidates/E27-N19.mp4",
+            "start": 0,
+            "in": 0,
+            "duration": 6,
+            "metadata": {
+              "shot_id": "E27-N19",
+              "action_required": true,
+              "action_trajectory": {
+                "windup": "subject prepares to receive the falling evidence",
+                "contact": "hand catches the evidence",
+                "force": "wrist redirects it toward the comparison target",
+                "result": "the three evidence points form a readable line"
+              },
+              "source_reference_mode": "generated_video",
+              "cadence_report_path": "/absolute/qa/E27-N19_frame_cadence.json",
+              "source_admission": "PASS"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+AgentCut shot recipe registry notice
+
+The AgentCut short-drama shot recipe registry includes adapted structural and
+director-language metadata derived from the video-shotcraft project:
+
+  https://github.com/Vincentwei1021/video-shotcraft
+  source commit: d4915443232e89527fdc9d7e79f132ba411fc440
+
+The derived registry material is distributed under the Apache License,
+Version 2.0, as declared by the upstream project. See:
+
+  https://github.com/Vincentwei1021/video-shotcraft/blob/main/LICENSE
+
+Copyright belongs to the video-shotcraft contributors as applicable.
+
+AgentCut does not import the upstream audio assets, preview media, or Remotion
+runtime. SFX entries in the default registry are symbolic cues only. A concrete
+audio asset can be admitted only with its own verified per-file license,
+source URL, and SHA-256 evidence.

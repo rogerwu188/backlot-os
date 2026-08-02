@@ -1,0 +1,11 @@
+{
+  "schema": "qingshan.owner_live_activation_authorization.v1",
+  "authorization_id": "sem17-one-time-live-activation-TEST-ONLY.json",
+  "owner": "Roger",
+  "approved": true,
+  "action": "activate_file_native_workers_live",
+  "package_sha256": "a961d8412d69f98e70b9522c406406d4ebc68e738f51360b5b53c66f3cf4c300",
+  "target_version": "2.0.20-file-native-workers-fixed-auth-root",
+  "requirements": ["owner_scoped", "one_time", "atomic_live_switch", "rollback_point", "five_worker_health", "writer_ch482_preserved"],
+  "test_only": true
+}

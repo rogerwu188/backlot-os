@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/character-asset-registry-v1.json",
+  "title": "AgentCut-compatible continuity asset registry",
+  "type": "object",
+  "required": ["schema", "project_id", "assets"],
+  "properties": {
+    "schema": {"const": "ai_drama.continuity_asset_registry.v1"},
+    "project_id": {"type": "string", "minLength": 1},
+    "assets": {
+      "type": "object", "required": ["characters", "scenes", "props"],
+      "properties": {
+        "characters": {"type": "object", "additionalProperties": {"$ref": "#/$defs/characterAsset"}},
+        "scenes": {"type": "object"},
+        "props": {"type": "object"}
+      }
+    }
+  },
+  "$defs": {
+    "characterAsset": {
+      "type": "object",
+      "required": ["status", "identity_lock", "canonical_reference_image", "canonical_source", "variants", "agentcut_canonical_card", "seedance_binding"],
+      "properties": {
+        "status": {"const": "LOCKED_RETURNING"},
+        "identity_lock": {"type": "object", "minProperties": 12},
+        "canonical_reference_image": {"type": "string", "minLength": 1},
+        "canonical_source": {"const": "agentcut.character_canonical_card.v1"},
+        "variants": {"type": "object", "minProperties": 1},
+        "agentcut_canonical_card": {
+          "type": "object", "required": ["capability", "version", "manifest_sha256", "image_sha256", "layout", "full_body_views"],
+          "properties": {
+            "capability": {"const": "CL2X-358"}, "version": {"const": "1.0"},
+            "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "image_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "layout": {"const": "headshot-left_then-fullbody-front-side-back"},
+            "full_body_views": {"minimum": 3}
+          }
+        },
+        "seedance_binding": {
+          "type": "object", "required": ["token", "slot", "assetId", "canonicalCard", "canonicalCardSha256"],
+          "properties": {"token": {"pattern": "^\\[\\[char_[1-9][0-9]*\\]\\]$"}, "slot": {"type": "integer", "minimum": 1}}
+        }
+      }
+    }
+  }
+}

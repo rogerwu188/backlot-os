@@ -1,0 +1,16 @@
+{
+  "schema": "qingshan.action_physics_audit.v1",
+  "candidate_sha256": "REPLACE_WITH_EXACT_CANDIDATE_SHA256",
+  "clip_id": "E00-ACTION-001",
+  "confidence": 0.95,
+  "checks": {
+    "wind_up": {"status":"PASS","confidence":0.95,"location":{"start_seconds":0,"end_seconds":1,"start_frame":0,"end_frame":24}},
+    "contact": {"status":"PASS","confidence":0.95,"location":{"start_seconds":1,"end_seconds":2,"start_frame":24,"end_frame":48}},
+    "force_transfer": {"status":"PASS","confidence":0.95,"location":{"start_seconds":1,"end_seconds":3,"start_frame":24,"end_frame":72}},
+    "result": {"status":"PASS","confidence":0.95,"location":{"start_seconds":2,"end_seconds":4,"start_frame":48,"end_frame":96}},
+    "real_hand_prop_contact": {"status":"PASS","confidence":0.95},
+    "no_floating_hands": {"status":"PASS","confidence":0.95},
+    "no_object_drift": {"status":"PASS","confidence":0.95},
+    "complete_action_head_tail": {"status":"PASS","confidence":0.95}
+  }
+}

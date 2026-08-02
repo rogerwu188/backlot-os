@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "output": {"path": "output/transformed-demo.mp4", "width": 1920, "height": 1080, "fps": 30},
+  "timeline": {
+    "videoTracks": [{
+      "id": "A",
+      "clips": [
+        {"id": "v-e18r-001", "metadata": {"dialogue_id": "E18R-001", "beat_id": "E18R"}, "source": "media/video.mp4", "start": 0, "in": 0, "duration": 1},
+        {"id": "v-e18r-002", "metadata": {"dialogue_id": "E18R-002", "beat_id": "E18R"}, "source": "media/video.mp4", "start": 1, "in": 1, "duration": 1},
+        {"id": "v-b05", "metadata": {"dialogue_id": "B05-001", "beat_id": "B05"}, "source": "media/video.mp4", "start": 2, "in": 2, "duration": 1}
+      ]
+    }],
+    "audioTracks": [{
+      "id": "dialogue",
+      "clips": [
+        {"id": "a-e18r-001", "metadata": {"dialogue_id": "E18R-001", "beat_id": "E18R"}, "source": "media/audio.wav", "start": 0, "in": 0, "duration": 1},
+        {"id": "a-e18r-002", "metadata": {"dialogue_id": "E18R-002", "beat_id": "E18R"}, "source": "media/audio.wav", "start": 1, "in": 1, "duration": 1},
+        {"id": "a-b05", "metadata": {"dialogue_id": "B05-001", "beat_id": "B05"}, "source": "media/audio.wav", "start": 2, "in": 2, "duration": 1}
+      ]
+    }]
+  }
+}

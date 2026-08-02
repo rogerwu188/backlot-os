@@ -1,0 +1,16 @@
+{
+  "activation_forbidden": true,
+  "base_package_sha256": "a961d8412d69f98e70b9522c406406d4ebc68e738f51360b5b53c66f3cf4c300",
+  "cron_modified": false,
+  "live_modified": false,
+  "next": "independent_audit",
+  "package_archive": "2.0.20-file-native-workers-fixed-auth-root.tar.gz",
+  "package_sha256_sidecar": "2.0.20-file-native-workers-fixed-auth-root.tar.gz.sha256",
+  "real_authorization_root_required": true,
+  "real_authorization_consumed": false,
+  "real_authorization_read": false,
+  "schema": "qingshan.file_native.live_activation_candidate.v1",
+  "state": "release_candidate_complete_forbidden",
+  "version": "2.0.20-file-native-workers-fixed-auth-root",
+  "writer_ch482_preserved": true
+}

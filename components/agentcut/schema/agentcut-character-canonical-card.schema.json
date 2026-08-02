@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/character-canonical-card-v1.json",
+  "title": "AgentCut canonical character card manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "asset_id", "project_id", "character", "card", "evidence"],
+  "properties": {
+    "schema": {"const": "agentcut.character_canonical_card.v1"},
+    "asset_id": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "character": {"$ref": "#/$defs/character"},
+    "card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "aspect_ratio", "layout", "views"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "aspect_ratio": {"const": "16:9"},
+        "layout": {"const": "headshot-left_then-fullbody-front-side-back"},
+        "views": {
+          "type": "array", "minItems": 4,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "kind", "orientation", "bbox"],
+            "properties": {
+              "id": {"enum": ["headshot_front", "fullbody_front", "fullbody_side", "fullbody_back"]},
+              "kind": {"enum": ["headshot", "fullbody"]},
+              "orientation": {"enum": ["front", "side", "back"]},
+              "bbox": {
+                "type": "array", "minItems": 4, "maxItems": 4,
+                "items": {"type": "number", "minimum": 0, "maximum": 1}
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["layout", "identity_consistency", "full_body_uncropped", "production_constraints"],
+      "properties": {
+        "layout": {"$ref": "#/$defs/review"},
+        "identity_consistency": {
+          "allOf": [
+            {"$ref": "#/$defs/review"},
+            {"type": "object", "required": ["checks"], "properties": {"checks": {"$ref": "#/$defs/identityChecks"}}}
+          ]
+        },
+        "full_body_uncropped": {
+          "type": "object", "additionalProperties": false,
+          "required": ["front", "side", "back"],
+          "properties": {"front": {"const": true}, "side": {"const": true}, "back": {"const": true}}
+        },
+        "production_constraints": {"$ref": "#/$defs/productionConstraints"}
+      }
+    }
+  },
+  "$defs": {
+    "nonEmpty": {"type": "string", "minLength": 1},
+    "description": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sex_presentation", "age_band", "face_shape", "facial_features", "hair", "skin_tone", "body_type", "height_proportion", "wardrobe", "accessories", "materials", "color_palette"],
+      "properties": {
+        "sex_presentation": {"$ref": "#/$defs/nonEmpty"}, "age_band": {"$ref": "#/$defs/nonEmpty"},
+        "face_shape": {"$ref": "#/$defs/nonEmpty"}, "facial_features": {"$ref": "#/$defs/nonEmpty"},
+        "hair": {"$ref": "#/$defs/nonEmpty"}, "skin_tone": {"$ref": "#/$defs/nonEmpty"},
+        "body_type": {"$ref": "#/$defs/nonEmpty"}, "height_proportion": {"$ref": "#/$defs/nonEmpty"},
+        "wardrobe": {"$ref": "#/$defs/nonEmpty"}, "accessories": {"$ref": "#/$defs/nonEmpty"},
+        "materials": {"$ref": "#/$defs/nonEmpty"}, "color_palette": {"$ref": "#/$defs/nonEmpty"}
+      }
+    },
+    "character": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "display_name", "stage", "seedance_slot", "description"],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonEmpty"}, "display_name": {"$ref": "#/$defs/nonEmpty"},
+        "stage": {"$ref": "#/$defs/nonEmpty"},
+        "seedance_slot": {"type": "integer", "minimum": 1, "maximum": 99},
+        "description": {"$ref": "#/$defs/description"}
+      }
+    },
+    "review": {
+      "type": "object",
+      "required": ["method", "reviewer", "recorded_at", "status"],
+      "properties": {
+        "method": {"type": "string", "minLength": 1},
+        "reviewer": {"type": "string", "minLength": 1},
+        "recorded_at": {"type": "string", "minLength": 1},
+        "status": {"const": "PASS"}
+      }
+    },
+    "identityChecks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["face_shape", "facial_features", "hair", "skin_tone", "body_type", "wardrobe", "accessories", "materials", "color_palette"],
+      "properties": {
+        "face_shape": {"const": true}, "facial_features": {"const": true}, "hair": {"const": true},
+        "skin_tone": {"const": true}, "body_type": {"const": true}, "wardrobe": {"const": true},
+        "accessories": {"const": true}, "materials": {"const": true}, "color_palette": {"const": true}
+      }
+    },
+    "productionConstraints": {
+      "type": "object", "additionalProperties": false,
+      "required": ["neutral_gray_seamless_background", "soft_studio_lighting", "near_orthographic", "neutral_pose", "neutral_expression", "no_dynamic_pose", "no_expression_change", "single_character_only", "no_redesign", "no_complex_background", "no_text", "no_ui", "no_watermark"],
+      "properties": {
+        "neutral_gray_seamless_background": {"const": true}, "soft_studio_lighting": {"const": true},
+        "near_orthographic": {"const": true}, "neutral_pose": {"const": true},
+        "neutral_expression": {"const": true}, "no_dynamic_pose": {"const": true},
+        "no_expression_change": {"const": true}, "single_character_only": {"const": true},
+        "no_redesign": {"const": true}, "no_complex_background": {"const": true},
+        "no_text": {"const": true}, "no_ui": {"const": true}, "no_watermark": {"const": true}
+      }
+    }
+  }
+}

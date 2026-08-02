@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/shot-recipe-v1.json",
+  "title": "AgentCut Shot Recipe v1",
+  "type": "object",
+  "required": [
+    "schema", "recipe_id", "version", "source", "license", "dramatic_intent",
+    "applicability", "energy_before", "energy_after", "suggested_duration",
+    "camera_motion", "motion_arc", "subject_anchor", "action", "planned_hold",
+    "transition_intent", "beat_anchor", "sfx_cues", "known_pitfalls",
+    "qa_contract", "rollback"
+  ],
+  "properties": {
+    "schema": {"const": "agentcut.shot_recipe.v1"},
+    "recipe_id": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "source": {
+      "type": "object", "required": ["repository", "commit", "path"],
+      "properties": {
+        "repository": {"type": "string", "format": "uri"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "path": {"type": "string", "minLength": 1},
+        "adaptation": {"type": "string"}
+      }
+    },
+    "license": {
+      "type": "object", "required": ["spdx", "notice", "audio_included"],
+      "properties": {
+        "spdx": {"const": "Apache-2.0"}, "notice": {"const": "NOTICE"},
+        "audio_included": {"const": false}
+      }
+    },
+    "dramatic_intent": {"type": "string", "minLength": 1},
+    "applicability": {
+      "type": "object", "required": ["media_kinds", "ui_only", "default_short_drama_registry"],
+      "properties": {
+        "media_kinds": {"type": "array", "minItems": 1, "items": {"enum": ["live_action", "generated_short_drama", "hybrid"]}},
+        "ui_only": {"const": false}, "default_short_drama_registry": {"const": true}
+      }
+    },
+    "energy_before": {"type": "number", "minimum": 0, "maximum": 1},
+    "energy_after": {"type": "number", "minimum": 0, "maximum": 1},
+    "suggested_duration": {
+      "type": "object", "required": ["min_seconds", "target_seconds", "max_seconds"],
+      "properties": {
+        "min_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "target_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "max_seconds": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "camera_motion": {"type": "object", "required": ["type", "direction", "intensity"]},
+    "motion_arc": {
+      "type": "object", "required": ["phases"],
+      "properties": {
+        "phases": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/timePhase"}}
+      }
+    },
+    "subject_anchor": {"type": "object", "required": ["x_ratio", "y_ratio", "tolerance_ratio", "safe_for_9x16"]},
+    "action": {
+      "type": "object", "required": ["setup", "contact", "result"],
+      "properties": {
+        "setup": {"type": "string", "minLength": 1},
+        "contact": {"type": "string", "minLength": 1},
+        "result": {"type": "string", "minLength": 1}
+      }
+    },
+    "planned_hold": {
+      "type": "object", "required": ["windows"],
+      "properties": {"windows": {"type": "array", "items": {"$ref": "#/$defs/timePhase"}}}
+    },
+    "transition_intent": {"type": "object", "required": ["kind", "intentional_black"]},
+    "beat_anchor": {"type": "object", "required": ["phase_id", "semantic"]},
+    "sfx_cues": {"type": "array", "items": {"$ref": "#/$defs/sfxCue"}},
+    "known_pitfalls": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "qa_contract": {"type": "object", "required": ["required_checks", "preserve_existing_hard_gates"]},
+    "rollback": {"type": "object", "required": ["strategy", "source_media_modified", "platform_mutation_authorized"]}
+  },
+  "$defs": {
+    "timePhase": {
+      "type": "object", "required": ["phase_id"],
+      "oneOf": [
+        {"required": ["start_ratio", "end_ratio"]},
+        {"required": ["start_seconds", "end_seconds"]}
+      ],
+      "properties": {
+        "phase_id": {"type": "string", "minLength": 1},
+        "start_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "end_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "start_seconds": {"type": "number", "minimum": 0},
+        "end_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "description": {"type": "string"}, "camera_state": {"type": "object"},
+        "hold_id": {"type": "string"}, "reason": {"type": "string"}
+      }
+    },
+    "sfxCue": {
+      "type": "object", "required": ["cue_id", "semantic", "asset_path", "license_status"],
+      "properties": {
+        "cue_id": {"type": "string", "minLength": 1}, "semantic": {"type": "string", "minLength": 1},
+        "phase_id": {"type": "string"}, "offset_seconds": {"type": "number"}, "at_seconds": {"type": "number"},
+        "asset_path": {"type": ["string", "null"]}, "license": {"type": ["object", "null"]},
+        "license_status": {"type": "string"}
+      }
+    }
+  }
+}

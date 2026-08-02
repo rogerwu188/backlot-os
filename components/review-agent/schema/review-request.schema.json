@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Qingshan review request",
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {"type": "string"},
+          "scope": {"enum": ["shot", "asset", "sequence", "final", "full_cut"]},
+          "kind": {"enum": ["video", "audio", "image"]},
+          "importance": {"enum": ["utility", "standard", "important", "critical"], "default": "standard"},
+          "pass_score": {"type": "number", "minimum": 1, "maximum": 5},
+          "clip_id": {"type": "string"},
+          "action_required": {"type": "boolean"},
+          "action_intensity": {"enum": ["low", "medium", "high"]},
+          "action_near_duplicate_ratio_max": {"type": "number", "minimum": 0, "maximum": 1},
+          "ocr_timeout_seconds": {"type": "number", "exclusiveMinimum": 0},
+          "ocr_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "review_profile": {"enum": ["video_generation", "generation", "seedance_source"]},
+          "production_profile": {"enum": ["shot_recipe_conformance_v1", "agentcut_director_v1", "qingshan.production.shot_recipe.v1"]},
+          "duration_tolerance_seconds": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.2},
+          "require_episode_runtime": {"type": "boolean"},
+          "require_visual_pacing": {"type": "boolean"},
+          "runtime_policy": {
+            "type": "object",
+            "required": ["target_seconds"],
+            "properties": {
+              "version": {"type": "string"},
+              "target_seconds": {"type": "number", "exclusiveMinimum": 0},
+              "soft_tolerance_seconds": {"type": "number", "minimum": 0, "default": 10},
+              "hard_tolerance_seconds": {"type": "number", "minimum": 0, "default": 20}
+            }
+          },
+          "task": {
+            "type": "object",
+            "properties": {
+              "source_id": {"type": "string"},
+              "dialogue_id": {"type": "string"},
+              "model": {"type": "string"},
+              "duration_plan": {
+                "type": "object",
+                "required": ["duration_seconds"],
+                "properties": {
+                  "policy": {"type": "string"},
+                  "duration_seconds": {"type": "number"}
+                }
+              }
+            }
+          },
+          "metadata": {"type": "object"},
+          "evidence_inputs": {"type": "object", "additionalProperties": {"type": ["string", "array"]}},
+          "audio_thresholds": {"type": "object"},
+          "ambience_thresholds": {"type": "object"},
+          "ocr_brand_allowlist": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "allowed_black_frames": {"deprecated": true, "description": "Accepted for request compatibility but never grants a black-frame exemption. Use provenance-bound shot_recipe intentional_effects.", "type": "array", "items": {"type": "object"}},
+          "gate_policy": {
+            "type": "object",
+            "required": ["version", "reason", "overrides"],
+            "anyOf": [{"required": ["episode"]}, {"required": ["project"]}],
+            "properties": {
+              "version": {"type": "string", "minLength": 1},
+              "reason": {"type": "string", "minLength": 1},
+              "episode": {"type": "string"},
+              "project": {"type": "string"},
+              "overrides": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "min_runtime": {"type": "number", "minimum": 0},
+                  "max_runtime": {"type": "number", "exclusiveMinimum": 0},
+                  "under1_min": {"type": "number", "minimum": 0, "maximum": 1},
+                  "under1_max": {"type": "number", "minimum": 0, "maximum": 1}
+                }
+              }
+            }
+          },
+          "required_capabilities": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"enum": ["media_probe", "video_analysis", "action_physics", "black_frame_analysis", "story_duration", "episode_runtime", "visual_pacing", "audio_analysis", "ambience_analysis", "ocr", "image_analysis", "image_clarity", "image_brightness", "composition", "visual_continuity", "asr", "sentence_audit", "voiceprint", "action", "scene_brightness", "coverage", "agentcut_project", "regression_ci", "shot_recipe_conformance", "motion_arc_audit", "subject_anchor_audit", "beat_sync_audit", "sfx_cue_audit", "readability_audit", "audio", "video", "sentence", "speaker", "brightness", "coverage_manifest"]}
+          }
+        }
+      }
+    }
+  }
+}

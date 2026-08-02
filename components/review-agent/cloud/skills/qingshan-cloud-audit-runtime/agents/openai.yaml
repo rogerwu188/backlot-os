@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qingshan Cloud Audit Runtime"
+  short_description: "Install and verify cloud audit dependencies"
+  default_prompt: "Use $qingshan-cloud-audit-runtime to install and validate the Qingshan cloud audit runtime."

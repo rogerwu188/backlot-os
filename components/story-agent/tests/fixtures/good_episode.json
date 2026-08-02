@@ -1,0 +1,36 @@
+{
+  "episode_id": "GEN-01", "version": "v1",
+  "target_duration_sec": 30, "duration_tolerance_sec": 10,
+  "canon": {
+    "characters": {
+      "Hero": {"locked_traits": {"age": "young"}, "forbidden_depictions": {"age": ["aged", "middle-aged"]}},
+      "Rival": {}, "Ally": {}
+    },
+    "audience_known": ["k1", "k2"], "timeline": ["day1"]
+  },
+  "prev_episode": {"episode_id": "GEN-00", "last_weather": "rain-night"},
+  "new_info": ["ni1", "ni2", "ni3", "ni4", "ni5", "ni6"],
+  "mainline_beats": ["b1", "b2"],
+  "scenes": [{
+    "scene_id": "1-1", "location": "market", "time": "dawn", "weather": "clear-cold", "visual_zone": "crowd",
+    "shots": [
+      {"shot_id": "s1", "duration_sec": 6, "importance": "key", "composition": "wide-crowd",
+       "first_frame_motion_state": "hand reaching mid-air", "ambient_life": "crowd surging, dust rising",
+       "action": {"intent": "seize", "force": "shove", "contact": "shoulder", "result": "rival stumbles back"},
+       "dialogue": [{"speaker": "Hero", "text": "not yet", "subtext": "buying time"}], "new_info": ["ni1"]},
+      {"shot_id": "s2", "duration_sec": 6, "importance": "normal", "composition": "close-hands",
+       "first_frame_motion_state": "coin turning half-over", "ambient_life": "lantern flame swaying",
+       "action": {}, "dialogue": [{"speaker": "Ally", "text": "look here", "subtext": "warning"}], "new_info": ["ni2"]},
+      {"shot_id": "s3", "duration_sec": 6, "importance": "normal", "composition": "over-shoulder",
+       "first_frame_motion_state": "body turning, off-balance", "ambient_life": "vendor crossing foreground",
+       "action": {"intent": "block", "force": "ice", "contact": "blade", "result": "blade frozen mid-swing"},
+       "dialogue": [], "new_info": ["ni3"]},
+      {"shot_id": "s4", "duration_sec": 6, "importance": "normal", "composition": "low-angle",
+       "first_frame_motion_state": "foot leaving ground", "ambient_life": "banners lifted by wind",
+       "action": {}, "dialogue": [{"speaker": "Rival", "text": "too late", "subtext": "bluff"}], "new_info": ["ni4"]},
+      {"shot_id": "s5", "duration_sec": 6, "importance": "normal", "composition": "top-down",
+       "first_frame_motion_state": "paper falling half-way", "ambient_life": "crowd recoiling",
+       "action": {}, "dialogue": [{"speaker": "Hero", "text": "we move", "subtext": "resolve"}], "new_info": ["ni5"]}
+    ]
+  }]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "payload": {
+      "description": "Task inputs only. payload.draft is forbidden; Writer model output is committed separately.",
+      "not": {
+        "required": [
+          "draft"
+        ]
+      },
+      "type": "object"
+    },
+    "phase": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "role": {
+      "enum": [
+        "producer",
+        "writer",
+        "pipeline",
+        "editor",
+        "audit"
+      ]
+    },
+    "task_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "task_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "task_id",
+    "role",
+    "phase",
+    "payload"
+  ],
+  "title": "MinimalFileWorkerTask",
+  "type": "object"
+}

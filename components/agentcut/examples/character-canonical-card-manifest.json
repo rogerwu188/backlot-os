@@ -1,0 +1,77 @@
+{
+  "schema": "agentcut.character_canonical_card.v1",
+  "asset_id": "CHAR-LIN-QING-ANCIENT",
+  "project_id": "qingshan",
+  "character": {
+    "id": "CHAR-LIN-QING-ANCIENT",
+    "display_name": "林青",
+    "stage": "ancient",
+    "seedance_slot": 1,
+    "description": {
+      "sex_presentation": "male",
+      "age_band": "young adult",
+      "face_shape": "long oval face with a defined jaw",
+      "facial_features": "straight brows, narrow dark eyes, straight nose, restrained lips",
+      "hair": "long black hair in a compact period topknot, no loose fringe",
+      "skin_tone": "warm light tan",
+      "body_type": "tall, lean, athletic",
+      "height_proportion": "eight-head proportion",
+      "wardrobe": "closed-collar layered Song-period robe with narrow sleeves",
+      "accessories": "one plain dark cloth belt, no jewelry",
+      "materials": "matte linen and cotton with subtle woven texture",
+      "color_palette": "charcoal, ash gray, muted stone"
+    }
+  },
+  "card": {
+    "path": "character-card.png",
+    "aspect_ratio": "16:9",
+    "layout": "headshot-left_then-fullbody-front-side-back",
+    "views": [
+      {"id": "headshot_front", "kind": "headshot", "orientation": "front", "bbox": [0.01, 0.08, 0.22, 0.84]},
+      {"id": "fullbody_front", "kind": "fullbody", "orientation": "front", "bbox": [0.26, 0.04, 0.20, 0.92]},
+      {"id": "fullbody_side", "kind": "fullbody", "orientation": "side", "bbox": [0.50, 0.04, 0.20, 0.92]},
+      {"id": "fullbody_back", "kind": "fullbody", "orientation": "back", "bbox": [0.74, 0.04, 0.20, 0.92]}
+    ]
+  },
+  "evidence": {
+    "layout": {
+      "method": "vision-qa",
+      "reviewer": "qa-agent",
+      "recorded_at": "2026-07-19T12:00:00-07:00",
+      "status": "PASS"
+    },
+    "identity_consistency": {
+      "method": "vision-qa-plus-human",
+      "reviewer": "identity-reviewer",
+      "recorded_at": "2026-07-19T12:01:00-07:00",
+      "status": "PASS",
+      "checks": {
+        "face_shape": true,
+        "facial_features": true,
+        "hair": true,
+        "skin_tone": true,
+        "body_type": true,
+        "wardrobe": true,
+        "accessories": true,
+        "materials": true,
+        "color_palette": true
+      }
+    },
+    "full_body_uncropped": {"front": true, "side": true, "back": true},
+    "production_constraints": {
+      "neutral_gray_seamless_background": true,
+      "soft_studio_lighting": true,
+      "near_orthographic": true,
+      "neutral_pose": true,
+      "neutral_expression": true,
+      "no_dynamic_pose": true,
+      "no_expression_change": true,
+      "single_character_only": true,
+      "no_redesign": true,
+      "no_complex_background": true,
+      "no_text": true,
+      "no_ui": true,
+      "no_watermark": true
+    }
+  }
+}

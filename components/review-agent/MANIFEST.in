@@ -1,0 +1,8 @@
+include README.md
+include pyproject.toml
+include setup.py
+recursive-include schema *.json
+include outputs/MIGRATION_1.0.0.md
+include outputs/MIGRATION_1.0.1.md
+include outputs/AGENTCUT_0P9P17_SHOT_RECIPE_PROVENANCE.json
+recursive-include tests *.py *.json *.md

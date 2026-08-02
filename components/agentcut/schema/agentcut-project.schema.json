@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/project-v1.json",
+  "title": "AgentCut Project v1",
+  "type": "object",
+  "required": ["version", "output", "timeline"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": "1.0"},
+    "background": {"type": "string", "default": "black"},
+    "metadata": {"type": "object"},
+    "qingshanAudit": {"type": "object"},
+    "shotRecipePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "registryId": {"const": "agentcut.short_drama.director_recipes"},
+        "registryVersion": {"const": "1.0.0"},
+        "projectOverrides": {
+          "type": "object",
+          "additionalProperties": {"type": "object"}
+        }
+      }
+    },
+    "assemblyMode": {"enum": ["STANDARD", "NON_RELEASE_ROUGH_ASSEMBLY"], "default": "STANDARD"},
+    "releaseProject": {"type": "boolean", "default": false},
+    "sourceAdmissionPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "requirePerShotCadence": {"type": "boolean", "default": true},
+        "maxActionNearDuplicateRatio": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.15},
+        "requireActionTrajectory": {"type": "boolean", "default": true},
+        "singleStillAction": {"enum": ["block", "warn"], "default": "block"},
+        "allowConditionalCadenceFailForRoughAssembly": {"type": "boolean", "default": false},
+        "conditionalAdmissionEvidencePath": {"type": "string", "minLength": 1},
+        "allowedConditionalFailureCodes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "roughAssemblyException": {"type": "string", "minLength": 1, "description": "Legacy CL2X-517 activation; prefer assemblyMode plus explicit evidence path."}
+      }
+    },
+    "finalVisualPolicy": {
+      "type": "object",
+      "description": "Post-render full-cut hard gate combining perceptual hashes and measured pixel motion.",
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "required": {"type": "boolean", "default": false},
+        "sampleFps": {"type": "number", "minimum": 0.25, "maximum": 10, "default": 2},
+        "cropBottomRatio": {"type": "number", "minimum": 0, "maximum": 0.45, "default": 0.22},
+        "freezePHashDistanceMax": {"type": "integer", "minimum": 0, "maximum": 64, "default": 4},
+        "freezeAHashDistanceMax": {"type": "integer", "minimum": 0, "maximum": 64, "default": 4},
+        "freezeMotionMeanMax": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.018},
+        "maxNearFreezeSeconds": {"type": "number", "minimum": 0.5, "default": 4},
+        "freezeGapToleranceSeconds": {"type": "number", "minimum": 0, "maximum": 5, "default": 1.5},
+        "minFreezePairRatio": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.65},
+        "compositionPHashDistanceMax": {"type": "integer", "minimum": 0, "maximum": 64, "default": 8},
+        "compositionAHashDistanceMax": {"type": "integer", "minimum": 0, "maximum": 64, "default": 10},
+        "compositionGapSeconds": {"type": "number", "minimum": 0, "default": 2.5},
+        "minCompositionOccurrenceSeconds": {"type": "number", "minimum": 0.25, "default": 1},
+        "maxCompositionOccurrences": {"type": "integer", "minimum": 1, "default": 2},
+        "maxCompositionRatio": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.06},
+        "minTimelineSecondsForCompositionRatio": {"type": "number", "minimum": 1, "default": 30},
+        "reportPath": {"type": "string", "minLength": 1},
+        "allowedIntervals": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["start", "end", "reason"], "additionalProperties": false,
+            "properties": {
+              "start": {"type": "number", "minimum": 0},
+              "end": {"type": "number", "exclusiveMinimum": 0},
+              "reason": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "releaseGate": {
+      "type": "object",
+      "properties": {
+        "required": {"type": "boolean", "default": false},
+        "fullCutVisualReviewPath": {"type": "string", "minLength": 1}
+      }
+    },
+    "masterAudioPolicy": {
+      "type": "object",
+      "properties": {
+        "required": {"type": "boolean", "default": false},
+        "limiter": {"type": "boolean", "default": true},
+        "truePeakCeilingDbtp": {"type": "number", "minimum": -20, "maximum": 0, "default": -1},
+        "loudnessTargetLufs": {"type": ["number", "null"], "default": -16},
+        "loudnessRangeLu": {"type": "number", "default": 11},
+        "codecHeadroomDb": {"type": "number", "minimum": 0, "maximum": 6, "default": 0.5},
+        "maxClippedSamples": {"type": "integer", "minimum": 0, "default": 0}
+      }
+    },
+    "requireBurnedSubtitles": {"type": "boolean", "default": false},
+    "requireBrandedOutro": {"type": "boolean", "default": false},
+    "requireCutReason": {"type": "boolean", "default": false},
+    "expectedDialogueIds": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "narrativeGate": {
+      "type": "object",
+      "description": "Hard preflight gate for narratively valueless timelines.",
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "requireMetadata": {"type": "boolean", "default": true},
+        "rejectDuplicateSemantics": {"type": "boolean", "default": true},
+        "maxSemanticRepeats": {"type": "integer", "minimum": 1, "default": 1},
+        "maxSemanticGroupRatio": {"type": "number", "exclusiveMinimum": 0, "maximum": 1, "default": 0.15, "description": "Maximum timeline ratio for a semantic_group used more than once; single-use groups are exempt."},
+        "rejectNoInformation": {"type": "boolean", "default": true},
+        "requireCutawayRelevance": {"type": "boolean", "default": true},
+        "minCutawayRelevance": {"type": "number", "minimum": 0, "default": 0.5},
+        "maxBackgroundBedRatio": {"type": "number", "minimum": 0, "default": 0.2},
+        "maxBackgroundBedSeconds": {"type": "number", "minimum": 0, "default": 8},
+        "requiredShotIds": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "runtimePolicy": {
+      "type": "object",
+      "properties": {
+        "allowShorter": {"type": "boolean", "default": true},
+        "paddingForbidden": {"type": "boolean", "default": true},
+        "onCoverageGap": {"enum": ["fail", "shorten", "request_asset", "placeholder"], "default": "fail"}
+      }
+    },
+    "outro": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "template": {"type": "string", "default": "nalu-motion-v1"},
+        "templateVersion": {"type": "string", "default": "1.0"},
+        "brand": {"type": "string", "default": "nalu_motion"},
+        "brandPreset": {"type": "string"},
+        "assetPath": {"type": "string", "description": "Absolute logo/image/video path"},
+        "start": {"type": "number", "minimum": 0},
+        "duration": {"type": "number", "minimum": 0.1, "default": 3},
+        "fit": {"enum": ["contain", "cover", "stretch"], "default": "contain"},
+        "audioPolicy": {"oneOf": [{"enum": ["auto", "silence", "asset", "mix"]}, {"type": "object", "properties": {"mode": {"enum": ["auto", "silence", "asset", "mix"]}}}]},
+        "transitionIn": {"type": "number", "minimum": 0, "default": 0.25},
+        "transitionOut": {"type": "number", "minimum": 0, "default": 0.25},
+        "titleText": {"type": "string", "default": "青山"},
+        "nextText": {"type": "string", "default": "敬请期待"},
+        "brandText": {"type": "string", "default": "NALU MOTION"},
+        "font": {"type": "string"},
+        "audioPath": {"type": "string"}, "sfxPath": {"type": "string"},
+        "dialogueDuckDb": {"type": "number", "default": -12}, "bgmDuckDb": {"type": "number", "default": -9},
+        "includeInTotalDuration": {"type": "boolean", "default": true},
+        "safeArea": {"type": "object", "properties": {"left": {"type": "integer", "minimum": 0}, "right": {"type": "integer", "minimum": 0}, "top": {"type": "integer", "minimum": 0}, "bottom": {"type": "integer", "minimum": 0}}},
+        "logo": {"type": "object", "properties": {"x": {"type": "integer", "minimum": 0}, "y": {"type": "integer", "minimum": 0}, "width": {"type": "integer", "minimum": 0}, "height": {"type": "integer", "minimum": 0}}}
+      }
+    },
+    "subtitlePolicy": {
+      "type": "object",
+      "properties": {
+        "requireBurnedSubtitles": {"type": "boolean"},
+        "expectedDialogueIds": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "width": {"type": "integer", "minimum": 1, "default": 1920},
+        "height": {"type": "integer", "minimum": 1, "default": 1080},
+        "fps": {"type": "integer", "minimum": 1, "default": 30},
+        "videoCodec": {"type": "string", "default": "libx264"},
+        "audioCodec": {"type": "string", "default": "aac"},
+        "videoBitrate": {"type": "string"},
+        "audioBitrate": {"type": "string", "default": "192k"},
+        "pixelFormat": {"type": "string", "default": "yuv420p"},
+        "threads": {"type": "integer", "minimum": 0, "default": 0, "description": "FFmpeg threads per render; 0 means automatic"}
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "properties": {
+        "videoTracks": {"type": "array", "maxItems": 2, "items": {"$ref": "#/$defs/videoTrack"}},
+        "audioTracks": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/audioTrack"}},
+        "subtitleTracks": {"type": "array", "items": {"$ref": "#/$defs/subtitleTrack"}},
+        "holdSlots": {"type": "array", "items": {"$ref": "#/$defs/holdSlot"}}
+      }
+    }
+  },
+  "$defs": {
+    "shotRecipeReference": {
+      "type": "object",
+      "required": ["recipe_id", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "recipe_id": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "override": {"type": "object", "default": {}}
+      }
+    },
+    "transition": {
+      "type": "object",
+      "properties": {"type": {"enum": ["none", "fade"]}, "duration": {"type": "number", "minimum": 0}}
+    },
+    "clipBase": {
+      "type": "object",
+      "required": ["source", "duration"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "metadata": {
+          "type": "object",
+          "description": "Agent/QA correlation and per-shot source-admission evidence.",
+          "properties": {
+            "action_required": {"type": "boolean"},
+            "action_trajectory": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "windup": {"type": "string", "minLength": 1},
+                "contact": {"type": "string", "minLength": 1},
+                "force": {"type": "string", "minLength": 1},
+                "result": {"type": "string", "minLength": 1}
+              }
+            },
+            "source_reference_mode": {"enum": ["native_video", "generated_video", "first_last_frames", "multi_image_sequence", "single_still_only", "unknown"]},
+            "cadence_report_path": {"type": "string", "minLength": 1},
+            "source_admission": {"type": "string", "minLength": 1}
+            ,"shot_recipe": {"$ref": "#/$defs/shotRecipeReference"}
+            ,"recipe_id": {"type": "string", "minLength": 1, "description": "Legacy flat reference; prefer shot_recipe.recipe_id"}
+            ,"recipe_version": {"type": "string", "minLength": 1}
+            ,"shot_recipe_override": {"type": "object"}
+            ,"intentional_black": {"type": "boolean"}
+            ,"narrative_action_present": {"type": "boolean"}
+            ,"motivated_hold": {"type": "boolean"}
+            ,"motivated_hold_reason": {"type": "string", "minLength": 1}
+          }
+        },
+        "source": {"type": "string", "minLength": 1}, "start": {"type": "number", "minimum": 0, "default": 0},
+        "in": {"type": "number", "minimum": 0, "default": 0}, "duration": {"type": "number", "exclusiveMinimum": 0},
+        "volume": {"type": "number", "minimum": 0, "default": 1}, "opacity": {"type": "number", "minimum": 0, "maximum": 1, "default": 1},
+        "position": {"type": "object", "properties": {"x": {"type": ["number", "string"]}, "y": {"type": ["number", "string"]}}},
+        "size": {"type": "object", "properties": {"width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}}},
+        "transitionIn": {"$ref": "#/$defs/transition"}, "transitionOut": {"$ref": "#/$defs/transition"}
+        ,"cleanupRegions": {"type": "array", "items": {"$ref": "#/$defs/cleanupRegion"}}
+      }
+    },
+    "cleanupRegion": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "mode": {"enum": ["delogo", "mask", "blur"], "default": "delogo"},
+        "x": {"type": "integer", "minimum": 0}, "y": {"type": "integer", "minimum": 0},
+        "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
+        "start": {"type": "number", "minimum": 0, "default": 0},
+        "duration": {"type": "number", "exclusiveMinimum": 0},
+        "color": {"type": "string", "default": "black"},
+        "blur": {"type": "integer", "minimum": 1, "default": 12},
+        "allowCaptionSafeBand": {"type": "boolean", "default": false}
+      }
+    },
+    "holdSlot": {
+      "type": "object",
+      "required": ["id", "start", "duration", "mode", "reason", "replacementCondition"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "start": {"type": "number", "minimum": 0},
+        "duration": {"type": "number", "exclusiveMinimum": 0},
+        "mode": {"enum": ["black", "placeholder"]},
+        "reason": {"type": "string", "minLength": 1},
+        "replacementCondition": {"type": "string", "minLength": 1},
+        "releaseBlocking": {"const": true},
+        "metadata": {"type": "object"}
+      }
+    },
+    "videoTrack": {"type": "object", "required": ["clips"], "properties": {"id": {"type": "string"}, "enabled": {"type": "boolean"}, "clips": {"type": "array", "items": {"$ref": "#/$defs/clipBase"}}}},
+    "audioTrack": {"type": "object", "required": ["clips"], "properties": {"id": {"type": "string"}, "enabled": {"type": "boolean"}, "clips": {"type": "array", "items": {"$ref": "#/$defs/clipBase"}}}},
+    "captionStyle": {
+      "type": "object",
+      "properties": {
+        "font": {"type": "string", "minLength": 1, "description": "Font file path; production validation requires the file and every used glyph"},
+        "size": {"type": "integer", "minimum": 1, "default": 48},
+        "color": {"type": "string", "default": "#FFFFFF"},
+        "outline": {"type": "integer", "minimum": 0, "default": 3},
+        "outlineColor": {"type": "string", "default": "#000000"},
+        "alignment": {"enum": ["top-left", "top-center", "top-right", "middle-left", "center", "middle-right", "bottom-left", "bottom-center", "bottom-right"]},
+        "margins": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "object", "properties": {"left": {"type": "integer", "minimum": 0}, "right": {"type": "integer", "minimum": 0}, "top": {"type": "integer", "minimum": 0}, "bottom": {"type": "integer", "minimum": 0}}}]},
+        "wrap": {"type": "integer", "minimum": 1, "default": 18}
+      }
+    },
+    "captionClip": {
+      "type": "object",
+      "required": ["text", "start", "duration"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "dialogue_id": {"type": "string", "minLength": 1},
+        "dialogueId": {"type": "string", "minLength": 1},
+        "metadata": {"type": "object"},
+        "text": {"type": "string"}, "start": {"type": "number", "minimum": 0},
+        "duration": {"type": "number", "exclusiveMinimum": 0},
+        "style": {"$ref": "#/$defs/captionStyle"},
+        "font": {"type": "string", "minLength": 1}, "size": {"type": "integer", "minimum": 1},
+        "color": {"type": "string"}, "outline": {"type": "integer", "minimum": 0},
+        "outlineColor": {"type": "string"},
+        "alignment": {"enum": ["top-left", "top-center", "top-right", "middle-left", "center", "middle-right", "bottom-left", "bottom-center", "bottom-right"]},
+        "margins": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "object"}]},
+        "wrap": {"type": "integer", "minimum": 1}
+      }
+    },
+    "subtitleTrack": {
+      "type": "object", "required": ["clips"],
+      "properties": {
+        "id": {"type": "string"}, "enabled": {"type": "boolean"},
+        "style": {"$ref": "#/$defs/captionStyle"},
+        "clips": {"type": "array", "items": {"$ref": "#/$defs/captionClip"}}
+      }
+    }
+  }
+}

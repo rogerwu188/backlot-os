@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "background": "#101216",
+  "output": {
+    "path": "output/demo.mp4",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "videoCodec": "libx264",
+    "audioCodec": "aac",
+    "audioBitrate": "192k"
+  },
+  "timeline": {
+    "videoTracks": [
+      {
+        "id": "A",
+        "clips": [
+          {
+            "id": "host-intro",
+            "metadata": {"dialogue_id": "dialogue-001", "beat_id": "beat-001"},
+            "source": "media/host.mp4",
+            "start": 0,
+            "in": 2.5,
+            "duration": 8,
+            "transitionIn": {"type": "fade", "duration": 0.5},
+            "transitionOut": {"type": "fade", "duration": 0.5}
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "clips": [
+          {
+            "source": "media/broll.mp4",
+            "start": 3,
+            "in": 0,
+            "duration": 3,
+            "opacity": 0.95,
+            "size": {"width": 640, "height": 360},
+            "position": {"x": "W-w-48", "y": "H-h-48"},
+            "transitionIn": {"type": "fade", "duration": 0.3},
+            "transitionOut": {"type": "fade", "duration": 0.3}
+          }
+        ]
+      }
+    ],
+    "audioTracks": [
+      {"id": "dialogue", "clips": [{"source": "media/dialogue.wav", "start": 0, "in": 0, "duration": 8, "volume": 1}]},
+      {"id": "music", "clips": [{"source": "media/music.mp3", "start": 0, "in": 12, "duration": 8, "volume": 0.2, "transitionIn": {"type": "fade", "duration": 1}, "transitionOut": {"type": "fade", "duration": 1}}]},
+      {"id": "sfx", "clips": [{"source": "media/whoosh.wav", "start": 2.8, "in": 0, "duration": 1, "volume": 0.7}]}
+    ]
+  }
+}

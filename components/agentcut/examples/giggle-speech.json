@@ -1,0 +1,14 @@
+{
+  "id": "speech-001",
+  "method": "generateSpeech",
+  "params": {
+    "text": "她停在门口，声音压得很低：你早就知道真相，对吗？男人沉默了两秒：我知道，但我不能让你一个人去冒险。",
+    "voiceId": "ttv-voice-2025092214470225-uxPJ4AuZ",
+    "emotion": "sad",
+    "speed": 1,
+    "outputDir": "/data/generated-dialogue",
+    "fileName": "dialogue_voice.mp3",
+    "pollIntervalSeconds": 5,
+    "timeoutSeconds": 120
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "expectedOperationCount": 2,
+  "expectedTotalTrim": 0.4,
+  "operations": [
+    {
+      "id": "trim-dialogue-E18R-001",
+      "match": {"dialogueId": "E18R-001"},
+      "headTrim": 0.2,
+      "contentGuard": "silence-head",
+      "requiredTrackKinds": ["video", "audio"]
+    },
+    {
+      "id": "trim-dialogue-E18R-002",
+      "match": {"dialogueId": "E18R-002"},
+      "headTrim": 0.2,
+      "contentGuard": "silence-head",
+      "requiredTrackKinds": ["video", "audio"]
+    }
+  ],
+  "protections": {
+    "beatIds": ["B05"]
+  },
+  "options": {
+    "ripple": true,
+    "requireSynchronizedStart": true,
+    "requiredTrackKinds": ["video", "audio"],
+    "syncTolerance": 0.001,
+    "maxHeadTrim": 0.2,
+    "preserveTrackOrder": true
+  }
+}

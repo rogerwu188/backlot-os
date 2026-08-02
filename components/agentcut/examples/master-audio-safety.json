@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "releaseProject": true,
+  "masterAudioPolicy": {
+    "required": true,
+    "limiter": true,
+    "truePeakCeilingDbtp": -1,
+    "codecHeadroomDb": 0.5,
+    "loudnessTargetLufs": -16,
+    "loudnessRangeLu": 11,
+    "maxClippedSamples": 0
+  },
+  "output": {"path": "outputs/release_candidate_safe.mp4", "width": 720, "height": 1280},
+  "timeline": {
+    "videoTracks": [{"id": "Video.Main", "clips": [{"source": "/absolute/path/picture.mp4", "start": 0, "duration": 5}]}],
+    "audioTracks": [{"id": "Audio.Dialogue", "clips": [{"source": "/absolute/path/dialogue.wav", "start": 0, "duration": 5, "volume": 5.5}]}]
+  }
+}
