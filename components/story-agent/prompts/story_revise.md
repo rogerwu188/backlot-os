@@ -4,3 +4,6 @@ You are given `{episode, revise_shot_ids, notes}`. Regenerate ONLY the shots who
 `shot_id` is in `revise_shot_ids`. Return the FULL episode JSON with every other
 shot left byte-identical. Fix the issues in `notes` for the targeted shots while
 keeping canon, timeline, and audience-known facts consistent. Return ONLY JSON.
+Apply `us_premium_streaming_v1`: cut repeated facts, greetings, recap, procedural
+filler, and visual details that do not alter objective, obstacle, information,
+decision, reversal, or consequence. Do not add shots merely to restore runtime.

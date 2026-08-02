@@ -1,0 +1,8 @@
+include .env.example
+include AUDIT.md
+include CAPABILITY_MATRIX.md
+include MIGRATION.md
+include TEST_REPORT.json
+recursive-include schemas *.json
+recursive-include src/backlotos_producer_supervisor/schemas *.json
+recursive-include tests *.py *.json

@@ -23,7 +23,7 @@ command -v ffprobe >/dev/null || { echo "FFprobe is required." >&2; exit 2; }
 mkdir -p "$install_root"
 "$python_bin" -m venv "$install_root/venv"
 "$install_root/venv/bin/python" -m pip install --upgrade pip
-"$install_root/venv/bin/python" -m pip install "$repo_root/components/agentcut" "$repo_root/components/review-agent" "$repo_root/components/story-agent"
+"$install_root/venv/bin/python" -m pip install "$repo_root/components/agentcut" "$repo_root/components/review-agent" "$repo_root/components/story-agent" "$repo_root/components/producer-supervisor-agent" "$repo_root/components/launcher"
 
 share_stage="$(mktemp -d "$install_root/share.next.XXXXXX")"
 cp -R "$repo_root/components/factory-runtime" "$share_stage/factory-runtime"
@@ -39,4 +39,5 @@ printf '%s\n' "$repo_root" > "$install_root/source/repository-path"
 printf '%s\n' "$(tr -d '[:space:]' < "$repo_root/VERSION")" > "$install_root/source/version"
 
 echo "BacklotOS installed at $install_root"
+echo "Start the production console with: $install_root/venv/bin/backlotos start"
 BACKLOT_INSTALL_DIR="$install_root" "$repo_root/scripts/doctor.sh"

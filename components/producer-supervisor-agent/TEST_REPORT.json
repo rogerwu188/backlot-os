@@ -1,0 +1,525 @@
+{
+  "schema": "backlotos.test-report/1.0",
+  "package": "backlotos-producer-supervisor-agent",
+  "version": "0.1.1",
+  "generated_at": "2026-08-02T23:14:18.772426Z",
+  "test_count": 83,
+  "passed": 83,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "duration_sec": 0.851,
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "test_cost_summary_not_reported_when_no_events",
+      "classname": "tests.test_cost_summary",
+      "time_sec": 0.002,
+      "status": "passed"
+    },
+    {
+      "name": "test_cost_summary_net_aggregation",
+      "classname": "tests.test_cost_summary",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_cost_summary_detects_duplicate_provider_task_id",
+      "classname": "tests.test_cost_summary",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_dispatch_idempotent_second_call_deduped",
+      "classname": "tests.test_dispatch_idempotency_and_concurrency",
+      "time_sec": 0.003,
+      "status": "passed"
+    },
+    {
+      "name": "test_dispatch_different_payload_is_not_deduped",
+      "classname": "tests.test_dispatch_idempotency_and_concurrency",
+      "time_sec": 0.002,
+      "status": "passed"
+    },
+    {
+      "name": "test_concurrent_dispatch_many_no_ledger_corruption",
+      "classname": "tests.test_dispatch_idempotency_and_concurrency",
+      "time_sec": 0.011,
+      "status": "passed"
+    },
+    {
+      "name": "test_concurrent_dispatch_same_key_dedupes_and_invokes_once",
+      "classname": "tests.test_dispatch_idempotency_and_concurrency",
+      "time_sec": 0.003,
+      "status": "passed"
+    },
+    {
+      "name": "test_dispatch_many_content_failure_is_not_top_level_success",
+      "classname": "tests.test_dispatch_idempotency_and_concurrency",
+      "time_sec": 0.003,
+      "status": "passed"
+    },
+    {
+      "name": "test_downstream_inconsistent_ok_true_failure_status_is_failed",
+      "classname": "tests.test_dispatch_idempotency_and_concurrency",
+      "time_sec": 0.002,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-publish]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-release]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-overwrite-final]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-platform-upload]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-platform-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags0-human-release-authorization]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-publish]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-release]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-overwrite-final]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-platform-upload]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-platform-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags1-human-release-authorization]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-publish]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-release]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-overwrite-final]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-platform-upload]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-platform-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags2-human-release-authorization]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-publish]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-release]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-overwrite-final]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-platform-upload]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-platform-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags3-human-release-authorization]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-publish]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-release]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-overwrite-final]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-platform-upload]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-platform-delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_verbs_always_blocked_no_bypass[bypass_flags4-human-release-authorization]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[publish]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[release]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[overwrite_final]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[platform_upload]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[platform_delete]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_irreversible_action_param_always_blocked[human_release_authorization]",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_dispatch_to_human_stage_is_blocked_not_faked",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_capability_fail_when_no_invoker_backend_configured",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_invoker_raises_capability_error_not_silent_pass",
+      "classname": "tests.test_human_authorization_and_capability",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_ndjson_roundtrip",
+      "classname": "tests.test_ndjson_and_http",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_http_health_and_task_roundtrip",
+      "classname": "tests.test_ndjson_and_http",
+      "time_sec": 0.677,
+      "status": "passed"
+    },
+    {
+      "name": "test_pipeline_gate_health_finds_repository_tools",
+      "classname": "tests.test_pipeline_gates",
+      "time_sec": 0.014,
+      "status": "passed"
+    },
+    {
+      "name": "test_anti_padding_gate_executes_real_pass_and_fail",
+      "classname": "tests.test_pipeline_gates",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_media_generation_remains_adapter_required",
+      "classname": "tests.test_pipeline_gates",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_unknown_pipeline_gate_is_structured_error",
+      "classname": "tests.test_pipeline_gates",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_resume_after_interrupted_run",
+      "classname": "tests.test_resume_and_retry",
+      "time_sec": 0.012,
+      "status": "passed"
+    },
+    {
+      "name": "test_resume_all_complete_returns_none_next",
+      "classname": "tests.test_resume_and_retry",
+      "time_sec": 0.003,
+      "status": "passed"
+    },
+    {
+      "name": "test_retry_failed_only_touches_failed_jobs",
+      "classname": "tests.test_resume_and_retry",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_status_reconciles_producer_jobs_over_launcher_snapshot",
+      "classname": "tests.test_resume_and_retry",
+      "time_sec": 0.002,
+      "status": "passed"
+    },
+    {
+      "name": "test_no_secrets_in_package",
+      "classname": "tests.test_security_and_content_scan",
+      "time_sec": 0.009,
+      "status": "passed"
+    },
+    {
+      "name": "test_no_qingshan_specific_content",
+      "classname": "tests.test_security_and_content_scan",
+      "time_sec": 0.005,
+      "status": "passed"
+    },
+    {
+      "name": "test_supervise_flags_stale_evidence_by_version",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_supervise_flags_stale_by_timestamp",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_supervise_sha_mismatch_detected",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_supervise_unexecuted_checks_report_not_run_never_pass",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_supervise_padding_advisory_only_not_hard_fail",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_supervise_empty_evidence_never_passes",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_duration_does_not_sum_duplicate_final_measurements",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_review_decision_never_downgrades_block",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_review_decision_advise_for_nonblocking_and_checklist",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_review_decision_pass_when_clean",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_review_decision_incomplete_checklist_cannot_pass",
+      "classname": "tests.test_supervise_and_review_decision",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_validate_good_intake",
+      "classname": "tests.test_validate_and_plan",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_validate_bad_intake",
+      "classname": "tests.test_validate_and_plan",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_validate_rejects_ambiguous_or_non_http_source",
+      "classname": "tests.test_validate_and_plan",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_plan_inline_multi_episode",
+      "classname": "tests.test_validate_and_plan",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_plan_persists_to_real_project",
+      "classname": "tests.test_validate_and_plan",
+      "time_sec": 0.002,
+      "status": "passed"
+    },
+    {
+      "name": "test_plan_uses_existing_project_episode_count_and_duration",
+      "classname": "tests.test_validate_and_plan",
+      "time_sec": 0.002,
+      "status": "passed"
+    }
+  ],
+  "regressions": {
+    "story_agent": {
+      "passed": 27,
+      "failed": 0,
+      "skipped": 0
+    },
+    "launcher": {
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
+}

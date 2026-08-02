@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backlotos-launcher"
+version = "0.2.0"
+description = "One-click novel intake and production launcher for BacklotOS"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "claude-story-agent>=0.2.0",
+  "agentcut>=0.9.17",
+  "qingshan-review-agent>=1.1.0",
+  "pypdf>=5.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+backlotos = "backlotos_launcher.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

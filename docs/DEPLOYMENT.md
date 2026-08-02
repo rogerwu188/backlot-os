@@ -29,3 +29,30 @@ The Review Agent includes a Docker-based cloud service under `components/review-
 ## Test tiers
 
 CI runs portable contract tests on every pull request. The full Review Agent regression corpus additionally needs a production evidence root and can be run with `BACKLOT_PROJECT_ROOT=/path/to/project python -m unittest discover -s components/review-agent/tests -v`. This separation prevents a missing private corpus from being reported as a product failure while preserving the full production suite for release acceptance.
+## Ordinary-user launch
+
+After `./scripts/install.sh`, start the local console:
+
+```bash
+${BACKLOT_INSTALL_DIR:-$HOME/.local/share/backlotos}/venv/bin/backlotos start
+```
+
+The console binds to `127.0.0.1` by default and is not exposed to the network.
+Projects are stored under `~/BacklotOS/projects` unless
+`BACKLOT_PROJECTS_DIR` is configured. URL intake accepts only public HTTP(S)
+destinations and rejects credentials, localhost, and private-network targets.
+
+## Five-agent cloud deployment
+
+```bash
+cp deploy/five-agent/.env.example deploy/five-agent/.env
+docker compose -f deploy/five-agent/docker-compose.yml up --build -d
+```
+
+Only the workbench is published to the host by default. The five Agent ports
+remain on the private Compose network. Configure `BACKLOT_AGENT_TOKEN` before
+exposing an Agent endpoint outside that network. See
+`deploy/five-agent/README.md` for the current capability matrix and the two
+versioned command adapters. The Producer adapter is installed by the image;
+the Pipeline adapter runs deterministic generic gates but reports
+`ADAPTER_REQUIRED` for provider-backed media generation until configured.

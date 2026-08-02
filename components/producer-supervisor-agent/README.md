@@ -1,0 +1,83 @@
+# backlotos-producer-supervisor-agent
+
+Producer / Supervisor agent for BacklotOS: episode planning, idempotent job
+dispatch, cross-stage evidence supervision, credit-ledger cost aggregation,
+resume/retry-failed recovery, and PASS/ADVISE/BLOCK review decisions. Generic,
+stdlib-only core -- no source-drama-specific content anywhere in `src/`,
+`schemas/`, or `tests/` (verified by `tests/test_security_and_content_scan.py`).
+
+This package IS the real implementation behind the two external-command
+adapters `backlotos_launcher.agent_host` already expects:
+
+- `BACKLOT_PRODUCER_COMMAND=backlotos-producer-command`
+- `BACKLOT_PIPELINE_COMMAND=backlotos-pipeline-command`
+
+Both scripts read one JSON request on stdin (`{"method"|"verb": ..., "params": {...}}`)
+and write exactly one JSON object to stdout. They use a non-zero exit for a
+content/capability failure; `agent_host.py` preserves that structured JSON and
+exit code so a generic supervisor cannot mistake an internal failure for tool
+success (argv, no shell, no extra stdout).
+
+## Install
+
+```bash
+pip install -e components/producer-supervisor-agent
+```
+
+## Console scripts
+
+- `backlotos-producer-command` -- BACKLOT_PRODUCER_COMMAND adapter.
+- `backlotos-pipeline-command` -- BACKLOT_PIPELINE_COMMAND adapter; wraps the
+  GENERIC pipeline-tools gates (see CAPABILITY_MATRIX.md) as verb-dispatched
+  semantic checks, with honest `ADAPTER_REQUIRED` for anything needing a real
+  media-generation provider.
+- `backlotos-producer-agent` -- standalone entrypoint (single-shot CLI /
+  `serve` NDJSON loop / `serve-http` minimal HTTP server), for running this
+  package directly outside the launcher's external-command proxy. Mirrors
+  `claude-story-agent`'s CLI conventions.
+
+## Verbs
+
+`health`, `validate`, `plan`, `dispatch`, `dispatchMany`, `supervise`,
+`status`/`progress`, `resume`, `retry-failed`/`retryFailed`,
+`cost-summary`/`costSummary`, `review-decision`/`reviewDecision`.
+
+Any verb, or any `params.action`/`params.stage`, that implies a publish /
+delete / overwrite-final / irreversible platform action returns
+`{"ok": false, "status": "BLOCKED", "reason": "HUMAN_AUTHORIZATION_REQUIRED"}`
+unconditionally -- no payload flag (`force`, `confirm`, `override`, ...) can
+bypass this. See `tests/test_human_authorization_and_capability.py`.
+
+## On-disk contract (compatible with `backlotos_launcher.pipeline`)
+
+- `<project>/plan.json` -- Producer's episode/stage/agent-owner/concurrency plan.
+- `<project>/jobs.ndjson` -- append-only idempotent job ledger (fsync per write).
+- `<project>/credits.ndjson` -- same shape as `contracts/credit-event.schema.json`,
+  read/written the same way `backlotos_launcher.pipeline.record_credit()` does.
+- `<project>/episodes/*.json` -- read (not owned) when present, for `status`.
+
+This package re-implements (does not import) the launcher's atomic-write and
+NDJSON-append primitives in `ledger.py`, so it has no hard runtime dependency
+on `backlotos-launcher`, while staying byte-compatible with its file shapes.
+
+## Idempotent dispatch
+
+`dispatch` computes `idempotency_key = sha256(episode_id|stage|sha256(payload))`
+and serializes concurrent calls for the same key with an in-process lock, so
+the downstream agent is invoked at most once per key even under concurrent
+`dispatchMany` calls. A second call with the same key returns the existing
+ledger record with `"deduped": true` and does not re-invoke the agent.
+
+## Tests
+
+```bash
+python3 -m pytest components/producer-supervisor-agent/tests -q
+```
+
+83/83 passing in local acceptance (see `TEST_REPORT.json`, generated
+programmatically from the real pytest/junitxml run, not hand-authored).
+
+## Build
+
+`python -m build components/producer-supervisor-agent` produces the wheel and
+sdist. Version 0.1.1 was rebuilt and verified in a fresh isolated environment.

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backlotos-producer-supervisor-agent"
+version = "0.1.1"
+description = "Producer / Supervisor agent for BacklotOS: episode planning, idempotent dispatch, cross-stage evidence supervision, cost aggregation, and the BACKLOT_PRODUCER_COMMAND / BACKLOT_PIPELINE_COMMAND external-command adapters. Generic, stdlib-only core (no project-specific content)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Proprietary — BacklotOS"}
+dependencies = []
+
+[project.optional-dependencies]
+jsonschema = ["jsonschema>=4"]
+test = ["pytest>=7"]
+
+[project.scripts]
+backlotos-producer-command = "backlotos_producer_supervisor.cli:producer_command_main"
+backlotos-pipeline-command = "backlotos_producer_supervisor.cli:pipeline_command_main"
+backlotos-producer-agent = "backlotos_producer_supervisor.cli:producer_agent_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+backlotos_producer_supervisor = ["schemas/*.json"]

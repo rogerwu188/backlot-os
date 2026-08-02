@@ -1,7 +1,7 @@
 # Project compat layer (青山) — de-identified only
 
 This directory is the ONLY place project-specific adaptation may live, and it must
-contain **no copyright text** from the source novel/scripts.
+contain no production source text from the original novel or scripts.
 
 - Allowed: de-identified structural fixtures (generic names), a field-mapping note
   showing how project canon is passed into `spec.canon` at call time.

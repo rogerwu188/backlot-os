@@ -1,6 +1,7 @@
 """Script Review Agent — deterministic, decoupled from generation."""
 from __future__ import annotations
 import hashlib
+import re
 from .schemas import Episode, DURATION_MIN, DURATION_MAX
 
 KEY_PASS = 4
@@ -8,7 +9,9 @@ NORMAL_PASS = 3
 MIN_NEW_INFO = 6
 MIN_EVENTS_PER_MIN = 4.0
 DIALOGUE_MAX_CHARS = 25
-RULE_VERSION = "backlotos.story-review.v1"
+RULE_VERSION = "backlotos.story-review.v2"
+PACING_POLICY_VERSION = "backlotos.us-premium-streaming/1.0"
+MAX_DIALOGUE_CHARS_PER_MIN = 260
 
 def _iid(check: str, loc: str) -> str:
     return "ISS-" + hashlib.sha1(f"{check}|{loc}".encode()).hexdigest()[:10]
@@ -33,7 +36,9 @@ class ReviewAgent:
         known = set(map(str, ep.canon.get("audience_known") or []))
         prev_weather = (ep.prev_episode or {}).get("last_weather")
         seen_compositions: dict = {}
-        seen_explanations: dict = {}
+        seen_dialogue: dict = {}
+        advancing_shots = 0
+        dialogue_characters = 0
 
         def penal(shot_id, n):
             shot_penalty[shot_id] = shot_penalty.get(shot_id, 0) + n
@@ -68,6 +73,24 @@ class ReviewAgent:
                 issues.append(_issue("EVENT_DENSITY", "warning", ep.episode_id,
                     f"events/min {epm:.1f} < {MIN_EVENTS_PER_MIN}",
                     "raise real-event density; cut non-advancing ambience"))
+
+        # ---- premium-streaming pacing: hook / escalation / next-episode pull ----
+        all_shots = [sh for _, sh in ep.all_shots()]
+        if all_shots:
+            first = all_shots[0]
+            first_advances = bool(first.get("new_info") or (first.get("action") or {}).get("result") or any(dl.get("subtext") for dl in first.get("dialogue") or []))
+            if not first_advances:
+                issues.append(_issue("OPENING_HOOK_MISSING", "blocking", f"{ep.episode_id}/{first['shot_id']}",
+                    "opening shot starts without conflict, a live question, or new information",
+                    "enter later: open on an active obstacle, decision, reversal, or consequence"))
+                penal(first["shot_id"], 2)
+            last = all_shots[-1]
+            last_advances = bool(last.get("new_info") or (last.get("action") or {}).get("result"))
+            if not last_advances:
+                issues.append(_issue("END_HOOK_MISSING", "blocking", f"{ep.episode_id}/{last['shot_id']}",
+                    "episode ends without a changed expectation or forced next action",
+                    "end on a reveal, reversal, consequence, deadline, or irreversible decision"))
+                penal(last["shot_id"], 2)
 
         # ---- scene-level: weather/time continuity + adjacency ----
         weathers = []
@@ -125,6 +148,15 @@ class ReviewAgent:
             # dialogue: info-dump/length/subtext
             for j, dl in enumerate(sh.get("dialogue") or []):
                 txt = str(dl.get("text", "")); dloc = f"{loc}#d{j}"
+                dialogue_characters += len(re.sub(r"\s+", "", txt))
+                normalized_dialogue = re.sub(r"[^\w\u4e00-\u9fff]+", "", txt.lower())
+                if normalized_dialogue and normalized_dialogue in seen_dialogue:
+                    issues.append(_issue("DIALOGUE_REPEAT", "blocking", dloc,
+                        f"dialogue repeats {seen_dialogue[normalized_dialogue]}",
+                        "delete the repeated line or replace it with a new decision, obstacle, or consequence"))
+                    penal(sid, 2)
+                elif normalized_dialogue:
+                    seen_dialogue[normalized_dialogue] = dloc
                 if len(txt) > DIALOGUE_MAX_CHARS:
                     issues.append(_issue("DIALOGUE_TOO_LONG", "warning", dloc,
                         f"line {len(txt)} chars > {DIALOGUE_MAX_CHARS} (info-dump risk)",
@@ -138,6 +170,14 @@ class ReviewAgent:
                             "deliver info via action/subtext, not direct statement"))
                         penal(sid, 1)
                         break
+            advances = bool(sh.get("new_info") or act.get("result"))
+            if advances:
+                advancing_shots += 1
+            else:
+                issues.append(_issue("SHOT_NO_STORY_ADVANCE", "warning", loc,
+                    "shot adds no declared information, decision, reversal, or consequence",
+                    "cut the shot or give it one clear story-changing function"))
+                penal(sid, 1)
             # canon identity: speaker must exist in canon (if canon provided)
             if canon_chars:
                 for dl in sh.get("dialogue") or []:
@@ -183,6 +223,11 @@ class ReviewAgent:
                                      "importance": sh.get("importance", "normal")})
 
         blocking = [i for i in issues if i["severity"] == "blocking"]
+        dialogue_per_minute = round(dialogue_characters / (total / 60.0), 1) if total else 0.0
+        if dialogue_per_minute > MAX_DIALOGUE_CHARS_PER_MIN:
+            issues.append(_issue("DIALOGUE_DENSITY", "warning", ep.episode_id,
+                f"dialogue density {dialogue_per_minute:.1f} chars/min > {MAX_DIALOGUE_CHARS_PER_MIN}",
+                "compress exposition and let decisions, behavior, and consequences carry information"))
         # episode passes only if no blocking issue AND no shot below its threshold
         passed = (len(blocking) == 0) and (len(failed_shots) == 0)
         return {
@@ -196,6 +241,13 @@ class ReviewAgent:
             "issues": issues,
             "blocking_count": len(blocking),
             "warning_count": len([i for i in issues if i["severity"] == "warning"]),
+            "pacing": {
+                "policy_version": PACING_POLICY_VERSION,
+                "advancing_shot_ratio": round(advancing_shots / len(all_shots), 3) if all_shots else 0.0,
+                "dialogue_characters_per_minute": dialogue_per_minute,
+                "opening_hook": not any(i["check"] == "OPENING_HOOK_MISSING" for i in issues),
+                "end_hook": not any(i["check"] == "END_HOOK_MISSING" for i in issues),
+            },
         }
 
     def failed_only_targets(self, report: dict) -> list:

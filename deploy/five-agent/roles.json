@@ -1,0 +1,11 @@
+{
+  "schema": "backlotos.five-agent-deployment/1.0",
+  "agents": [
+    {"id": "producer", "port": 8801, "capability": "SUPPORTED_LOCAL_COMMAND_ADAPTER", "deployment_acceptance": "PENDING_DOCKER_HOST", "adapter": "BACKLOT_PRODUCER_COMMAND", "adapter_available": true, "package": "backlotos-producer-supervisor-agent", "version": "0.1.1", "install": "pip install -e components/producer-supervisor-agent", "note": "Official installer and Docker image install the tested adapter. Full five-service Compose acceptance remains pending on a Docker-capable host."},
+    {"id": "story", "port": 8802, "capability": "SUPPORTED_WITH_MODEL"},
+    {"id": "pipeline", "port": 8803, "capability": "PARTIAL_ADAPTER_REQUIRED", "adapter": "BACKLOT_PIPELINE_COMMAND", "adapter_available": true, "package": "backlotos-producer-supervisor-agent", "install": "pip install -e components/producer-supervisor-agent", "note": "backlotos-pipeline-command wraps 7 generic pipeline-tools gates as real checks; storyboard/media-generation verbs remain ADAPTER_REQUIRED (no live media-generation provider integrated)."},
+    {"id": "post", "port": 8804, "capability": "SUPPORTED"},
+    {"id": "review", "port": 8805, "capability": "SUPPORTED", "platform_publish": "HUMAN_ONLY"}
+  ],
+  "control_plane": {"id": "workbench", "port": 8787, "is_agent": false}
+}
