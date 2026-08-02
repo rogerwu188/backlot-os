@@ -33,7 +33,7 @@ python -m claude_story_agent.cli serve       # one JSON request per line -> one 
 
 ## Backends (adapter layer)
 `CLAUDE_STORY_MODE = anthropic | command | mock | auto`
-- **anthropic** — Anthropic API (needs `ANTHROPIC_API_KEY` and an explicit `CLAUDE_STORY_ANTHROPIC_MODEL` in the environment/secret store; the code never logs or returns the key).
+- **anthropic** — Anthropic API (needs `ANTHROPIC_API_KEY` and an explicit `CLAUDE_STORY_ANTHROPIC_MODEL` in the environment/secret store; the code never logs or returns the key). The default policy requires Claude 4.8 or newer. If a gateway model ID does not encode its release, set `CLAUDE_STORY_MODEL_VERSION=4.8` or newer.
 - **command** — external `CLAUDE_STORY_COMMAND`: reads `{"system","user"}` JSON on stdin, writes model text on stdout.
 - **mock** — offline canned backend for tests.
 

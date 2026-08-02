@@ -35,8 +35,8 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 ## What is included
 
 - **Review Agent 1.1.0** — shot, asset, and final-cut review for video, audio, and images; five-point scoring; issue ledger; regression rules; NDJSON workers; AgentCut repair tasks.
-- **Story Agent 0.2.0** — replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
-- **Producer/Supervisor Agent 0.1.1** — project planning, idempotent dispatch, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
+- **Story Agent 0.2.1** — Claude >=4.8 policy, replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
+- **Producer/Supervisor Agent 0.2.0** — project planning, idempotent dispatch, Giggle image/video provider, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
 - **AgentCut 0.9.17** — timeline validation, compilation, rendering, shot recipes, dialogue/subtitle alignment, audio, and release gates.
 - **Factory Runtime 2.0.20** — file-native queues, workers, dispatcher, supervisor, idempotency, receipts, rollback, and shared-message protocol.
@@ -55,6 +55,11 @@ cd backlot-os
 ```
 
 The installer creates an isolated runtime and does not copy production media or credentials. Configure optional integrations in a local `.env`; never commit that file.
+
+Provider defaults are Giggle `gpt2img` for images and `seedance-2.0-pro`
+(Seedance 2) for video. The Story Agent requires a configured Claude 4.8-or-
+newer model. Actual provider/model IDs are recorded in receipts; credentials
+are accepted only through deployment environment variables.
 
 ## Layout
 
@@ -89,6 +94,12 @@ scripts/             Install, update, doctor, verification, and publishing
 
 Repository changes are developed on `agent/*` branches, validated in CI, and merged through pull requests. Version tags create immutable release artifacts; production machines update only when explicitly instructed.
 
+For the Codex local test workspace, run `./scripts/enable-codex-github-sync.sh`
+once. Every subsequent development-branch commit is automatically pushed to
+the same GitHub branch and updates its PR. `main` remains CI/PR protected.
+`scripts/update.sh` refuses dirty worktrees and unexpected origins, and the
+installer records the exact Git commit used by the local runtime.
+
 ## Five isolated Agents
 
 Cloud deployment runs five services with separate responsibilities and health
@@ -103,8 +114,8 @@ adapter are delivered as an installable, tested source package
 `backlotos-producer-command` / `backlotos-pipeline-command`;
 local package status `SUPPORTED_LOCAL_INSTALL`; see its
 `HANDOFF_RECEIPT.json`). The official installer and five-Agent image install
-the package. Full media generation remains `ADAPTER_REQUIRED` until a real
-provider is configured, and the Compose stack still requires deployment-level
+the package. Live media generation is provided by Giggle and reports
+`ADAPTER_REQUIRED` until `GIGGLE_API_KEY` is configured. The Compose stack still requires deployment-level
 acceptance before it can be called production-supported. Existing prompts are
 not presented as working code.
 

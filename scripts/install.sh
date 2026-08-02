@@ -37,6 +37,8 @@ mv "$share_stage" "$install_root/share"
 mkdir -p "$install_root/source"
 printf '%s\n' "$repo_root" > "$install_root/source/repository-path"
 printf '%s\n' "$(tr -d '[:space:]' < "$repo_root/VERSION")" > "$install_root/source/version"
+git -C "$repo_root" rev-parse HEAD > "$install_root/source/git-commit"
+git -C "$repo_root" remote get-url origin > "$install_root/source/git-origin"
 
 echo "BacklotOS installed at $install_root"
 echo "Start the production console with: $install_root/venv/bin/backlotos start"

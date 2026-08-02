@@ -29,8 +29,9 @@ pip install -e components/producer-supervisor-agent
 - `backlotos-producer-command` -- BACKLOT_PRODUCER_COMMAND adapter.
 - `backlotos-pipeline-command` -- BACKLOT_PIPELINE_COMMAND adapter; wraps the
   GENERIC pipeline-tools gates (see CAPABILITY_MATRIX.md) as verb-dispatched
-  semantic checks, with honest `ADAPTER_REQUIRED` for anything needing a real
-  media-generation provider.
+  semantic checks plus `providerHealth`, `generateImage`, `generateVideo`, and
+  `taskStatus` for Giggle. It reports honest `ADAPTER_REQUIRED` without
+  `GIGGLE_API_KEY`. Defaults: image `gpt2img`, video `seedance-2.0-pro`.
 - `backlotos-producer-agent` -- standalone entrypoint (single-shot CLI /
   `serve` NDJSON loop / `serve-http` minimal HTTP server), for running this
   package directly outside the launcher's external-command proxy. Mirrors
@@ -74,10 +75,10 @@ ledger record with `"deduped": true` and does not re-invoke the agent.
 python3 -m pytest components/producer-supervisor-agent/tests -q
 ```
 
-83/83 passing in local acceptance (see `TEST_REPORT.json`, generated
+89/89 passing in local acceptance (see `TEST_REPORT.json`, generated
 programmatically from the real pytest/junitxml run, not hand-authored).
 
 ## Build
 
 `python -m build components/producer-supervisor-agent` produces the wheel and
-sdist. Version 0.1.1 was rebuilt and verified in a fresh isolated environment.
+sdist. Version 0.2.0 was rebuilt and verified in a fresh isolated environment.

@@ -24,10 +24,18 @@ def test_anti_padding_gate_executes_real_pass_and_fail():
     assert failing["status"] == "FAIL"
 
 
-def test_media_generation_remains_adapter_required():
+def test_media_generation_requires_giggle_key(monkeypatch):
+    monkeypatch.delenv("GIGGLE_API_KEY", raising=False)
     result = run_gate("media-generation", {})
     assert result["ok"] is False
     assert result["status"] == "ADAPTER_REQUIRED"
+
+
+def test_media_generation_ready_with_giggle_key(monkeypatch):
+    monkeypatch.setenv("GIGGLE_API_KEY", "test-placeholder")
+    result = run_gate("media-generation", {})
+    assert result["ok"] is True and result["status"] == "PASS"
+    assert result["provider"]["defaults"]["image_model"] == "gpt2img"
 
 
 def test_unknown_pipeline_gate_is_structured_error():

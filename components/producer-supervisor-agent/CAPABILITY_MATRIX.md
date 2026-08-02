@@ -18,7 +18,7 @@ intentionally never automatable.
 | Review gate decision | `review-decision`/`reviewDecision` | SUPPORTED | Never rewrites prose; only proposes structured revision requests + a PASS/ADVISE/BLOCK decision. Cannot be downgraded from BLOCK by any payload flag (tested). |
 | Human-authorization boundary | any verb / `action`=publish,release,delete,overwrite_final,platform_upload,platform_delete,human_release_authorization | ENFORCED, no bypass | Checked before any verb executes. No `force`/`confirm`/`override` flag has any effect (tested across 7 verbs x 5 flag combinations). |
 | `backlotos-producer-command` (BACKLOT_PRODUCER_COMMAND) | -- | SUPPORTED as external-command adapter | One JSON in / one JSON out, no shell, non-zero on structured failure. `agent_host._external()` preserves the JSON and exit code. |
-| `backlotos-pipeline-command` (BACKLOT_PIPELINE_COMMAND) | `health`, `gate`, `edit-plan-integrity` | PARTIAL: SUPPORTED for wrapped generic gates, ADAPTER_REQUIRED for media generation | See gate list below. |
+| `backlotos-pipeline-command` (BACKLOT_PIPELINE_COMMAND) | `health`, `gate`, `edit-plan-integrity`, `providerHealth`, `generateImage`, `generateVideo`, `taskStatus` | SUPPORTED; live generation is ADAPTER_REQUIRED until configured | Generic gates plus a Giggle provider. Credential is environment-only. Defaults are `gpt2img` and `seedance-2.0-pro`. |
 | NDJSON `serve` loop | `backlotos-producer-agent serve` | SUPPORTED | One JSON request per line in, one JSON reply per line out, flushed per line. |
 | Minimal HTTP server | `backlotos-producer-agent serve-http` (`GET /health`, `POST /v1/task`) | SUPPORTED | Same wire shape as `agent_host.RoleServer`/`RoleHandler`. Stdlib `ThreadingHTTPServer` only, no framework dependency. |
 | Live 5-agent docker-compose end-to-end run | -- | NOT RUN | No docker available in this sandbox; not claimed as verified. See `deploy/five-agent/roles.json` `adapter_available` field. |
@@ -37,7 +37,7 @@ intentionally never automatable.
 | continuity-auditor | `continuity_auditor.py` | ADAPTER_REQUIRED -- operates on real video files via an `ffmpeg` CLI subprocess pipeline, not a `payload: dict -> dict` evaluator; not wrapped here. |
 | density-gate-watch | `density_gate_watch.py` | ADAPTER_REQUIRED -- a watch-loop CLI utility, not a payload evaluator. |
 | evidence-gate-watch | `evidence_gate_watch.py` | ADAPTER_REQUIRED -- a filesystem token scanner CLI, not a payload evaluator. |
-| storyboard-generation / media-generation | -- | ADAPTER_REQUIRED -- no live image/video/audio generation provider is configured or faked in this sandbox. |
+| storyboard-generation / media-generation | Giggle | SUPPORTED when `GIGGLE_API_KEY` is configured; otherwise ADAPTER_REQUIRED. Paid generation is invoked only through explicit generate methods, never by the readiness gate. |
 
 All statuses above are returned literally by `backlotos-pipeline-command health`
 via `pipeline_gates.health()` -- run it yourself to reconfirm at any time.

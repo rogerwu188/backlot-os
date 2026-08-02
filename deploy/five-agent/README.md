@@ -4,9 +4,9 @@ BacklotOS deploys five isolated agent services plus a non-agent workbench:
 
 | Agent | Port | Responsibility | Current implementation |
 |---|---:|---|---|
-| producer-agent | 8801 | Supervising, orchestration, exception and budget decisions | Producer/Supervisor Agent 0.1.1; installed and selected by the official image |
+| producer-agent | 8801 | Supervising, orchestration, exception and budget decisions | Producer/Supervisor Agent 0.2.0; installed and selected by the official image |
 | story-agent | 8802 | Source adaptation, script generation/review and failed-only revision | Story Agent 0.2.0 |
-| pipeline-agent | 8803 | Storyboard and media generation, asset admission and credit receipts | Production tool set present; `backlotos-pipeline-command` adapter wraps 7 generic quality gates (see `components/producer-supervisor-agent/CAPABILITY_MATRIX.md`); media-generation itself still requires an external semantic/provider adapter |
+| pipeline-agent | 8803 | Storyboard and media generation, asset admission and credit receipts | Giggle image/video provider plus generic quality gates. Defaults: image `gpt2img`, video `seedance-2.0-pro`; live submission requires `GIGGLE_API_KEY`. |
 | post-agent | 8804 | AgentCut timeline, subtitles, sound and render | AgentCut 0.9.17 |
 | review-release-agent | 8805 | Multimodal review, regression and release preflight | Review Agent 1.1.0; platform publish remains human-only |
 

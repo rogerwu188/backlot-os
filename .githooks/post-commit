@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -u
+[[ "${BACKLOT_DISABLE_AUTO_PUSH:-0}" == "1" ]] && exit 0
+branch="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+[[ -n "$branch" ]] || exit 0
+if [[ "$branch" == "main" ]]; then
+  echo "BacklotOS: local main commit retained; publish through a review branch/PR." >&2
+  exit 0
+fi
+if ! git push -u origin "$branch"; then
+  echo "BacklotOS: automatic GitHub sync failed; the local commit is safe. Run git push when connectivity returns." >&2
+fi

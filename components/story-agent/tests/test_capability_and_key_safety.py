@@ -67,6 +67,31 @@ def test_anthropic_health_requires_key_package_and_explicit_model(monkeypatch):
     assert health["available"] is False
     assert health["model_configured"] is False
 
+def test_anthropic_model_policy_rejects_below_4_8(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-placeholder-value-not-a-real-key")
+    monkeypatch.setenv("CLAUDE_STORY_ANTHROPIC_MODEL", "claude-sonnet-4-7-test")
+    monkeypatch.delenv("CLAUDE_STORY_MODEL_VERSION", raising=False)
+    policy = ModelAdapter(mode="anthropic").health()["model_policy"]
+    assert policy["minimum_model_version"] == "4.8"
+    assert policy["declared_model_version"] == "4.7"
+    assert policy["passes"] is False
+
+def test_anthropic_model_policy_accepts_4_8_and_newer(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-placeholder-value-not-a-real-key")
+    for model, expected in (("claude-sonnet-4-8-test", "4.8"), ("claude-opus-5-0-test", "5.0")):
+        monkeypatch.setenv("CLAUDE_STORY_ANTHROPIC_MODEL", model)
+        monkeypatch.delenv("CLAUDE_STORY_MODEL_VERSION", raising=False)
+        policy = ModelAdapter(mode="anthropic").health()["model_policy"]
+        assert policy["passes"] is True and policy["declared_model_version"] == expected
+
+def test_custom_provider_model_requires_explicit_version_declaration(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-placeholder-value-not-a-real-key")
+    monkeypatch.setenv("CLAUDE_STORY_ANTHROPIC_MODEL", "enterprise-story-default")
+    monkeypatch.delenv("CLAUDE_STORY_MODEL_VERSION", raising=False)
+    assert ModelAdapter(mode="anthropic").health()["model_policy"]["passes"] is False
+    monkeypatch.setenv("CLAUDE_STORY_MODEL_VERSION", "4.8")
+    assert ModelAdapter(mode="anthropic").health()["model_policy"]["passes"] is True
+
 def test_ledger_is_append_only_and_returns_rollback_snapshot(tmp_path):
     path=tmp_path/"ledger.ndjson"
     ledger=VersionLedger(str(path))

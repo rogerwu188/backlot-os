@@ -8,7 +8,37 @@ Hard rules:
     we do not guess, prompt for, or emit any key.
 """
 from __future__ import annotations
-import importlib.util, os, json, shlex, subprocess, shutil
+import importlib.util, os, json, re, shlex, subprocess, shutil
+
+DEFAULT_MIN_MODEL_VERSION = "4.8"
+
+
+def _version_tuple(value: str) -> tuple[int, int] | None:
+    match = re.fullmatch(r"\s*(\d+)\.(\d+)\s*", value or "")
+    return (int(match.group(1)), int(match.group(2))) if match else None
+
+
+def _declared_model_version(model: str) -> tuple[int, int] | None:
+    explicit = os.environ.get("CLAUDE_STORY_MODEL_VERSION", "").strip()
+    if explicit:
+        return _version_tuple(explicit)
+    # Anthropic IDs commonly encode the family release, e.g. claude-sonnet-4-5-*.
+    match = re.search(r"^claude(?:-[a-z]+)*-(\d+)[.-](\d+)(?:-|$)", model.lower())
+    return (int(match.group(1)), int(match.group(2))) if match else None
+
+
+def _model_policy(model: str) -> dict:
+    minimum_text = os.environ.get("CLAUDE_STORY_MIN_MODEL_VERSION", DEFAULT_MIN_MODEL_VERSION).strip()
+    minimum = _version_tuple(minimum_text)
+    actual = _declared_model_version(model)
+    valid_minimum = minimum is not None
+    passes = bool(model and valid_minimum and actual is not None and actual >= minimum)
+    return {
+        "policy": f"claude>={minimum_text}", "minimum_model_version": minimum_text,
+        "configured_model": model or None,
+        "declared_model_version": f"{actual[0]}.{actual[1]}" if actual else None,
+        "version_verified": actual is not None, "passes": passes,
+    }
 
 class CapabilityError(RuntimeError):
     """Raised when the requested capability cannot execute (no model)."""
@@ -33,7 +63,7 @@ class ModelAdapter:
     # ---- health: does a real backend exist? (never reveals key value) ----
     def health(self) -> dict:
         if self.mode == "mock":
-            return {"mode": "mock", "available": True, "note": "offline test backend"}
+            return {"mode": "mock", "available": True, "note": "offline test backend", "model_policy": _model_policy("test-mock")}
         if self.mode == "command":
             try:
                 argv = shlex.split(self.command)
@@ -45,12 +75,15 @@ class ModelAdapter:
         if self.mode == "anthropic":
             key_present = _has_anthropic_key()
             package_present = importlib.util.find_spec("anthropic") is not None
-            model_present = bool(os.environ.get("CLAUDE_STORY_ANTHROPIC_MODEL", "").strip())
+            model = os.environ.get("CLAUDE_STORY_ANTHROPIC_MODEL", "").strip()
+            model_present = bool(model)
+            policy = _model_policy(model)
             return {"mode": "anthropic",
-                    "available": key_present and package_present and model_present,
+                    "available": key_present and package_present and model_present and policy["passes"],
                     "api_key_present": key_present,
                     "package_present": package_present,
-                    "model_configured": model_present}
+                    "model_configured": model_present,
+                    "model_policy": policy}
         return {"mode": "unavailable", "available": False}
 
     def set_mock(self, fn):
@@ -92,6 +125,12 @@ class ModelAdapter:
             model = os.environ.get("CLAUDE_STORY_ANTHROPIC_MODEL", "").strip()
             if not model:
                 raise CapabilityError("CLAUDE_STORY_ANTHROPIC_MODEL is not configured")
+            policy = _model_policy(model)
+            if not policy["passes"]:
+                raise CapabilityError(
+                    "configured Anthropic model does not satisfy the Claude >=4.8 policy; "
+                    "set a supported provider model ID and CLAUDE_STORY_MODEL_VERSION"
+                )
             try:
                 msg = client.messages.create(
                     model=model, max_tokens=8000,

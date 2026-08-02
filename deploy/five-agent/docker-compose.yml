@@ -28,6 +28,8 @@ services:
       CLAUDE_STORY_MODE: ${CLAUDE_STORY_MODE:-auto}
       CLAUDE_STORY_COMMAND: ${CLAUDE_STORY_COMMAND:-}
       CLAUDE_STORY_ANTHROPIC_MODEL: ${CLAUDE_STORY_ANTHROPIC_MODEL:-}
+      CLAUDE_STORY_MIN_MODEL_VERSION: ${CLAUDE_STORY_MIN_MODEL_VERSION:-4.8}
+      CLAUDE_STORY_MODEL_VERSION: ${CLAUDE_STORY_MODEL_VERSION:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}
     volumes: ["backlotos-projects:/data/projects"]
@@ -37,6 +39,10 @@ services:
     build: {context: ../.., dockerfile: deploy/five-agent/Dockerfile}
     command: ["backlotos", "agent", "--role", "pipeline", "--host", "0.0.0.0", "--port", "8803"]
     environment:
+      GIGGLE_API_KEY: ${GIGGLE_API_KEY:-}
+      GIGGLE_API_BASE: ${GIGGLE_API_BASE:-https://giggle.pro}
+      GIGGLE_VIDEO_MODEL: ${GIGGLE_VIDEO_MODEL:-seedance-2.0-pro}
+      GIGGLE_IMAGE_MODEL: ${GIGGLE_IMAGE_MODEL:-gpt2img}
       BACKLOT_PIPELINE_COMMAND: ${BACKLOT_PIPELINE_COMMAND:-backlotos-pipeline-command}
       BACKLOT_PIPELINE_TOOLS_DIR: /opt/backlotos/components/pipeline-tools
       BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}

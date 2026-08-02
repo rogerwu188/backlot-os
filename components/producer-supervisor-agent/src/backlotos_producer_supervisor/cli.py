@@ -20,6 +20,7 @@ from .http_server import serve_http
 from .invoker import AgentInvoker
 from .pipeline_gates import health as pipeline_health
 from .pipeline_gates import run_edit_plan_integrity, run_gate
+from .giggle import GiggleError, generate_image, generate_video, health as giggle_health, task_status
 from .runtime import Runtime
 
 
@@ -77,8 +78,18 @@ def pipeline_command_main(argv=None) -> int:
             result = run_gate(gate_name, payload)
         elif method == "edit-plan-integrity":
             result = run_edit_plan_integrity(params.get("rows", []), params.get("target_fps", 30.0), params.get("tolerance", 0.05))
+        elif method == "generateImage":
+            result = generate_image(params)
+        elif method == "generateVideo":
+            result = generate_video(params)
+        elif method == "taskStatus":
+            result = task_status(params)
+        elif method == "providerHealth":
+            result = giggle_health()
         else:
-            result = {"ok": False, "status": "ERROR", "error": f"unknown method: {method}", "known_methods": ["health", "gate", "edit-plan-integrity"]}
+            result = {"ok": False, "status": "ERROR", "error": f"unknown method: {method}", "known_methods": ["health", "gate", "edit-plan-integrity", "providerHealth", "generateImage", "generateVideo", "taskStatus"]}
+    except GiggleError as exc:
+        result = {"ok": False, "status": "CAPABILITY_FAIL", "provider": "giggle", "error": str(exc)}
     except Exception as exc:  # noqa: BLE001
         result = {"ok": False, "status": "ERROR", "error": f"request failed ({type(exc).__name__})"}
     return _print_one(result)

@@ -22,11 +22,20 @@ BACKLOT_PIPELINE_COMMAND=backlotos-pipeline-command
 `agent_host.RoleDispatcher.health()` will now report
 `"semantic_adapter": "SUPPORTED"` for role `producer` and `pipeline` once the
 command resolves on `PATH` inside the container/host running that role.
-The official installer and Dockerfile now install version 0.1.1. Compose sets
+The official installer and Dockerfile now install version 0.2.0. Compose sets
 both adapter commands by default. A custom deployment must still install the
 package and set the two variables explicitly.
 
-## 3. Configure downstream agent reachability (optional but needed for real dispatch)
+## 3. Configure image/video generation
+
+Set `GIGGLE_API_KEY` only in the deployment secret environment. Optional
+overrides are `GIGGLE_IMAGE_MODEL` (default `gpt2img`) and
+`GIGGLE_VIDEO_MODEL` (default `seedance-2.0-pro`). Use `providerHealth` before
+submitting, `generateImage`/`generateVideo` for explicit paid work, and
+`taskStatus` to reconcile the returned provider task ID. Generation POSTs are
+not automatically retried after ambiguous network failures.
+
+## 4. Configure downstream agent reachability (optional but needed for real dispatch)
 
 `dispatch`/`dispatchMany` need to actually reach the `story`/`pipeline`/`post`/
 `review` agents. Configure one backend per agent in `.env` (see
@@ -36,7 +45,7 @@ that agent's `/v1/task` endpoint in the docker-compose network. Without
 either, dispatch honestly returns `BLOCKED`/`CAPABILITY_FAIL` -- it never
 fabricates a completed job.
 
-## 4. Running standalone (outside the launcher)
+## 5. Running standalone (outside the launcher)
 
 ```bash
 backlotos-producer-agent serve-http --host 0.0.0.0 --port 8801
@@ -49,7 +58,7 @@ through `agent_host.py`, if a future deployment prefers that. This is not
 required for the current `BACKLOT_PRODUCER_COMMAND` integration path and has
 not been run against the live docker-compose stack in this delivery.
 
-## 5. Not migrated / not applicable
+## 6. Not migrated / not applicable
 
 - No prior "original Claude producer/supervisor" executable existed anywhere
   in the source tree to migrate FROM (see `AUDIT.md` section A) -- this is a

@@ -38,16 +38,17 @@ GENERIC_GATE_MODULES = {
 # continuity_auditor.py, density_gate_watch.py, evidence_gate_watch.py operate on
 # real media files / directory scans via a CLI __main__, not a pure
 # evaluate(payload)->dict function; they are NOT wrapped here (see AUDIT.md).
-# Media/image/video/audio generation itself has no provider integration in
-# this sandbox and is never faked.
+# Media generation is exposed by the sibling Giggle adapter. The quality gate
+# name remains a readiness check; actual paid submission uses generateImage /
+# generateVideo and is never triggered by a gate call.
 
 NOT_WRAPPED_REQUIRES_MEDIA_OR_CLI = {
     "continuity-auditor": "operates on real video files via ffmpeg CLI, not a payload dict",
     "density-gate-watch": "is a watch-loop CLI utility, not a payload evaluator",
     "evidence-gate-watch": "is a filesystem token scanner CLI, not a payload evaluator",
-    "storyboard-generation": "requires a live media-generation provider (image/video/audio) -- no provider configured in this package",
-    "media-generation": "requires a live media-generation provider -- no provider configured in this package",
 }
+
+PROVIDER_GATES = {"storyboard-generation", "media-generation"}
 
 
 def _tools_dir() -> Path | None:
@@ -99,6 +100,11 @@ def _load_module(module_file_stem: str):
 
 
 def run_gate(gate_name: str, payload: dict) -> dict:
+    if gate_name in PROVIDER_GATES:
+        from .giggle import health as giggle_health
+        provider = giggle_health()
+        return {"ok": provider["ok"], "status": "PASS" if provider["ok"] else "ADAPTER_REQUIRED",
+                "gate": gate_name, "provider": provider}
     if gate_name in NOT_WRAPPED_REQUIRES_MEDIA_OR_CLI:
         return {"ok": False, "status": "ADAPTER_REQUIRED", "gate": gate_name, "reason": NOT_WRAPPED_REQUIRES_MEDIA_OR_CLI[gate_name]}
     module_stem = GENERIC_GATE_MODULES.get(gate_name)
@@ -141,9 +147,13 @@ def health() -> dict:
     available["edit-plan-integrity"] = _load_module("edit_plan_integrity_gate") is not None
     for name in NOT_WRAPPED_REQUIRES_MEDIA_OR_CLI:
         available[name] = False
+    from .giggle import health as giggle_health
+    provider = giggle_health()
+    for name in PROVIDER_GATES:
+        available[name] = provider["ok"]
     any_available = any(available.values())
     return {
         "ok": any_available, "status": "ready" if any_available else "dependency_unavailable", "tools_dir": str(tools_dir) if tools_dir else None,
-        "gates": available,
+        "gates": available, "media_provider": provider,
         "any_available": any_available,
     }
