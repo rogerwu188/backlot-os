@@ -8,13 +8,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      AGENTCUT_SUBTITLE_FONT: /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk
       - name: Install components
         run: python -m pip install components/agentcut components/review-agent 'components/story-agent[test]'
       - name: Verify repository boundaries

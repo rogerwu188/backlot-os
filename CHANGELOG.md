@@ -8,3 +8,4 @@
 - Imported the file-native Factory Runtime 2.0.20.
 - Added source-only production tool compatibility layer.
 - Added portable installation, health checks, upgrades, CI, and secret/media guards.
+- Added cross-platform AgentCut subtitle-font configuration without relaxing font or glyph validation.

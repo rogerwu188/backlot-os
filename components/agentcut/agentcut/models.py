@@ -293,6 +293,7 @@ class Output:
 
 
 DEFAULT_NALU_ASSET = os.environ.get("AGENTCUT_NALU_ASSET", "")
+DEFAULT_SUBTITLE_FONT = os.environ.get("AGENTCUT_SUBTITLE_FONT", "/System/Library/Fonts/STHeiti Medium.ttc")
 
 
 @dataclass(frozen=True)
@@ -311,7 +312,7 @@ class Outro:
     title_text: str = "青山"
     brand_text: str = "NALU MOTION"
     next_text: str = "敬请期待"
-    font: str = "/System/Library/Fonts/STHeiti Medium.ttc"
+    font: str = DEFAULT_SUBTITLE_FONT
     audio_path: str | None = None
     sfx_path: str | None = None
     dialogue_duck_db: float = -12.0
@@ -574,7 +575,7 @@ class Project:
             transition_in=_number(outro_raw.get("transitionIn", 0.25), "outro.transitionIn"),
             transition_out=_number(outro_raw.get("transitionOut", 0.25), "outro.transitionOut"),
             title_text=str(outro_raw.get("titleText", "青山")), brand_text=str(outro_raw.get("brandText", "NALU MOTION")),
-            next_text=str(outro_raw.get("nextText", "敬请期待")), font=str(outro_raw.get("font", "/System/Library/Fonts/STHeiti Medium.ttc")),
+            next_text=str(outro_raw.get("nextText", "敬请期待")), font=str(outro_raw.get("font", DEFAULT_SUBTITLE_FONT)),
             audio_path=str(outro_raw["audioPath"]) if outro_raw.get("audioPath") else None,
             sfx_path=str(outro_raw["sfxPath"]) if outro_raw.get("sfxPath") else None,
             dialogue_duck_db=float(outro_raw.get("dialogueDuckDb", -12)), bgm_duck_db=float(outro_raw.get("bgmDuckDb", -9)),

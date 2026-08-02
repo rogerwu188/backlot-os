@@ -14,6 +14,7 @@ Secrets are supplied only at runtime. Common optional variables include:
 - `BACKLOT_PROJECT_ROOT` for the active production project.
 - `BACKLOT_MEDIA_BIN_DIR` when FFmpeg is installed outside the system path.
 - `AGENTCUT_NALU_ASSET` only when the legacy Nalu outro template is used.
+- `AGENTCUT_SUBTITLE_FONT` for a platform-specific CJK-capable font file. The font and every required glyph remain hard validation gates.
 
 Compatibility variable names remain supported until a versioned migration introduces BacklotOS aliases. `doctor.sh` reports whether values exist but never prints them.
 

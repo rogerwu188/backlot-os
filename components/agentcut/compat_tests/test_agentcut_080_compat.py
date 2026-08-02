@@ -1,6 +1,7 @@
 import unittest
 import io
 import json
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -25,7 +26,7 @@ def project():
     }
 
 
-CHINESE_FONT = "/System/Library/Fonts/STHeiti Medium.ttc"
+CHINESE_FONT = os.environ.get("AGENTCUT_SUBTITLE_FONT", "/System/Library/Fonts/STHeiti Medium.ttc")
 
 
 def subtitled_project():
@@ -130,7 +131,7 @@ class AgentCutTests(unittest.TestCase):
         data["output"].update({"width": 720, "height": 1280})
         compiled = AgentCutEngine().compile(data)
         self.assertIn("drawtext=text='半夜送礼'", compiled.filter_graph)
-        self.assertIn("fontfile='/System/Library/Fonts/STHeiti Medium.ttc'", compiled.filter_graph)
+        self.assertIn(f"fontfile='{CHINESE_FONT}'", compiled.filter_graph)
         self.assertIn("y=h-text_h-160", compiled.filter_graph)
         self.assertEqual(compiled.summary["subtitleTracks"], 1)
         self.assertEqual(len(compiled.summary["captions"]), 2)
