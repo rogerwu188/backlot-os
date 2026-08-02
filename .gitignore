@@ -1,0 +1,55 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets*.json
+token*.json
+
+# Python / Node runtimes
+.venv/
+venv/
+env/
+node_modules/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Builds and caches
+build/
+dist/
+release_*/
+work/
+runtime_cache/
+*.log
+.DS_Store
+
+# Production state and evidence
+exports/
+working_assets/
+qa/
+outputs/
+inbox/
+outbox/
+receipts/
+ledgers/
+*.ndjson
+
+# Media binaries (fixtures must be tiny and explicitly force-added)
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.wav
+*.mp3
+*.aac
+*.flac
+*.png
+*.jpg
+*.jpeg
+*.webp
+
