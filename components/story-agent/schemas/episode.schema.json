@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "backlotos.episode.v1",
+  "type": "object",
+  "required": ["episode_id", "scenes"],
+  "properties": {
+    "episode_id": {"type": "string"},
+    "version": {"type": "string"},
+    "target_duration_sec": {"type": "number"},
+    "duration_tolerance_sec": {"type": "number"},
+    "canon": {"type": "object"},
+    "prev_episode": {"type": "object"},
+    "new_info": {"type": "array"},
+    "mainline_beats": {"type": "array"},
+    "scenes": {"type": "array", "items": {
+      "type": "object",
+      "required": ["scene_id", "location", "time", "weather", "shots"],
+      "properties": {
+        "scene_id": {"type": "string"}, "location": {"type": "string"},
+        "time": {"type": "string"}, "weather": {"type": "string"},
+        "visual_zone": {"type": "string"},
+        "shots": {"type": "array", "items": {
+          "type": "object",
+          "required": ["shot_id", "duration_sec"],
+          "properties": {
+            "shot_id": {"type": "string"},
+            "duration_sec": {"type": "number", "minimum": 4, "maximum": 15},
+            "importance": {"enum": ["key", "normal"]},
+            "action": {"type": "object"},
+            "dialogue": {"type": "array"},
+            "first_frame_motion_state": {"type": "string"},
+            "ambient_life": {"type": "string"},
+            "static_ok": {"type": "boolean"},
+            "composition": {"type": "string"},
+            "new_info": {"type": "array"}
+          }
+        }}
+      }
+    }}
+  }
+}

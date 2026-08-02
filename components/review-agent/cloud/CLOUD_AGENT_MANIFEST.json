@@ -1,0 +1,29 @@
+{
+  "schema": "qingshan.cloud-agent-manifest.v1",
+  "agent": "qingshan-review-agent",
+  "version": "0.9.2",
+  "rule_version": "qingshan.review.rules.v23",
+  "default_workers": 4,
+  "interfaces": ["CLI", "NDJSON_AGENT"],
+  "methods": ["health", "validate", "review", "reviewMany", "status", "repairTask", "timeoutDecision", "humanReport", "promoteRule"],
+  "media_kinds": ["video", "audio", "image"],
+  "scopes": ["shot", "asset", "sequence", "final", "full_cut"],
+  "state": {
+    "issue_ledger": "append-only NDJSON",
+    "anti_recurrence_registry": "append-only NDJSON"
+  },
+  "external_runtime_contracts": {
+    "ffmpeg_ffprobe": "PATH",
+    "ocr_python": "QINGSHAN_OCR_PYTHON",
+    "multimodal_image_analysis": "QINGSHAN_IMAGE_ANALYSIS_COMMAND",
+    "production_tools": "QINGSHAN_PRODUCTION_ROOT/tools"
+  },
+  "safety": {
+    "read_only_media": true,
+    "publishing": false,
+    "deletion": false,
+    "credential_bypass": false,
+    "copyright_override": false,
+    "irreversible_platform_action": false
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "bgm-001",
+  "method": "generateBgm",
+  "params": {
+    "prompt": "Instrumental cinematic background music for a Chinese historical short drama. Restrained guqin and xiao, subtle low strings, tense but elegant, no vocals, no spoken words, no choir, clean sparse arrangement for dialogue, gentle ending suitable for looping.",
+    "outputDir": "/data/generated-bgm",
+    "pollIntervalSeconds": 20,
+    "timeoutSeconds": 1500,
+    "overwrite": false
+  }
+}

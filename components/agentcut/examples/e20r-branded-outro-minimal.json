@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "requireBrandedOutro": true,
+  "output": {"path": "outputs/E20R_preview.mp4", "width": 720, "height": 1280},
+  "outro": {
+    "enabled": true,
+    "brandPreset": "nalu_motion",
+    "template": "nalu-motion-v1",
+    "duration": 3,
+    "fit": "contain",
+    "audioPolicy": "silence"
+  },
+  "timeline": {"videoTracks": [{"id": "Video.Main", "clips": [{"source": "/absolute/path/E20R_picture.mp4", "start": 0, "duration": 174}]}]}
+}

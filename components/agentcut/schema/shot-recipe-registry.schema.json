@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/shot-recipe-registry-v1.json",
+  "title": "AgentCut Shot Recipe Registry v1",
+  "type": "object",
+  "required": ["schema", "registry_id", "version", "source", "license", "selection_policy", "recipes"],
+  "properties": {
+    "schema": {"const": "agentcut.shot_recipe_registry.v1"},
+    "registry_id": {"const": "agentcut.short_drama.director_recipes"},
+    "version": {"const": "1.0.0"},
+    "source": {"type": "object"}, "license": {"type": "object"},
+    "selection_policy": {
+      "type": "object",
+      "required": ["ui_only_default", "remotion_dependency", "audio_assets_imported", "layer", "style_template_behavior", "style_override_allowed"],
+      "properties": {
+        "ui_only_default": {"const": false}, "remotion_dependency": {"const": false},
+        "audio_assets_imported": {"const": false},
+        "layer": {"const": "per_shot_director_execution"},
+        "style_template_behavior": {"const": "preserve_project_style"},
+        "style_override_allowed": {"const": false}
+      }
+    },
+    "recipes": {
+      "type": "array", "minItems": 20, "maxItems": 30,
+      "items": {"$ref": "shot-recipe-v1.json"}
+    }
+  }
+}

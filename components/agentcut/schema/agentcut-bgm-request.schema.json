@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/agentcut-bgm-request.schema.json",
+  "title": "AgentCut instrumental BGM request",
+  "type": "object",
+  "required": ["prompt", "outputDir"],
+  "additionalProperties": false,
+  "properties": {
+    "prompt": {"type": "string", "minLength": 1, "maxLength": 10000},
+    "outputDir": {"type": "string", "minLength": 1},
+    "pollIntervalSeconds": {"type": "number", "minimum": 15, "maximum": 60, "default": 20},
+    "timeoutSeconds": {"type": "number", "minimum": 30, "maximum": 1500, "default": 1500},
+    "overwrite": {"type": "boolean", "default": false}
+  }
+}

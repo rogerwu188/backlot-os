@@ -1,0 +1,7 @@
+[
+  {
+    "code": "AGGREGATE_NEAR_FREEZE",
+    "message": "near-freeze cluster intersects a planned director arc",
+    "timeRange": {"start": 2.25, "end": 5.75}
+  }
+]

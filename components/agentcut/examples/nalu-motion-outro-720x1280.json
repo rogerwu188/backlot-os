@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "output": {"path": "outputs/青山_含NALU片尾.mp4", "width": 720, "height": 1280, "fps": 30},
+  "requireBrandedOutro": true,
+  "outro": {
+    "enabled": true,
+    "template": "nalu-motion-v1",
+    "templateVersion": "1.0",
+    "brand": "nalu_motion",
+    "assetPath": "/Users/rogerwu/qingshan_short_drama/libraries/brand/nalu_motion_cat_logo_v1.png",
+    "duration": 3,
+    "fit": "contain",
+    "audioPolicy": "auto",
+    "transitionIn": 0.25,
+    "transitionOut": 0.25,
+    "titleText": "青山",
+    "nextText": "敬请期待",
+    "brandText": "NALU MOTION",
+    "dialogueDuckDb": -12,
+    "bgmDuckDb": -9,
+    "safeArea": {"left": 72, "right": 72, "top": 128, "bottom": 128},
+    "logo": {"x": 235, "y": 590, "width": 250, "height": 141},
+    "includeInTotalDuration": true
+  },
+  "timeline": {
+    "videoTracks": [{"id": "Video.Main", "clips": [{"source": "media/正片.mp4", "start": 0, "duration": 5}]}],
+    "audioTracks": [{"id": "Audio.Dialogue", "clips": [{"source": "media/对白.wav", "start": 0, "duration": 5}]}]
+  }
+}

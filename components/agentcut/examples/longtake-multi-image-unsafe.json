@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "requestId": "E23-LONGTAKE-POC-R2",
+  "continuousCameraRequired": true,
+  "paidSubmission": true,
+  "input": {
+    "mode": "multi-image",
+    "anchors": [
+      {"id": "anchor-0", "time": 0},
+      {"id": "anchor-5", "time": 5},
+      {"id": "anchor-10", "time": 10}
+    ],
+    "cueBlocks": [
+      {"start": 0, "end": 5, "cue": "B01"},
+      {"start": 5, "end": 10, "cue": "B02"},
+      {"start": 10, "end": 15, "cue": "B03"}
+    ]
+  },
+  "provider": {
+    "name": "Seedance 2.0 Pro",
+    "model": "multi-image",
+    "guaranteesInterAnchorInterpolation": false
+  }
+}

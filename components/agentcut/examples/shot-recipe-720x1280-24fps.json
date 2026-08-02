@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "background": "#101216",
+  "output": {
+    "path": "/absolute/output/shot-recipe-internal-review.mp4",
+    "width": 720,
+    "height": 1280,
+    "fps": 24,
+    "videoCodec": "libx264",
+    "pixelFormat": "yuv420p"
+  },
+  "shotRecipePolicy": {
+    "enabled": true,
+    "registryId": "agentcut.short_drama.director_recipes",
+    "registryVersion": "1.0.0",
+    "projectOverrides": {
+      "camera.slow_push_in": {
+        "subject_anchor": {"x_ratio": 0.5, "y_ratio": 0.42}
+      }
+    }
+  },
+  "timeline": {
+    "videoTracks": [{
+      "id": "Video.Main",
+      "clips": [{
+        "id": "SHOT-001",
+        "source": "/absolute/media/shot-001.mp4",
+        "start": 0,
+        "in": 0,
+        "duration": 4,
+        "metadata": {
+          "shot_recipe": {
+            "recipe_id": "camera.slow_push_in",
+            "version": "1.0.0",
+            "override": {
+              "camera_motion": {"intensity": 0.65}
+            }
+          }
+        }
+      }]
+    }]
+  }
+}

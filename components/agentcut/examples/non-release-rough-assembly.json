@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "assemblyMode": "NON_RELEASE_ROUGH_ASSEMBLY",
+  "metadata": {
+    "releaseAllowed": false,
+    "platformUploadAllowed": false
+  },
+  "output": {
+    "path": "/absolute/exports/E28_ROUGH_NOT_FINAL.mp4",
+    "width": 720,
+    "height": 1280,
+    "fps": 24
+  },
+  "sourceAdmissionPolicy": {
+    "enabled": true,
+    "requirePerShotCadence": true,
+    "maxActionNearDuplicateRatio": 0.15,
+    "allowConditionalCadenceFailForRoughAssembly": true,
+    "allowedConditionalFailureCodes": [
+      "video.periodic_duplicate",
+      "audio.long_silence"
+    ],
+    "conditionalAdmissionEvidencePath": "/absolute/qa/E28_CONDITIONAL_ADMISSION.json"
+  },
+  "timeline": {
+    "videoTracks": [
+      {
+        "id": "Video.Main",
+        "clips": [
+          {
+            "id": "E28-CW-U02-VIDEO",
+            "source": "/absolute/candidates/E28-CW-U02.mp4",
+            "start": 0,
+            "duration": 6,
+            "metadata": {
+              "unit_id": "E28-CW-U02",
+              "shot_id": "E28-CW-U02",
+              "action_required": true,
+              "action_trajectory": {
+                "windup": "人物转身准备动作",
+                "contact": "手掌接触目标",
+                "force": "动作产生明确作用力",
+                "result": "目标状态发生可见变化"
+              },
+              "source_reference_mode": "generated_video",
+              "cadence_report_path": "/absolute/qa/E28-CW-U02_frame_cadence.json",
+              "source_admission": "CONDITIONAL_MACHINE_ADMISSION",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        ]
+      }
+    ],
+    "holdSlots": [
+      {
+        "id": "E28-CW-U09",
+        "start": 6,
+        "duration": 13,
+        "mode": "black",
+        "reason": "U09 intentionally held for a clean replacement",
+        "replacementCondition": "replace U09 and rerun per-shot plus full-cut QA",
+        "releaseBlocking": true
+      }
+    ]
+  }
+}

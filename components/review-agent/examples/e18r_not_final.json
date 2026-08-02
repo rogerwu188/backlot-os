@@ -1,0 +1,15 @@
+{
+  "items": [{
+    "path": "/Users/rogerwu/qingshan_short_drama/exports/e18r/agentcut_trial_v3_not_final_20260717/E18R_41LINE_AGENTCUT_TRIAL_V3_NOT_FINAL.mp4",
+    "scope": "final",
+    "kind": "video",
+    "importance": "critical",
+    "pass_score": 4.5,
+    "clip_id": "E18R-AGENTCUT-TRIAL-V3",
+    "metadata": {"episode":"E18R","status":"NOT_FINAL","read_only_demo":true},
+    "evidence_inputs": {
+      "regression_ci_json": "/Users/rogerwu/qingshan_short_drama/qa/auto_human_timeout_fallback_20260717/E18R_AGENTCUT_TRIAL_V3_REGRESSION_CI_20260717.json"
+    },
+    "use_existing_tools": true
+  }]
+}

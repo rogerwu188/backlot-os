@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "requireBrandedOutro": true,
+  "output": {"path": "outputs/E19R_preview.mp4", "width": 720, "height": 1280},
+  "outro": {
+    "enabled": true,
+    "brand": "nalu_motion",
+    "template": "nalu-motion-v1",
+    "assetPath": "/Users/rogerwu/qingshan_short_drama/libraries/brand/nalu_motion_cat_logo_v1.png",
+    "duration": 3,
+    "fit": "contain",
+    "audioPolicy": "asset",
+    "audioPath": "/Users/rogerwu/qingshan_short_drama/libraries/brand/nalu_motion_outro_chime_v1.wav"
+  },
+  "timeline": {"videoTracks": [{"id": "Video.Main", "clips": [{"source": "/absolute/path/E19R_picture.mp4", "start": 0, "duration": 178.691}]}]}
+}

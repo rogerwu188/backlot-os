@@ -1,0 +1,15 @@
+{
+  "schema":"qingshan.regression_ci.v1","status":"FAIL","runtime_seconds":168.04,"threshold_profile":"v2-final+v2.1+v2.2+v2.3-frozen",
+  "thresholds":{"redline_asl":5.0,"max_single_shot":6.0,"max_unmotivated_long_shots":2,"under1_min":0.05,"under1_max":0.15,"digital_zero_db":-90.0,"max_adjacent_rms_jump_db":12.0,"min_unmotivated_silence_seconds":1.0},
+  "asl":{"mean":5.25,"under_1s_ratio":0.03,"durations":[12.2,12.1,8.1,24.3,8.1,12.1,12.0]},
+  "action_realtime":{"status":"MISSING","failures":["action_realtime_evidence_missing"]},
+  "asr_sentence_audit":{"status":"MISSING","failures":["asr_sentence_audit_missing"]},
+  "speech_density":{"status":"MISSING","failures":["asr_speech_segments_missing"]},
+  "scene_brightness":{"status":"MISSING","failures":["scene_brightness_audit_missing"]},
+  "ocr_audit":{"status":"NOT_REQUESTED","failures":[]},
+  "source_manifest":{"status":"NOT_REQUESTED","failures":[]},
+  "manifest_shot_reconciliation":{"status":"NOT_REQUESTED","failures":[]},
+  "static_hold_gate":{"status":"FAIL","failures":["unmotivated_static_hold:31:151.833+12.167:motion=0.000"]},
+  "audio_bed_continuity":{"status":"FAIL","shot_rows":[{"shot_index":7,"start_sec":32.45,"end_sec":44.62},{"shot_index":8,"start_sec":44.62,"end_sec":45.33},{"shot_index":9,"start_sec":45.33,"end_sec":47.58},{"shot_index":10,"start_sec":47.58,"end_sec":48.75}],"unmotivated_silence_segments":[{"start_sec":120.03,"end_sec":122.30,"duration_sec":2.27},{"start_sec":138.51,"end_sec":139.68,"duration_sec":1.17}],"excessive_adjacent_rms_jumps":[{"left_shot":7,"right_shot":8,"jump_db":22.5},{"left_shot":9,"right_shot":10,"jump_db":23.2}]},
+  "failures":["asl_redline:5.25","too_many_long_shots:7","under1_ratio_out_of_range:0.03","audio_unmotivated_silence:120.03-122.30","audio_unmotivated_silence:138.51-139.68","audio_adjacent_rms_jump:7-8:22.5","audio_adjacent_rms_jump:9-10:23.2","action_realtime_evidence_missing","asr_sentence_audit_missing","asr_speech_segments_missing","scene_brightness_audit_missing","unmotivated_static_hold:31:151.833+12.167:motion=0.000"]
+}

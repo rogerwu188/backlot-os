@@ -1,0 +1,23 @@
+name: BacklotOS Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source tree
+        run: ./scripts/verify-repository.sh
+      - name: Build source archive
+        run: git archive --format=tar.gz --prefix="backlotos-${GITHUB_REF_NAME}/" -o "backlotos-${GITHUB_REF_NAME}.tar.gz" HEAD
+      - name: Publish immutable release archive
+        uses: softprops/action-gh-release@v2
+        with:
+          files: backlotos-${{ github.ref_name }}.tar.gz
+

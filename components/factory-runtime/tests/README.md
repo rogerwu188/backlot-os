@@ -1,0 +1,1 @@
+Run `python3 tests/run_all_tests.py`. All tests use temporary sandboxes except read-only assertions against A4/A3 PASS receipts. Authorization provenance regressions cover fixed-root acceptance plus outside-root, traversal, symlink, environment-override, and caller-selected-root rejection. No test registers cron or changes live state.

@@ -1,0 +1,25 @@
+{
+  "schema": "agentcut.character_description.v1",
+  "asset_id": "CHAR-LIN-QING-ANCIENT",
+  "project_id": "qingshan",
+  "character": {
+    "id": "CHAR-LIN-QING-ANCIENT",
+    "display_name": "林青",
+    "stage": "ancient",
+    "seedance_slot": 1,
+    "description": {
+      "sex_presentation": "male",
+      "age_band": "young adult",
+      "face_shape": "long oval face with a defined jaw",
+      "facial_features": "straight brows, narrow dark eyes, straight nose, restrained lips",
+      "hair": "long black hair in a compact period topknot, no loose fringe",
+      "skin_tone": "warm light tan",
+      "body_type": "tall, lean, athletic",
+      "height_proportion": "eight-head proportion",
+      "wardrobe": "closed-collar layered Song-period robe with narrow sleeves",
+      "accessories": "one plain dark cloth belt, no jewelry",
+      "materials": "matte linen and cotton with subtle woven texture",
+      "color_palette": "charcoal, ash gray, muted stone"
+    }
+  }
+}

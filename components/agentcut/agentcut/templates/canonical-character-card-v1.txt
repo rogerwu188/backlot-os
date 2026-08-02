@@ -1,0 +1,24 @@
+Create one single 16:9 canonical character identity card for {display_name} ({asset_id}, stage: {stage}).
+
+LOCKED CHARACTER DESCRIPTION
+- sex presentation: {sex_presentation}
+- age band: {age_band}
+- face shape: {face_shape}
+- facial features: {facial_features}
+- hair: {hair}
+- skin tone: {skin_tone}
+- body type: {body_type}
+- height/proportion: {height_proportion}
+- wardrobe: {wardrobe}
+- accessories: {accessories}
+- materials: {materials}
+- color palette: {color_palette}
+
+MANDATORY LAYOUT
+Use a neutral gray seamless studio background, soft even studio lighting, and a near-orthographic lens with minimal perspective distortion. From left to right: (1) at the far-left, a large neutral-expression front headshot; (2) an uncropped full-body front view; (3) an uncropped full-body side view; (4) an uncropped full-body back view. Keep generous clearance around head and feet. The three full-body views use the same neutral standing pose and scale.
+
+IDENTITY LOCK
+Every view must depict exactly the same person with strictly identical face shape, facial feature geometry, hairstyle, skin tone, body identity, proportions, wardrobe construction, accessories, materials, and colors.
+
+FORBIDDEN
+No redesign, no dynamic pose, no gesture, no expression change, no extra character, no crop of any full body, no complex background, no props unless explicitly listed as a locked accessory, no text, no labels, no UI, no logo, no watermark, no split scenes, and no decorative frame.

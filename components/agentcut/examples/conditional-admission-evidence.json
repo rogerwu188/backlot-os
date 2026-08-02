@@ -1,0 +1,21 @@
+{
+  "schema": "qingshan.conditional_machine_admission.v1",
+  "raw_review": "/absolute/qa/E28_RAW_AI_REVIEW.json",
+  "raw_review_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "items": [
+    {
+      "unit_id": "E28-CW-U02",
+      "decision": "CONDITIONAL_MACHINE_ADMISSION",
+      "candidate_path": "/absolute/candidates/E28-CW-U02.mp4",
+      "candidate_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "raw_qa_status": "FAIL",
+      "raw_failures": [
+        "video.periodic_duplicate"
+      ],
+      "confidence": 0.86,
+      "selection_reason": "best available candidate for non-release full-cut review",
+      "rollback_point": "restore the project before U02 conditional admission",
+      "replacement_condition": "replace when U02 passes the original cadence gate"
+    }
+  ]
+}

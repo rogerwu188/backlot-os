@@ -1,0 +1,21 @@
+{
+  "activation_forbidden": true,
+  "canary_required": true,
+  "cron_id": "9375ba33-cd1a-5f05-ba5c-d3e91f4da77a",
+  "enabled": false,
+  "installer_registers": false,
+  "payload": {
+    "kind": "agentTurn",
+    "message": "Read roles/pipeline/ISOLATED_AGENT_TICK.md and execute exactly one semantic Agent turn for pipeline; shared disk request/result only. Never use sessions/chat as evidence. The independent local file worker owns claim/CAS/checkpoint/commit/retry."
+  },
+  "role": "pipeline",
+  "schedule": {
+    "expr": "24 * * * * *",
+    "kind": "cron",
+    "offset_seconds": 24,
+    "period_seconds": 60
+  },
+  "schema": "qingshan.public_cron_template.v2",
+  "sessionTarget": "isolated",
+  "version": "2.0.17-file-native-workers"
+}

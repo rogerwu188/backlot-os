@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "required": true,
+  "sampleFps": 2,
+  "cropBottomRatio": 0.22,
+  "freezePHashDistanceMax": 4,
+  "freezeAHashDistanceMax": 4,
+  "freezeMotionMeanMax": 0.018,
+  "maxNearFreezeSeconds": 4,
+  "freezeGapToleranceSeconds": 1.5,
+  "minFreezePairRatio": 0.65,
+  "compositionPHashDistanceMax": 8,
+  "compositionAHashDistanceMax": 10,
+  "compositionGapSeconds": 2.5,
+  "minCompositionOccurrenceSeconds": 1,
+  "maxCompositionOccurrences": 2,
+  "maxCompositionRatio": 0.06,
+  "minTimelineSecondsForCompositionRatio": 30,
+  "reportPath": "/absolute/qa/FINAL_VISUAL_GATE.json",
+  "allowedIntervals": [
+    {
+      "start": 160,
+      "end": 163,
+      "reason": "approved static branded outro, separately validated by requireBrandedOutro"
+    }
+  ]
+}

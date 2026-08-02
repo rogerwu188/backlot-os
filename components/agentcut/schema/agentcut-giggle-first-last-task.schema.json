@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/giggle-first-last-task-v1.json",
+  "title": "AgentCut Giggle first/last-frame generation task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "task_key", "generation_mode", "inputs", "model", "duration", "aspect_ratio", "resolution"],
+  "oneOf": [
+    {"required": ["prompt"], "not": {"required": ["prompt_file"]}},
+    {"required": ["prompt_file"], "not": {"required": ["prompt"]}}
+  ],
+  "properties": {
+    "version": {"const": "1.0"},
+    "task_key": {"type": "string", "minLength": 1},
+    "generation_mode": {"const": "image_to_video_first_last"},
+    "prompt": {"type": "string", "minLength": 1, "maxLength": 10000},
+    "prompt_file": {"type": "string", "minLength": 1},
+    "inputs": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "source"],
+        "properties": {
+          "role": {"enum": ["start_frame", "end_frame"]},
+          "source": {"type": "string", "minLength": 1},
+          "metadata": {"type": "object"}
+        }
+      }
+    },
+    "model": {"enum": ["seedance-2.0-pro", "seedance-2.0-fast"]},
+    "duration": {"type": "integer", "minimum": 4, "maximum": 15},
+    "aspect_ratio": {"enum": ["16:9", "9:16", "4:3", "1:1", "3:4", "21:9", "adaptive"]},
+    "resolution": {"enum": ["720p", "480p"]},
+    "generating_count": {"type": "integer", "minimum": 1, "maximum": 4, "default": 1}
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/agentcut-speech-request.schema.json",
+  "title": "AgentCut Giggle Speech Generation Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "method", "params"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "method": {"const": "generateSpeech"},
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "voiceId", "emotion", "outputDir"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1, "maxLength": 10000},
+        "voiceId": {"type": "string", "minLength": 1},
+        "emotion": {"type": "string", "minLength": 1},
+        "speed": {"type": "number", "minimum": 0.5, "maximum": 2.0, "default": 1},
+        "outputDir": {"type": "string", "minLength": 1},
+        "fileName": {"type": "string", "pattern": "^[^/\\\\]+\\.mp3$", "default": "dialogue_voice.mp3"},
+        "pollIntervalSeconds": {"type": "number", "minimum": 2, "maximum": 30, "default": 5},
+        "timeoutSeconds": {"type": "number", "minimum": 10, "maximum": 600, "default": 120},
+        "overwrite": {"type": "boolean", "default": false}
+      }
+    }
+  }
+}

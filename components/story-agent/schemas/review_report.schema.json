@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "backlotos.review_report.v1",
+  "type": "object",
+  "required": ["episode_id", "passed", "issues", "shot_scores", "failed_shots"],
+  "properties": {
+    "episode_id": {"type": "string"}, "passed": {"type": "boolean"},
+    "total_duration_sec": {"type": "number"},
+    "shot_scores": {"type": "object"},
+    "failed_shots": {"type": "array"},
+    "issues": {"type": "array", "items": {
+      "type": "object",
+      "required": ["issue_id", "check", "severity", "location", "message", "fix"],
+      "properties": {
+        "issue_id": {"type": "string"},
+        "severity": {"enum": ["blocking", "warning"]}
+      }
+    }},
+    "blocking_count": {"type": "integer"}, "warning_count": {"type": "integer"}
+  }
+}

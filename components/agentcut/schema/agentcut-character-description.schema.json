@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/character-description-v1.json",
+  "title": "AgentCut structured character description",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "asset_id", "project_id", "character"],
+  "properties": {
+    "schema": {"const": "agentcut.character_description.v1"},
+    "asset_id": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "character": {"$ref": "#/$defs/character"}
+  },
+  "$defs": {
+    "nonEmpty": {"type": "string", "minLength": 1},
+    "description": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sex_presentation", "age_band", "face_shape", "facial_features", "hair", "skin_tone", "body_type", "height_proportion", "wardrobe", "accessories", "materials", "color_palette"],
+      "properties": {
+        "sex_presentation": {"$ref": "#/$defs/nonEmpty"},
+        "age_band": {"$ref": "#/$defs/nonEmpty"},
+        "face_shape": {"$ref": "#/$defs/nonEmpty"},
+        "facial_features": {"$ref": "#/$defs/nonEmpty"},
+        "hair": {"$ref": "#/$defs/nonEmpty"},
+        "skin_tone": {"$ref": "#/$defs/nonEmpty"},
+        "body_type": {"$ref": "#/$defs/nonEmpty"},
+        "height_proportion": {"$ref": "#/$defs/nonEmpty"},
+        "wardrobe": {"$ref": "#/$defs/nonEmpty"},
+        "accessories": {"$ref": "#/$defs/nonEmpty"},
+        "materials": {"$ref": "#/$defs/nonEmpty"},
+        "color_palette": {"$ref": "#/$defs/nonEmpty"}
+      }
+    },
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "display_name", "stage", "seedance_slot", "description"],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonEmpty"},
+        "display_name": {"$ref": "#/$defs/nonEmpty"},
+        "stage": {"$ref": "#/$defs/nonEmpty"},
+        "seedance_slot": {"type": "integer", "minimum": 1, "maximum": 99},
+        "description": {"$ref": "#/$defs/description"}
+      }
+    }
+  }
+}

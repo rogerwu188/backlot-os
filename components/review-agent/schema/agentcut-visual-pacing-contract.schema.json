@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "qingshan.agentcut-visual-pacing-contract.v1.schema.json",
+  "title": "AgentCut materialized visual pacing metadata",
+  "type": "object",
+  "required": ["clip_id", "relationship", "visual_information_delta"],
+  "properties": {
+    "clip_id": {"type": "string"},
+    "natural_unit_id": {"type": "string"},
+    "relationship": {"enum": ["PRIMARY", "REPLACEMENT_CANDIDATE", "INSERT", "REACTION", "TRANSITION", "REPAIR_FRAGMENT"]},
+    "replaces": {"type": ["string", "null"]},
+    "selected": {"type": "boolean"},
+    "visual_signature": {"type": "string"},
+    "scene_id": {"type": "string"},
+    "shot_size": {"type": "string"},
+    "subject_id": {"type": "string"},
+    "composition": {"type": "string"},
+    "visual_information_delta": {
+      "type": "object",
+      "required": ["new_subject", "new_action", "new_evidence", "new_emotion", "new_spatial_information"],
+      "properties": {
+        "new_subject": {"type": "boolean"},
+        "new_action": {"type": "boolean"},
+        "new_evidence": {"type": "boolean"},
+        "new_emotion": {"type": "boolean"},
+        "new_spatial_information": {"type": "boolean"}
+      }
+    }
+  }
+}

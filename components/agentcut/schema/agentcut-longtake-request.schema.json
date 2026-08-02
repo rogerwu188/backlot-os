@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentcut.local/schema/longtake-request-v1.json",
+  "title": "AgentCut Long-Take Paid Submission Preflight v1",
+  "type": "object",
+  "required": ["version", "continuousCameraRequired", "paidSubmission", "input", "provider"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": "1.0"},
+    "requestId": {"type": "string", "minLength": 1},
+    "continuousCameraRequired": {"type": "boolean"},
+    "paidSubmission": {"type": "boolean"},
+    "input": {
+      "type": "object",
+      "required": ["mode", "anchors"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["single-anchor", "multi-image"]},
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "time"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "time": {"type": "number", "minimum": 0},
+              "sha256": {"type": "string", "pattern": "^[0-9a-fA-F]{64}$"}
+            }
+          }
+        },
+        "cueBlocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start", "end"],
+            "additionalProperties": false,
+            "properties": {
+              "start": {"type": "number", "minimum": 0},
+              "end": {"type": "number", "exclusiveMinimum": 0},
+              "cue": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "required": ["name", "guaranteesInterAnchorInterpolation"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "model": {"type": "string"},
+        "guaranteesInterAnchorInterpolation": {"type": "boolean"}
+      }
+    }
+  }
+}

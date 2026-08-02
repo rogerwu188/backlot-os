@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "task_key": "E23-B01-to-B03",
+  "generation_mode": "image_to_video_first_last",
+  "prompt": "One uninterrupted continuous camera move from the start composition to the end composition. No cuts, resets, inserts, titles, signs, captions, or generated text.",
+  "inputs": [
+    {"role": "start_frame", "source": "start-frame.png", "metadata": {"beat_id": "B01"}},
+    {"role": "end_frame", "source": "end-frame.png", "metadata": {"beat_id": "B03"}}
+  ],
+  "model": "seedance-2.0-pro",
+  "duration": 15,
+  "aspect_ratio": "9:16",
+  "resolution": "720p",
+  "generating_count": 1
+}

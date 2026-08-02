@@ -1,0 +1,37 @@
+{
+  "claim": "resume own running task else same-filesystem atomic rename of one own inbox task",
+  "cron": {
+    "cron_id": "65822d41-6153-5d48-8fce-9cadbd30dfc8",
+    "enable_gate": "editor semantic canary PASS",
+    "enabled": false,
+    "offset_seconds": 36,
+    "period_seconds": 60
+  },
+  "directories": [
+    "inbox",
+    "running",
+    "done",
+    "failed",
+    "checkpoints",
+    "heartbeat"
+  ],
+  "forbidden": [
+    "sessions_send",
+    "sessions_list",
+    "sessions_history",
+    "cross-Agent chat",
+    "pure-exec semantic completion",
+    "loops",
+    "cron mutation",
+    "live mutation",
+    "ch482 mutation"
+  ],
+  "owner": "qingshan-agent-cut-cloud",
+  "queue_root": "queue_v2.0.17/editor",
+  "role": "editor",
+  "schema": "qingshan.semantic_agent_tick.role_contract.v1",
+  "scope": "editing, subtitle/BGM/end-card/audio measurement, and release encoding packaging only",
+  "tick": "one task and exactly one semantic microstep",
+  "transport": "shared-disk JSON+SHA only",
+  "version": "2.0.17-file-native-workers"
+}
