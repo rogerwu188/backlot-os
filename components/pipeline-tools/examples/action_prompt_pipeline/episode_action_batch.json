@@ -1,0 +1,29 @@
+{
+  "schema": "backlotos.action-prompt-source/1.0",
+  "episode": "DEMO-E01",
+  "tasks": [
+    {
+      "task_key": "DEMO-A01",
+      "action_unit": true,
+      "prompt": "固定机位，甲把木棍由右向左打落桌上的灯盏，灯盏落地后火苗亮起。",
+      "performance_tempo_contract": {"primary_action_complete_by_seconds": 1.5, "result_hold_seconds": 0.5},
+      "action_sequence_contract": {"chain_id": "DEMO", "sequence_index": 1, "entry_state_token": "LAMP_ON_TABLE", "exit_state_token": "LAMP_ON_FLOOR_FLAME_VISIBLE", "predecessor_tail_frame_ref": null, "tail_to_head_identity_required": false, "hidden_inter_shot_events_forbidden": true},
+      "action_direction_contract": {"entry_screen_side": "SCREEN_RIGHT", "travel_direction": "RIGHT_TO_LEFT", "recoil_direction": "", "terminal_screen_side": "SCREEN_LEFT", "contact_body_part": "WOOD_STICK", "contact_target": "LAMP"},
+      "requires_spatial_feasibility_gate": true,
+      "action_spatial_feasibility_contract": {"entry_geometry_derived_from_start_frame": true, "entry_pose_compatible": true, "exit_geometry_planned": true, "exit_pose_compatible_with_next_shot": true, "exit_preserves_protected_props": true, "collision_corridor": {"x_min": 0.25, "x_max": 0.75, "y_min": 0.20, "y_max": 0.80, "clear_of_protected_props": true, "limb_path_clear": true}, "effect_geometry": {"label": "灯盏轨迹", "max_width_ratio": 0.25, "max_height_ratio": 0.30, "plane_orientation": "TABLE_TO_FLOOR", "depth_order": "FOREGROUND"}, "maximum_subject_occlusion_ratio": 0.20, "first_contact_before_effect_feedback": true, "required_prompt_clauses": ["开放碰撞通道", "尾帧保留保护道具"]},
+      "performance_spec": {"motion_beats": [{"subject": "甲与木棍", "action": "木棍打落灯盏", "contact_point": "木棍前端与灯盏侧面", "direction": "右向左", "end_state": "灯盏落地且火苗可见"}]}
+    },
+    {
+      "task_key": "DEMO-A02",
+      "action_unit": true,
+      "depends_on_task": "DEMO-A01",
+      "prompt": "固定机位，乙跨过刚落地的灯盏，在门前停稳并回身。",
+      "performance_tempo_contract": {"primary_action_complete_by_seconds": 1.5, "result_hold_seconds": 0.5},
+      "action_sequence_contract": {"chain_id": "DEMO", "sequence_index": 2, "entry_state_token": "LAMP_ON_FLOOR_FLAME_VISIBLE", "exit_state_token": "B_AT_DOOR_FACING_ROOM", "predecessor_tail_frame_ref": "accepted/A01_tail.png", "tail_to_head_identity_required": true, "hidden_inter_shot_events_forbidden": true},
+      "action_direction_contract": {"entry_screen_side": "SCREEN_LEFT", "travel_direction": "LEFT_TO_RIGHT", "recoil_direction": "", "terminal_screen_side": "SCREEN_RIGHT", "contact_body_part": "RIGHT_FOOT", "contact_target": "FLOOR_BEYOND_LAMP"},
+      "requires_spatial_feasibility_gate": true,
+      "action_spatial_feasibility_contract": {"entry_geometry_derived_from_start_frame": true, "entry_pose_compatible": true, "exit_geometry_planned": true, "exit_pose_compatible_with_next_shot": true, "exit_preserves_protected_props": true, "collision_corridor": {"x_min": 0.20, "x_max": 0.80, "y_min": 0.25, "y_max": 0.90, "clear_of_protected_props": true, "limb_path_clear": true}, "effect_geometry": {"label": "跨步路径", "max_width_ratio": 0.45, "max_height_ratio": 0.55, "plane_orientation": "LEFT_TO_RIGHT", "depth_order": "MIDGROUND"}, "maximum_subject_occlusion_ratio": 0.20, "first_contact_before_effect_feedback": true, "required_prompt_clauses": ["开放碰撞通道", "尾帧保留保护道具"]},
+      "performance_spec": {"motion_beats": [{"subject": "乙", "action": "跨过灯盏走到门前", "contact_point": "右脚落在灯盏右侧地面", "direction": "左向右", "end_state": "乙在门前回身面对室内"}]}
+    }
+  ]
+}

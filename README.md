@@ -69,6 +69,25 @@ Provider defaults are Giggle `gpt2img` for images and `seedance-2.0-pro`
 newer model. Actual provider/model IDs are recorded in receipts; credentials
 are accepted only through deployment environment variables.
 
+## Pre-generation action and music contracts
+
+Action shots are compiled before provider submission. The compiler reads every
+earlier related action prompt, rejects repeated action pictures, checks actor
+ownership and screen direction, and requires physically possible entry/contact/
+result/exit states. Dependent action chains remain sequential; unrelated shots
+remain parallel. Run the bundled example:
+
+```bash
+python components/pipeline-tools/action_prompt_pipeline_cli.py \
+  --manifest components/pipeline-tools/examples/action_prompt_pipeline/episode_action_batch.json \
+  --output-dir /tmp/backlotos-action-prompts
+```
+
+Release episodes must also declare a provenance-bound BGM contract and contain
+real `Audio.BGM` clips. The BGM gate rejects silent stems, unverified sources,
+wall-to-wall scoring, missing ambience-only windows, and music that masks
+dialogue. See the [action and BGM production guide](docs/ACTION_PROMPT_PRODUCTION_GUIDE.md).
+
 ## Layout
 
 ```text
@@ -137,4 +156,5 @@ Some Python module and JSON contract names still use `qingshan_*` for backward c
 - [Deployment](docs/DEPLOYMENT.md)
 - [Security and repository boundaries](docs/SECURITY.md)
 - [Source inventory](docs/SOURCE_INVENTORY.md)
+- [Action prompts and selective BGM](docs/ACTION_PROMPT_PRODUCTION_GUIDE.md)
 - [Contributing and update flow](CONTRIBUTING.md)

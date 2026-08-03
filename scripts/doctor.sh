@@ -74,4 +74,17 @@ runtime_profile="$(backlot_detect_runtime_profile)" || exit $?
 echo "PASS runtime-profile:$runtime_profile"
 backlot_report_model_configuration "$runtime_profile" "$install_root"
 
+for production_gate in \
+  action_prompt_pipeline_cli.py \
+  action_spatial_feasibility_gate.py \
+  generation_prompt_optimizer.py \
+  bgm_authenticity_gate.py; do
+  if [[ -f "$repo_root/components/pipeline-tools/$production_gate" ]]; then
+    echo "PASS production-gate:$production_gate"
+  else
+    echo "FAIL production-gate:$production_gate"
+    failed=1
+  fi
+done
+
 exit "$failed"

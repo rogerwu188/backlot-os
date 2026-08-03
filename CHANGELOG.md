@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.4
+
+- Add a deterministic action-prompt optimizer that reads every earlier related
+  action task, rejects repeated visual action signatures, compiles positive
+  real-time/causality/ownership/spatial clauses, and binds its receipt to the
+  final prompt SHA before paid generation.
+- Add entry-and-planned-exit spatial feasibility contracts for collision
+  corridors, limb paths, effect footprint/depth, protected props, occlusion,
+  feedback order, and next-shot handoff poses.
+- Add a portable action-prompt CLI, runnable example, operator guide, CI tests,
+  installer health checks, and pipeline Agent instructions.
+- Make release BGM fail closed: require generated-or-verified provenance, a real
+  audible stem, selective narrative cue roles, dialogue ducking, and at least
+  eight seconds of ambience-only space; reject wall-to-wall score beds.
+
 ## 0.2.3
 
 - Add a fail-closed action-shot design gate before paid provider submission: one
