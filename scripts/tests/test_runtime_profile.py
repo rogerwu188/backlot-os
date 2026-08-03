@@ -80,6 +80,20 @@ class RuntimeProfileTests(unittest.TestCase):
         self.assertIn("CONFIGURED QINGSHAN_IMAGE_ANALYSIS_COMMAND", output)
         self.assertNotIn("cli_bridge_not_configured", output)
 
+    def test_bundled_storyclaw_adapter_replaces_command_variable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            adapter = home / ".local" / "share" / "backlotos" / "venv" / "bin" / "backlotos-storyclaw-image-analysis"
+            adapter.parent.mkdir(parents=True)
+            adapter.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+            adapter.chmod(0o755)
+            env = self.base_env(home)
+            env["BACKLOT_RUNTIME_PROFILE"] = "storyclaw"
+            env["BACKLOT_STORYCLAW_API_KEY"] = "secret"
+            output = run_profile(env)
+        self.assertIn("PASS image-analysis-runtime:storyclaw-chat-completions", output)
+        self.assertIn("NOT_APPLICABLE QINGSHAN_IMAGE_ANALYSIS_COMMAND", output)
+
     def test_missing_bundled_ocr_is_capability_not_configured(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             env = self.base_env(Path(tmp))

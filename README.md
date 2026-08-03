@@ -34,7 +34,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 
 ## What is included
 
-- **Review Agent 1.1.1** — shot, asset, and final-cut review for video, audio, and images; five-point scoring; bundled OCR; issue ledger; regression rules; NDJSON workers; AgentCut repair tasks.
+- **Review Agent 1.2.0** — shot, asset, and final-cut review for video, audio, and images; five-point scoring; bundled OCR and StoryClaw GPT‑5.5 vision adapter; issue ledger; regression rules; NDJSON workers; AgentCut repair tasks.
 - **Story Agent 0.2.1** — Claude >=4.8 policy, replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
 - **Producer/Supervisor Agent 0.2.0** — project planning, idempotent dispatch, Giggle image/video provider, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
