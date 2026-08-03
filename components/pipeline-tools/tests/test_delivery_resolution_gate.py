@@ -15,3 +15,7 @@ class DeliveryResolutionGateTests(unittest.TestCase):
     def test_720_upscale_fails(self):
         config = {"minimum_native_generation_height": 1080, "tasks": [{"task_key": "A", "tool_type": "video_generation", "resolution": "720p", "resolution_source": "UPSCALED_FROM_LOWER_RESOLUTION"}]}
         self.assertEqual(evaluate_batch(config)["status"], "FAIL")
+
+    def test_fast_model_fails_when_only_normal_or_pro_is_allowed(self):
+        config = {"minimum_native_generation_height": 1080, "allowed_generation_models": ["seedance-2.0-pro", "seedance-2.0-normal"], "tasks": [{"task_key": "A", "tool_type": "video_generation", "resolution": "1080p", "model": "seedance-2.0-fast"}]}
+        self.assertEqual(evaluate_batch(config)["status"], "FAIL")
