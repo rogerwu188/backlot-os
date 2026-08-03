@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+- Add a bundled StoryClaw Chat Completions image-analysis adapter with GPT‑5.5
+  default routing, exact candidate SHA binding, strict JSON normalization, and
+  environment-only credential loading.
+- Auto-select the adapter when `BACKLOT_STORYCLAW_API_KEY` is available; retain
+  `CAPABILITY_FAIL` when neither it nor an explicit command adapter exists.
+
 ## 0.2.1
 
 - Detect StoryClaw/OpenClaw hosted runtimes in `doctor.sh`.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qingshan-review-agent"
-version = "1.1.1"
+version = "1.2.0"
 description = "Local, read-only-first media review agent for Qingshan"
 requires-python = ">=3.9"
 dependencies = [
@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 qingshan-review = "qingshan_review.cli:main"
+backlotos-storyclaw-image-analysis = "qingshan_review.storyclaw_image_adapter:main"
 
 [tool.setuptools.packages.find]
 include = ["qingshan_review*"]

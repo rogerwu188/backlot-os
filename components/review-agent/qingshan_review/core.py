@@ -242,10 +242,13 @@ class Reviewer:
   def _run_image_visual_adapter(self,path:Path,item:dict[str,Any]):
     """Run a configured multimodal adapter using a stable JSON stdin contract."""
     command=os.environ.get("QINGSHAN_IMAGE_ANALYSIS_COMMAND","").strip()
-    if not command:return None,{"status":"CAPABILITY_FAIL","error_code":"IMAGE_VISUAL_RUNTIME_UNAVAILABLE","adapter_contract":"qingshan.image_visual_runtime.v1","candidate_sha256":sha256(path)}
+    command_parts=shlex.split(command) if command else []
+    if not command_parts and os.environ.get("BACKLOT_STORYCLAW_API_KEY","").strip():
+      command_parts=[sys.executable,"-m","qingshan_review.storyclaw_image_adapter"]
+    if not command_parts:return None,{"status":"CAPABILITY_FAIL","error_code":"IMAGE_VISUAL_RUNTIME_UNAVAILABLE","adapter_contract":"qingshan.image_visual_runtime.v1","candidate_sha256":sha256(path)}
     payload={"schema":"qingshan.image_visual_runtime.request.v1","path":str(path.resolve()),"candidate_sha256":sha256(path),"metadata":item.get("metadata") or {},"review_focus":(item.get("metadata") or {}).get("review_focus") or item.get("review_focus") or {}}
     try:
-      p=subprocess.run(shlex.split(command),input=json.dumps(payload,ensure_ascii=False),capture_output=True,text=True,timeout=float(item.get("image_analysis_timeout_seconds",180)))
+      p=subprocess.run(command_parts,input=json.dumps(payload,ensure_ascii=False),capture_output=True,text=True,timeout=float(item.get("image_analysis_timeout_seconds",180)))
       data=json.loads(p.stdout);row=next((x for x in data.get("evidence",[]) if x.get("sha256")==payload["candidate_sha256"]),None)
       if p.returncode not in {0,1} or not row:return None,{"status":"CAPABILITY_FAIL","error_code":"IMAGE_VISUAL_RUNTIME_INVALID_RESULT","returncode":p.returncode,"stderr_tail":p.stderr[-1000:],"candidate_sha256":payload["candidate_sha256"]}
       return data,None

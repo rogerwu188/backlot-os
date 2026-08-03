@@ -25,7 +25,7 @@ jobs:
         run: python -m unittest -v scripts.tests.test_runtime_profile
       - name: Review Agent tests
         working-directory: components/review-agent
-        run: python -m unittest -v tests.test_core.EpisodeRuntimeAndVisualPacingTests tests.test_core.ShotRecipeConformanceTests
+        run: python -m unittest -v tests.test_core.EpisodeRuntimeAndVisualPacingTests tests.test_core.ShotRecipeConformanceTests tests.test_storyclaw_image_adapter
       - name: Story Agent tests
         run: python -m pytest -q components/story-agent/tests
       - name: One-click Launcher tests

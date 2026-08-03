@@ -40,6 +40,13 @@ Python interpreter, so `QINGSHAN_OCR_PYTHON` becomes `NOT_APPLICABLE` after a
 normal installation. The compatibility variable is retained only for operators
 who intentionally supply a separate OCR environment.
 
+When `BACKLOT_STORYCLAW_API_KEY` is supplied through the StoryClaw device secret
+store, Review Agent automatically uses the bundled exact-SHA image adapter at
+`https://llm.storyclaw.com/v1/chat/completions`. The default model is `gpt-5.5`
+and can be changed with `BACKLOT_STORYCLAW_MODEL`; the endpoint may be changed
+with `BACKLOT_STORYCLAW_API_BASE`. The key is never accepted in request JSON,
+reports, command arguments, or repository files.
+
 ## Update and rollback
 
 `scripts/update.sh` fetches the requested branch or tag and reinstalls the isolated environment. Set `BACKLOT_VERSION` to an immutable tag for production. To roll back, set it to the previous tag and rerun the script.

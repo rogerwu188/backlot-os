@@ -1,6 +1,6 @@
 # 《青山》AI 审片 Agent
 
-当前版本：Agent `1.1.1`，报告 `qingshan.review.report.v2`，规则 `qingshan.review.rules.v25`。
+当前版本：Agent `1.2.0`，报告 `qingshan.review.report.v2`，规则 `qingshan.review.rules.v25`。
 
 本地、只读优先的审片工具。支持镜头、素材、成片三级请求；视频、音频、图片；默认 4 worker；单次 CLI 与并发 NDJSON 常驻协议。它不会上传、发布、替换或删除成片。
 

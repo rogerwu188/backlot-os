@@ -44,6 +44,11 @@ backlot_report_model_configuration() {
 
   if [[ -n "${QINGSHAN_IMAGE_ANALYSIS_COMMAND:-}" ]]; then
     printf '%s\n' 'CONFIGURED QINGSHAN_IMAGE_ANALYSIS_COMMAND'
+  elif [[ -n "${BACKLOT_STORYCLAW_API_KEY:-}" && \
+          -x "$install_root/venv/bin/backlotos-storyclaw-image-analysis" ]]; then
+    printf '%s\n' 'PASS image-analysis-runtime:storyclaw-chat-completions model=gpt-5.5'
+    printf '%s\n' \
+      'NOT_APPLICABLE QINGSHAN_IMAGE_ANALYSIS_COMMAND reason=bundled_storyclaw_api_adapter'
   elif [[ "$profile" == "storyclaw" ]]; then
     printf '%s\n' \
       'OPTIONAL_NOT_CONFIGURED QINGSHAN_IMAGE_ANALYSIS_COMMAND reason=host_multimodal_available_but_cli_bridge_not_configured'
