@@ -4,9 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qingshan-review-agent"
-version = "1.1.0"
+version = "1.1.1"
 description = "Local, read-only-first media review agent for Qingshan"
 requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.24,<3",
+  "onnxruntime>=1.17,<2",
+  "opencv-python-headless==4.10.0.84",
+  "rapidocr-onnxruntime==1.4.4",
+]
 
 [project.scripts]
 qingshan-review = "qingshan_review.cli:main"

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib, json, math, os, re, shlex, shutil, statistics, subprocess, tempfile, threading, wave
+import hashlib, json, math, os, re, shlex, shutil, statistics, subprocess, sys, tempfile, threading, wave
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -255,7 +255,10 @@ class Reviewer:
     script=Path(__file__).with_name("image_runtime_adapter.py");interpreters=[]
     configured=os.environ.get("QINGSHAN_OCR_PYTHON")
     if configured:interpreters.append(configured)
-    interpreters.extend(["/usr/bin/python3",os.environ.get("PYTHON","python3")])
+    # The official installer bundles RapidOCR in the same isolated runtime as
+    # qingshan-review. Prefer that interpreter so cloud hosts do not need a
+    # second OCR Python setting or a system-wide package installation.
+    interpreters.extend([sys.executable,"/usr/bin/python3",os.environ.get("PYTHON","python3")])
     errors=[]
     for python in dict.fromkeys(interpreters):
       if not python:continue
@@ -707,7 +710,7 @@ class Reviewer:
     return {**(selected or {"project":str(Path(ref).resolve()),"clip_id":item.get("clip_id"),"timeline_range":None,"metadata":{}}),"clips":clips,"coverage":coverage,"pacing":pacing,"anti_padding":anti_padding,"outro":outro_boundary}
 
   def _run_video_ocr_gap(self,path,start,end,item):
-    script=Path(__file__).with_name("video_ocr_gap_adapter.py");configured=os.environ.get("QINGSHAN_OCR_PYTHON");interpreters=[x for x in [configured,"/usr/bin/python3",os.environ.get("PYTHON","python3")] if x];errors=[]
+    script=Path(__file__).with_name("video_ocr_gap_adapter.py");configured=os.environ.get("QINGSHAN_OCR_PYTHON");interpreters=[x for x in [configured,sys.executable,"/usr/bin/python3",os.environ.get("PYTHON","python3")] if x];errors=[]
     for python in dict.fromkeys(interpreters):
       with tempfile.TemporaryDirectory() as td:
         dest=Path(td)/"gap.json"

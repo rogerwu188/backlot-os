@@ -18,6 +18,28 @@ Secrets are supplied only at runtime. Common optional variables include:
 
 Compatibility variable names remain supported until a versioned migration introduces BacklotOS aliases. `doctor.sh` reports whether values exist but never prints them.
 
+### StoryClaw native model runtime
+
+StoryClaw already supplies the host Agent model. BacklotOS detects StoryClaw
+from its runtime environment (or `BACKLOT_RUNTIME_PROFILE=storyclaw`) and marks
+`OPENAI_API_KEY` as `NOT_APPLICABLE`; users must not buy or paste a second key
+to run the core pipeline there. `BACKLOT_HOST_MODEL` may label the host-managed
+model in health output without exposing credentials.
+
+The host Agent's model session and a child CLI process are separate execution
+boundaries. Agent-mediated writing, reasoning, and visual inspection use the
+StoryClaw model without an API key. Fully unattended CLI image review still
+needs an exact-SHA command bridge via `QINGSHAN_IMAGE_ANALYSIS_COMMAND`; doctor
+reports that bridge independently and never treats the ambient model session
+as proof that the command adapter ran. Standalone servers may optionally use
+`OPENAI_API_KEY` for direct API-backed adapters.
+
+The official installer includes RapidOCR, ONNX Runtime, and headless OpenCV in
+the isolated BacklotOS environment. Review Agent OCR automatically uses its own
+Python interpreter, so `QINGSHAN_OCR_PYTHON` becomes `NOT_APPLICABLE` after a
+normal installation. The compatibility variable is retained only for operators
+who intentionally supply a separate OCR environment.
+
 ## Update and rollback
 
 `scripts/update.sh` fetches the requested branch or tag and reinstalls the isolated environment. Set `BACKLOT_VERSION` to an immutable tag for production. To roll back, set it to the previous tag and rerun the script.
