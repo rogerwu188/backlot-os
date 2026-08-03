@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$repo_root/scripts/lib/runtime-profile.sh"
+
 install_root="${BACKLOT_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/backlotos}"
 failed=0
 
@@ -67,12 +70,8 @@ else
   failed=1
 fi
 
-for variable_name in OPENAI_API_KEY QINGSHAN_IMAGE_ANALYSIS_COMMAND QINGSHAN_OCR_PYTHON; do
-  if [[ -n "${!variable_name:-}" ]]; then
-    echo "CONFIGURED $variable_name"
-  else
-    echo "OPTIONAL_NOT_CONFIGURED $variable_name"
-  fi
-done
+runtime_profile="$(backlot_detect_runtime_profile)" || exit $?
+echo "PASS runtime-profile:$runtime_profile"
+backlot_report_model_configuration "$runtime_profile" "$install_root"
 
 exit "$failed"

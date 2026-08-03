@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1
+
+- Detect StoryClaw/OpenClaw hosted runtimes in `doctor.sh`.
+- Treat `OPENAI_API_KEY` as `NOT_APPLICABLE` when the host manages the GPT model.
+- Report the unattended image-analysis command bridge separately from the host
+  Agent's multimodal session, avoiding both duplicate-key prompts and false PASS.
+- Add runtime-profile unit and doctor integration coverage.
+- Bundle RapidOCR/ONNX/OpenCV with the Review Agent, prefer its isolated Python
+  automatically, and retire the separate OCR-Python prompt for normal installs.
+
 ## 0.2.0 - Unreleased
 
 - Added a one-screen local production console and `backlotos` CLI.

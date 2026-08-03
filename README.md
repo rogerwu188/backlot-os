@@ -34,7 +34,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 
 ## What is included
 
-- **Review Agent 1.1.0** — shot, asset, and final-cut review for video, audio, and images; five-point scoring; issue ledger; regression rules; NDJSON workers; AgentCut repair tasks.
+- **Review Agent 1.1.1** — shot, asset, and final-cut review for video, audio, and images; five-point scoring; bundled OCR; issue ledger; regression rules; NDJSON workers; AgentCut repair tasks.
 - **Story Agent 0.2.1** — Claude >=4.8 policy, replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
 - **Producer/Supervisor Agent 0.2.0** — project planning, idempotent dispatch, Giggle image/video provider, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
@@ -55,6 +55,14 @@ cd backlot-os
 ```
 
 The installer creates an isolated runtime and does not copy production media or credentials. Configure optional integrations in a local `.env`; never commit that file.
+
+On StoryClaw, the host-managed GPT runtime is used by the Agents and no separate
+`OPENAI_API_KEY` is required. `doctor.sh` detects that environment and reports
+the key as `NOT_APPLICABLE`. A standalone command-line visual worker remains a
+separate capability and must have an exact-SHA command bridge configured; the
+health report keeps that boundary explicit instead of claiming a false PASS.
+RapidOCR is bundled in the isolated installation and is discovered
+automatically; StoryClaw users do not need to configure a separate OCR Python.
 
 Provider defaults are Giggle `gpt2img` for images and `seedance-2.0-pro`
 (Seedance 2) for video. The Story Agent requires a configured Claude 4.8-or-
