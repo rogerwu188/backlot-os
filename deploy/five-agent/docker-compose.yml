@@ -1,0 +1,73 @@
+services:
+  workbench:
+    build:
+      context: ../..
+      dockerfile: deploy/five-agent/Dockerfile
+    command: ["backlotos", "start", "--host", "0.0.0.0", "--port", "8787", "--no-browser", "--projects-root", "/data/projects"]
+    ports: ["8787:8787"]
+    volumes: ["backlotos-projects:/data/projects"]
+    restart: unless-stopped
+
+  producer-agent:
+    build: {context: ../.., dockerfile: deploy/five-agent/Dockerfile}
+    command: ["backlotos", "agent", "--role", "producer", "--host", "0.0.0.0", "--port", "8801"]
+    environment:
+      BACKLOT_PRODUCER_COMMAND: ${BACKLOT_PRODUCER_COMMAND:-backlotos-producer-command}
+      BACKLOT_AGENT_STORY_URL: http://story-agent:8802/v1/task
+      BACKLOT_AGENT_PIPELINE_URL: http://pipeline-agent:8803/v1/task
+      BACKLOT_AGENT_POST_URL: http://post-agent:8804/v1/task
+      BACKLOT_AGENT_REVIEW_URL: http://review-release-agent:8805/v1/task
+      BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}
+    volumes: ["backlotos-projects:/data/projects"]
+    restart: unless-stopped
+
+  story-agent:
+    build: {context: ../.., dockerfile: deploy/five-agent/Dockerfile}
+    command: ["backlotos", "agent", "--role", "story", "--host", "0.0.0.0", "--port", "8802"]
+    environment:
+      CLAUDE_STORY_MODE: ${CLAUDE_STORY_MODE:-auto}
+      CLAUDE_STORY_COMMAND: ${CLAUDE_STORY_COMMAND:-}
+      CLAUDE_STORY_ANTHROPIC_MODEL: ${CLAUDE_STORY_ANTHROPIC_MODEL:-}
+      CLAUDE_STORY_MIN_MODEL_VERSION: ${CLAUDE_STORY_MIN_MODEL_VERSION:-4.8}
+      CLAUDE_STORY_MODEL_VERSION: ${CLAUDE_STORY_MODEL_VERSION:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}
+    volumes: ["backlotos-projects:/data/projects"]
+    restart: unless-stopped
+
+  pipeline-agent:
+    build: {context: ../.., dockerfile: deploy/five-agent/Dockerfile}
+    command: ["backlotos", "agent", "--role", "pipeline", "--host", "0.0.0.0", "--port", "8803"]
+    environment:
+      GIGGLE_API_KEY: ${GIGGLE_API_KEY:-}
+      GIGGLE_API_BASE: ${GIGGLE_API_BASE:-https://giggle.pro}
+      GIGGLE_VIDEO_MODEL: ${GIGGLE_VIDEO_MODEL:-seedance-2.0-pro}
+      GIGGLE_IMAGE_MODEL: ${GIGGLE_IMAGE_MODEL:-gpt2img}
+      BACKLOT_PIPELINE_COMMAND: ${BACKLOT_PIPELINE_COMMAND:-backlotos-pipeline-command}
+      BACKLOT_PIPELINE_TOOLS_DIR: /opt/backlotos/components/pipeline-tools
+      BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}
+    volumes: ["backlotos-projects:/data/projects"]
+    restart: unless-stopped
+
+  post-agent:
+    build: {context: ../.., dockerfile: deploy/five-agent/Dockerfile}
+    command: ["backlotos", "agent", "--role", "post", "--host", "0.0.0.0", "--port", "8804"]
+    environment:
+      BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}
+    volumes: ["backlotos-projects:/data/projects"]
+    restart: unless-stopped
+
+  review-release-agent:
+    build: {context: ../.., dockerfile: deploy/five-agent/Dockerfile}
+    command: ["backlotos", "agent", "--role", "review", "--host", "0.0.0.0", "--port", "8805"]
+    environment:
+      BACKLOT_AGENT_TOKEN: ${BACKLOT_AGENT_TOKEN:-}
+      BACKLOT_PROJECT_ROOT: /data/projects
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      QINGSHAN_IMAGE_ANALYSIS_COMMAND: ${QINGSHAN_IMAGE_ANALYSIS_COMMAND:-}
+      QINGSHAN_OCR_PYTHON: ${QINGSHAN_OCR_PYTHON:-}
+    volumes: ["backlotos-projects:/data/projects"]
+    restart: unless-stopped
+
+volumes:
+  backlotos-projects:

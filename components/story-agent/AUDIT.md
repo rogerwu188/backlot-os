@@ -24,7 +24,7 @@
 
 ## D. Depends on 《青山》-specific material (must NOT enter generic core)
 - `原著对照档案_*.md`, character names (陈迹/皎兔/云羊), `full_series_information_node_map`,
-  `观众已知清单.md`, project palettes/canon. → copyright/project data; compat layer only.
+  `观众已知清单.md`, project palettes/canon. → project-specific data; compat layer only.
 
 ## E. Abstractable to generic short-drama capability (this package)
 - seven-check, density gate (≥4–6 events/min), FS-1 fight cadence, first-frame-motion,

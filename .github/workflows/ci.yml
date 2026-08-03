@@ -18,7 +18,7 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-cjk
       - name: Install components
-        run: python -m pip install components/agentcut components/review-agent 'components/story-agent[test]'
+        run: python -m pip install components/agentcut components/review-agent 'components/story-agent[test]' 'components/producer-supervisor-agent[test]' 'components/launcher[test]'
       - name: Verify repository boundaries
         run: ./scripts/verify-repository.sh
       - name: Review Agent tests
@@ -26,6 +26,10 @@ jobs:
         run: python -m unittest -v tests.test_core.EpisodeRuntimeAndVisualPacingTests tests.test_core.ShotRecipeConformanceTests
       - name: Story Agent tests
         run: python -m pytest -q components/story-agent/tests
+      - name: One-click Launcher tests
+        run: python -m pytest -q components/launcher/tests
+      - name: Producer/Supervisor Agent tests
+        run: python -m pytest -q components/producer-supervisor-agent/tests
       - name: AgentCut tests
         run: python -m unittest discover -s components/agentcut/tests -v
       - name: AgentCut compatibility tests
@@ -33,4 +37,4 @@ jobs:
       - name: Factory Runtime tests
         run: python components/factory-runtime/tests/run_all_tests.py
       - name: Installed CLI smoke test
-        run: qingshan-review health && agentcut health && claude-story-agent health
+        run: qingshan-review health && agentcut health && claude-story-agent health && backlotos health && echo '{"verb":"health"}' | backlotos-producer-command && echo '{"verb":"health"}' | BACKLOT_PIPELINE_TOOLS_DIR="$PWD/components/pipeline-tools" backlotos-pipeline-command

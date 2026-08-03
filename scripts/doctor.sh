@@ -42,6 +42,31 @@ else
   failed=1
 fi
 
+if [[ -x "$install_root/venv/bin/backlotos" ]]; then
+  echo "PASS launcher"
+  "$install_root/venv/bin/backlotos" health
+else
+  echo "FAIL launcher"
+  failed=1
+fi
+
+if [[ -x "$install_root/venv/bin/backlotos-producer-command" ]]; then
+  echo "PASS producer-supervisor-agent"
+  printf '%s\n' '{"verb":"health"}' | "$install_root/venv/bin/backlotos-producer-command"
+else
+  echo "FAIL producer-supervisor-agent"
+  failed=1
+fi
+
+if [[ -x "$install_root/venv/bin/backlotos-pipeline-command" ]]; then
+  echo "PASS pipeline-semantic-adapter"
+  printf '%s\n' '{"verb":"health"}' | \
+    BACKLOT_PIPELINE_TOOLS_DIR="$install_root/share/pipeline-tools" "$install_root/venv/bin/backlotos-pipeline-command"
+else
+  echo "FAIL pipeline-semantic-adapter"
+  failed=1
+fi
+
 for variable_name in OPENAI_API_KEY QINGSHAN_IMAGE_ANALYSIS_COMMAND QINGSHAN_OCR_PYTHON; do
   if [[ -n "${!variable_name:-}" ]]; then
     echo "CONFIGURED $variable_name"

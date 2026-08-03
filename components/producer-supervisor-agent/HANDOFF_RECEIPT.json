@@ -1,0 +1,54 @@
+{
+  "schema": "backlotos.handoff-receipt/1.0",
+  "package_name": "backlotos-producer-supervisor-agent",
+  "version": "0.2.0",
+  "source_path": "components/producer-supervisor-agent",
+  "source_sha256": "b128338cecbe731072f223d02306f65631197bc5b071bf6a6e25e775bcaf6cdf",
+  "source_sha256_method": "sha256(SHA256SUMS); SHA256SUMS contains sorted hashes of 38 source, schema, documentation and test files and excludes itself, HANDOFF_RECEIPT.json, build output and caches",
+  "wheel_path": "/Users/rogerwu/Documents/Codex/2026-07-17/backlot-os-deliverables/producer-supervisor-0.2.0/backlotos_producer_supervisor_agent-0.2.0-py3-none-any.whl",
+  "wheel_sha256": "bd76a7486238e194732dc02dee743956aab232fdceea28b5551b0ffd4c8a47a5",
+  "sdist_path": "/Users/rogerwu/Documents/Codex/2026-07-17/backlot-os-deliverables/producer-supervisor-0.2.0/backlotos_producer_supervisor_agent-0.2.0.tar.gz",
+  "sdist_sha256": "e3b97a6edeb3dde4cfb99bc615c0322571d9c27e654ecb8f02a1f5c60b47e8a1",
+  "test_count": 89,
+  "passed": 89,
+  "failed": 0,
+  "skipped": 0,
+  "regression_tests": {
+    "story_agent": {"passed": 30, "failed": 0, "skipped": 0},
+    "launcher": {"passed": 28, "failed": 0, "skipped": 0},
+    "combined": {"passed": 147, "failed": 0, "skipped": 0}
+  },
+  "supported_capabilities": [
+    "project-intake validation with shipped Draft 2020-12 schema and semantic URL/source checks",
+    "episode planning from inline input or existing BacklotOS project metadata",
+    "idempotent dispatch and dispatchMany with append-only jobs ledger",
+    "content/capability failure propagation to batch and process status",
+    "cross-stage identity/version/SHA/staleness/duration/padding supervision",
+    "real on-disk status/progress with launcher and producer-ledger reconciliation",
+    "resume and failed-only retry",
+    "per-episode/project credit summary and duplicate-charge detection",
+    "structured review decisions with complete pacing-checklist enforcement",
+    "NDJSON, CLI and HTTP health/task protocols with four-worker floor",
+    "seven deterministic generic pipeline gates",
+    "Giggle image/video submission and task reconciliation with environment-only credentials",
+    "gpt2img image and seedance-2.0-pro video defaults with auditable model receipts",
+    "unconditional human authorization boundary for irreversible actions"
+  ],
+  "unsupported_capabilities": [
+    "storyboard and image/video generation without a configured GIGGLE_API_KEY",
+    "live downstream Story/Pipeline/Post/Review execution without configured command or HTTP endpoints",
+    "five-service Docker Compose acceptance on this machine because Docker is unavailable",
+    "platform publish, release, delete, overwrite or upload actions, which remain HUMAN_ONLY"
+  ],
+  "install_command": "python -m pip install backlotos_producer_supervisor_agent-0.2.0-py3-none-any.whl",
+  "health_command": "printf '%s\\n' '{\"verb\":\"health\"}' | backlotos-producer-command",
+  "rollback_command": "python -m pip uninstall backlotos-producer-supervisor-agent",
+  "known_limitations": [
+    "Pipeline media generation is intentionally ADAPTER_REQUIRED until GIGGLE_API_KEY is configured; package acceptance submitted no paid task.",
+    "Full five-Agent Compose acceptance is pending on a Docker-capable host.",
+    "Dispatch idempotency locking is process-local; one Producer service replica per shared project ledger is required in 0.2.0."
+  ],
+  "contains_qingshan_specific_content_in_generic_core": false,
+  "contains_secrets_or_private_session_data": false,
+  "status": "SUPPORTED_LOCAL_INSTALL_FIVE_AGENT_ACCEPTANCE_PENDING_DOCKER"
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "backlotos.credit-event/1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "event_id", "cost_key", "supersedes_event_id", "timestamp", "episode_id", "stage", "provider", "consumed", "refunded", "net", "final"],
+  "properties": {
+    "schema": {"const": "backlotos.credit-event/1.0"},
+    "event_id": {"type": "string"},
+    "cost_key": {"type": ["string", "null"]},
+    "supersedes_event_id": {"type": ["string", "null"]},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "episode_id": {"type": "string"},
+    "stage": {"type": "string"},
+    "provider": {"type": "string"},
+    "provider_task_id": {"type": ["string", "null"]},
+    "estimated": {"type": ["number", "null"], "minimum": 0},
+    "consumed": {"type": "number", "minimum": 0},
+    "refunded": {"type": "number", "minimum": 0},
+    "net": {"type": "number", "minimum": 0},
+    "final": {"type": "boolean"},
+    "evidence_ref": {"type": ["string", "null"]}
+  }
+}

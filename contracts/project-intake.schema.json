@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "backlotos.project-intake/1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "production_type", "visual_format", "episode_count", "episode_duration_seconds", "aspect_ratio"],
+  "properties": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "upload": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["url"]},
+        {"required": ["upload"]}
+      ]
+    },
+    "production_type": {"enum": ["short_drama", "long_drama"]},
+    "visual_format": {"enum": ["live_action", "animation"], "default": "live_action"},
+    "episode_count": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200},
+    "episode_duration_seconds": {"type": "integer", "minimum": 30, "maximum": 7200, "default": 180},
+    "aspect_ratio": {"enum": ["9:16", "16:9"], "default": "9:16"}
+  }
+}

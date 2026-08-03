@@ -65,3 +65,43 @@ def test_stable_issue_id(good):
     ida = [i["issue_id"] for i in a["issues"] if i["check"] == "ACTION_NO_RESULT"][0]
     idb = [i["issue_id"] for i in b["issues"] if i["check"] == "ACTION_NO_RESULT"][0]
     assert ida == idb  # deterministic/stable
+
+def test_repeated_dialogue_is_blocking_filler(good):
+    good["scenes"][0]["shots"][1]["dialogue"] = [{"speaker": "Ally", "text": "not yet", "subtext": "buying time"}]
+    r = rep(good)
+    assert r["passed"] is False
+    assert any(i["check"] == "DIALOGUE_REPEAT" and i["blocking"] for i in r["issues"])
+
+def test_non_advancing_shot_is_reported(good):
+    shot = good["scenes"][0]["shots"][1]
+    shot["new_info"] = []
+    shot["action"] = {}
+    r = rep(good)
+    assert any(i["check"] == "SHOT_NO_STORY_ADVANCE" for i in r["issues"])
+    assert r["pacing"]["advancing_shot_ratio"] == 0.8
+
+def test_opening_hook_is_hard_gate(good):
+    shot = good["scenes"][0]["shots"][0]
+    shot["new_info"] = []
+    shot["action"] = {}
+    shot["dialogue"] = [{"speaker": "Hero", "text": "hello", "subtext": ""}]
+    r = rep(good)
+    assert r["passed"] is False
+    assert r["pacing"]["opening_hook"] is False
+    assert any(i["check"] == "OPENING_HOOK_MISSING" for i in r["issues"])
+
+def test_end_hook_is_hard_gate(good):
+    shot = good["scenes"][0]["shots"][-1]
+    shot["new_info"] = []
+    shot["action"] = {}
+    r = rep(good)
+    assert r["passed"] is False
+    assert r["pacing"]["end_hook"] is False
+    assert any(i["check"] == "END_HOOK_MISSING" for i in r["issues"])
+
+def test_pacing_policy_and_metrics_are_reported(good):
+    r = rep(good)
+    assert r["pacing"]["policy_version"] == "backlotos.us-premium-streaming/1.0"
+    assert r["pacing"]["opening_hook"] is True
+    assert r["pacing"]["end_hook"] is True
+    assert r["pacing"]["advancing_shot_ratio"] == 1.0

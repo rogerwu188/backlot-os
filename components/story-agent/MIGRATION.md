@@ -34,7 +34,7 @@ Run the NDJSON server as a long-lived process; BacklotOS sends one JSON request 
 | project canon/观众已知清单 | passed in `spec.canon` / compat fixtures (de-identified) |
 
 ## 5. Project-specific compat
-`compat/qingshan/` holds ONLY de-identified fixtures + a mapping note — **no copyright text**.
+`compat/qingshan/` holds only de-identified fixtures and a mapping note, with no production source text.
 Real project canon stays in the project repo and is passed at call time, never baked in.
 
 ## 6. Rollback
