@@ -52,6 +52,7 @@ try:
     from camera_motion_sequence_gate import evaluate_sequence as evaluate_camera_motion_sequence
     from performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
     from action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
+    from action_direction_contract_gate import evaluate_batch as evaluate_action_direction_contract
     from generation_dependency_topology_gate import evaluate_batch as evaluate_generation_dependency_topology
     from delivery_resolution_gate import evaluate_batch as evaluate_delivery_resolution
     from dramatic_quality_gate import evaluate as evaluate_dramatic_quality
@@ -100,6 +101,7 @@ except ModuleNotFoundError:  # Imported as tools.episode_parallel_batch_supervis
     from tools.camera_motion_sequence_gate import evaluate_sequence as evaluate_camera_motion_sequence
     from tools.performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
     from tools.action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
+    from tools.action_direction_contract_gate import evaluate_batch as evaluate_action_direction_contract
     from tools.generation_dependency_topology_gate import evaluate_batch as evaluate_generation_dependency_topology
     from tools.delivery_resolution_gate import evaluate_batch as evaluate_delivery_resolution
     from tools.dramatic_quality_gate import evaluate as evaluate_dramatic_quality
@@ -2550,6 +2552,7 @@ def main() -> int:
         ("CAMERA_MOTION_SEQUENCE", lambda: evaluate_camera_motion_sequence(config.get("tasks", []), prompt_texts), "BLOCKED_CAMERA_MOTION_SEQUENCE", "Replace only the blocked camera clause with fixed composition or add a fixed-composition cooldown."),
         ("PERFORMANCE_TEMPO", lambda: evaluate_performance_tempo(config.get("tasks", [])), "BLOCKED_PERFORMANCE_TEMPO", "Shorten the atomic action and bind a real-time completion window."),
         ("ACTION_SEQUENCE_CONTINUITY", lambda: evaluate_action_sequence_continuity(config.get("tasks", [])), "BLOCKED_ACTION_SEQUENCE_CONTINUITY", "Add explicit bridge units and predecessor tail-frame bindings."),
+        ("ACTION_DIRECTION_CONTRACT", lambda: evaluate_action_direction_contract(config.get("tasks", [])), "BLOCKED_ACTION_DIRECTION_CONTRACT", "Resolve screen-side, travel, recoil, terminal-side and exact contact-point contradictions before prompt submission."),
         ("GENERATION_DEPENDENCY_TOPOLOGY", lambda: evaluate_generation_dependency_topology(config.get("tasks", [])), "BLOCKED_GENERATION_DEPENDENCY_TOPOLOGY", "Serialize only continuity-critical chains; keep independent shots parallel."),
         ("DELIVERY_RESOLUTION", lambda: evaluate_delivery_resolution(config), "BLOCKED_DELIVERY_RESOLUTION", "Regenerate affected formal-release shots natively at the declared resolution; do not upscale lower-resolution sources as a substitute."),
     ):
