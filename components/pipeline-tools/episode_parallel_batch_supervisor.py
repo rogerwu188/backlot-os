@@ -54,6 +54,8 @@ try:
     from action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
     from action_direction_contract_gate import evaluate_batch as evaluate_action_direction_contract
     from action_actor_ownership_gate import evaluate_batch as evaluate_action_actor_ownership
+    from action_spatial_feasibility_gate import evaluate_batch as evaluate_action_spatial_feasibility
+    from generation_prompt_optimizer import validate_batch as validate_prompt_optimizer
     from generation_dependency_topology_gate import evaluate_batch as evaluate_generation_dependency_topology
     from delivery_resolution_gate import evaluate_batch as evaluate_delivery_resolution
     from dramatic_quality_gate import evaluate as evaluate_dramatic_quality
@@ -104,6 +106,8 @@ except ModuleNotFoundError:  # Imported as tools.episode_parallel_batch_supervis
     from tools.action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
     from tools.action_direction_contract_gate import evaluate_batch as evaluate_action_direction_contract
     from tools.action_actor_ownership_gate import evaluate_batch as evaluate_action_actor_ownership
+    from tools.action_spatial_feasibility_gate import evaluate_batch as evaluate_action_spatial_feasibility
+    from tools.generation_prompt_optimizer import validate_batch as validate_prompt_optimizer
     from tools.generation_dependency_topology_gate import evaluate_batch as evaluate_generation_dependency_topology
     from tools.delivery_resolution_gate import evaluate_batch as evaluate_delivery_resolution
     from tools.dramatic_quality_gate import evaluate as evaluate_dramatic_quality
@@ -2556,6 +2560,8 @@ def main() -> int:
         ("ACTION_SEQUENCE_CONTINUITY", lambda: evaluate_action_sequence_continuity(config.get("tasks", [])), "BLOCKED_ACTION_SEQUENCE_CONTINUITY", "Add explicit bridge units and predecessor tail-frame bindings."),
         ("ACTION_DIRECTION_CONTRACT", lambda: evaluate_action_direction_contract(config.get("tasks", [])), "BLOCKED_ACTION_DIRECTION_CONTRACT", "Resolve screen-side, travel, recoil, terminal-side and exact contact-point contradictions before prompt submission."),
         ("ACTION_ACTOR_OWNERSHIP", lambda: evaluate_action_actor_ownership(config.get("tasks", []), prompt_texts), "BLOCKED_ACTION_ACTOR_OWNERSHIP", "Name the inherited foreground actor, sole action owner, forbidden foreground actions and visible effect origin in the structured contract and prompt."),
+        ("ACTION_SPATIAL_FEASIBILITY", lambda: evaluate_action_spatial_feasibility(config.get("tasks", []), prompt_texts), "BLOCKED_ACTION_SPATIAL_FEASIBILITY", "Re-stage the predecessor tail or compile a positive contact corridor, effect plane, size and occlusion budget before submission."),
+        ("GENERATION_PROMPT_OPTIMIZER", lambda: validate_prompt_optimizer(config.get("tasks", []), prompt_texts), "BLOCKED_GENERATION_PROMPT_OPTIMIZER", "Run the deterministic prompt optimizer and bind its receipt to the final prompt SHA before submission."),
         ("GENERATION_DEPENDENCY_TOPOLOGY", lambda: evaluate_generation_dependency_topology(config.get("tasks", [])), "BLOCKED_GENERATION_DEPENDENCY_TOPOLOGY", "Serialize only continuity-critical chains; keep independent shots parallel."),
         ("DELIVERY_RESOLUTION", lambda: evaluate_delivery_resolution(config), "BLOCKED_DELIVERY_RESOLUTION", "Regenerate affected formal-release shots natively at the declared resolution; do not upscale lower-resolution sources as a substitute."),
     ):
