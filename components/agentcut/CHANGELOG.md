@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.18
+
+- Make `releaseProject:true` a complete, fail-closed distribution contract.
+- Require burned subtitles, non-empty expected dialogue IDs, the enabled Nalu
+  Motion branded outro, and `releaseGate.required=true` before compile or render.
+- Expose `coverage.releaseProjectContract` in normal and strict validation so
+  clients can diagnose missing declarations before media work begins.
+- Preserve compatibility for non-release projects and independently reviewed
+  rough candidates; only explicitly designated releases activate the contract.
+
 ## 0.9.17
 
 - Add a versioned registry of 27 curated live-action/generated-short-drama shot recipes with Apache-2.0 source/NOTICE provenance and no Remotion or bundled-audio dependency.

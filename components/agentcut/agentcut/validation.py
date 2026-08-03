@@ -215,6 +215,63 @@ def validate_subtitles(project: Project) -> tuple[list[ValidationIssue], dict[st
     return issues, coverage
 
 
+def validate_release_project_contract(project: Project) -> tuple[list[ValidationIssue], dict[str, Any]]:
+    """Require complete subtitle, outro, and visual-review declarations for releases."""
+    required = bool(project.release_project)
+    if not required:
+        return [], {
+            "required": False,
+            "burnedSubtitlesRequired": project.require_burned_subtitles,
+            "expectedDialogueCount": len(project.expected_dialogue_ids),
+            "brandedOutroRequired": project.require_branded_outro,
+            "outroEnabled": project.outro.enabled,
+            "fullCutVisualReviewRequired": bool(project.release_gate.get("required", False)),
+        }
+
+    issues: list[ValidationIssue] = []
+    checks = {
+        "burnedSubtitlesRequired": project.require_burned_subtitles,
+        "expectedDialogueCount": len(project.expected_dialogue_ids),
+        "brandedOutroRequired": project.require_branded_outro,
+        "outroEnabled": project.outro.enabled,
+        "fullCutVisualReviewRequired": bool(project.release_gate.get("required", False)),
+    }
+    if not project.require_burned_subtitles:
+        issues.append(ValidationIssue(
+            "RELEASE_SUBTITLES_REQUIRED", "error",
+            "release projects must set requireBurnedSubtitles=true",
+            track_kind="subtitle",
+        ))
+    if not project.expected_dialogue_ids:
+        issues.append(ValidationIssue(
+            "RELEASE_DIALOGUE_IDS_REQUIRED", "error",
+            "release projects must declare non-empty expectedDialogueIds",
+            track_kind="subtitle",
+        ))
+    if not project.require_branded_outro:
+        issues.append(ValidationIssue(
+            "RELEASE_OUTRO_REQUIRED", "error",
+            "release projects must set requireBrandedOutro=true",
+            track_kind="outro",
+        ))
+    if not project.outro.enabled:
+        issues.append(ValidationIssue(
+            "RELEASE_OUTRO_ENABLED_REQUIRED", "error",
+            "release projects must enable the branded outro",
+            track_kind="outro",
+        ))
+    if not project.release_gate.get("required", False):
+        issues.append(ValidationIssue(
+            "RELEASE_VISUAL_GATE_REQUIRED", "error",
+            "release projects must set releaseGate.required=true",
+        ))
+    return issues, {
+        "required": True,
+        **checks,
+        "status": "PASS" if not issues else "FAIL",
+    }
+
+
 def validate_outro(project: Project, ffmpeg: str | None = None) -> tuple[list[ValidationIssue], dict[str, Any]]:
     outro = project.outro
     if not outro.enabled:
@@ -1078,6 +1135,7 @@ class MediaValidator:
         return max(values) if values else None
 
     def validate(self, project: Project) -> ValidationReport:
+        release_contract_issues, release_contract_coverage = validate_release_project_contract(project)
         subtitle_issues, subtitle_coverage = validate_subtitles(project)
         narrative_issues, narrative_coverage = validate_narrative(project)
         cut_reason_issues, cut_reason_coverage = validate_cut_reason_contract(project)
@@ -1089,7 +1147,7 @@ class MediaValidator:
         hold_issues, hold_coverage = validate_hold_slots(project)
         recipe_issues, recipe_coverage = validate_shot_recipes(project)
         issues: list[ValidationIssue] = [
-            *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
+            *release_contract_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
             *cleanup_issues, *audio_issues, *source_issues, *release_issues, *hold_issues, *recipe_issues,
         ]
         media: dict[str, dict[str, Any]] = {}
@@ -1168,6 +1226,7 @@ class MediaValidator:
                 time_range=_range(start, end), related_clips=related or None,
             ))
         coverage = {
+            "releaseProjectContract": release_contract_coverage,
             "tracks": track_coverage,
             "finalVideoRanges": [_range(a, b) for a, b in _merge(final_intervals)],
             "finalVideoGaps": [_range(a, b) for a, b in final_gaps],

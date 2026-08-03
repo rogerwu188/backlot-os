@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 from agentcut import AgentCutEngine, AgentCutError, RenderProgress, RenderResult, ValidationError
 from agentcut.agent import AgentServer
-from agentcut.validation import MediaValidator
+from agentcut.validation import MediaValidator, validate_release_project_contract
 from agentcut.transform import content_hash
 from agentcut.isolation import isolation_confidence
 from agentcut.audio_backend import audio_save_health, require_audio_save_backend
@@ -536,7 +536,38 @@ class AgentCutTests(unittest.TestCase):
         data["releaseProject"] = True
         report = AgentCutEngine().validate(data)
         self.assertFalse(report.valid)
-        self.assertIn("MASTER_AUDIO_POLICY_REQUIRED", {x.code for x in report.issues})
+        codes = {x.code for x in report.issues}
+        self.assertIn("MASTER_AUDIO_POLICY_REQUIRED", codes)
+        self.assertTrue({
+            "RELEASE_SUBTITLES_REQUIRED", "RELEASE_DIALOGUE_IDS_REQUIRED",
+            "RELEASE_OUTRO_REQUIRED", "RELEASE_OUTRO_ENABLED_REQUIRED",
+            "RELEASE_VISUAL_GATE_REQUIRED",
+        }.issubset(codes))
+        self.assertEqual(report.coverage["releaseProjectContract"]["status"], "FAIL")
+
+    def test_complete_release_project_contract_passes(self):
+        data = subtitled_project()
+        data["releaseProject"] = True
+        data["requireBrandedOutro"] = True
+        data["outro"] = {"enabled": True}
+        data["releaseGate"] = {"required": True}
+        parsed = AgentCutEngine().load(data)
+        issues, coverage = validate_release_project_contract(parsed)
+        self.assertEqual(issues, [])
+        self.assertEqual(coverage["status"], "PASS")
+
+    def test_compile_fails_before_render_when_release_contract_is_incomplete(self):
+        data = project()
+        data["releaseProject"] = True
+        with self.assertRaisesRegex(ValidationError, "RELEASE_SUBTITLES_REQUIRED"):
+            AgentCutEngine().compile(data)
+
+    def test_render_fails_before_media_work_when_release_contract_is_incomplete(self):
+        data = project()
+        data["releaseProject"] = True
+        data["timeline"]["audioTracks"] = []
+        with self.assertRaisesRegex(ValidationError, "RELEASE_SUBTITLES_REQUIRED"):
+            AgentCutEngine().render(data)
 
     def test_release_output_name_also_requires_master_audio_policy(self):
         data = project()
@@ -548,7 +579,6 @@ class AgentCutTests(unittest.TestCase):
 
     def test_projected_gain_includes_source_volume_and_overlap_headroom(self):
         data = project()
-        data["releaseProject"] = True
         data["masterAudioPolicy"] = {"required": True, "limiter": True, "truePeakCeilingDbtp": -1,
                                      "loudnessTargetLufs": -16, "maxClippedSamples": 0}
         data["timeline"]["audioTracks"][0]["clips"][0]["volume"] = 5.5
@@ -586,7 +616,7 @@ class AgentCutTests(unittest.TestCase):
             ], capture_output=True, text=True)
             self.assertEqual(made.returncode, 0, made.stderr)
             data = {
-                "version": "1.0", "releaseProject": True,
+                "version": "1.0",
                 "masterAudioPolicy": {"required": True, "limiter": True, "truePeakCeilingDbtp": -1,
                                       "codecHeadroomDb": .5, "loudnessTargetLufs": -16, "maxClippedSamples": 0},
                 "output": {"path": str(output), "width": 720, "height": 1280},
@@ -626,7 +656,7 @@ class AgentCutTests(unittest.TestCase):
             sentinel = b"existing-published-output-must-survive"
             output.write_bytes(sentinel)
             data = {
-                "version": "1.0", "releaseProject": True,
+                "version": "1.0",
                 "masterAudioPolicy": {"required": True, "limiter": True, "truePeakCeilingDbtp": -9,
                                       "codecHeadroomDb": 0, "loudnessTargetLufs": -5, "maxClippedSamples": 0},
                 "output": {"path": str(output), "width": 320, "height": 568, "fps": 24},

@@ -137,6 +137,11 @@ EXECUTORS: dict[str, dict[str, Any]] = {
         "arguments": [("--plan", "causality_plan")],
         "script_bound_arguments": ["causality_plan"],
     },
+    "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF": {
+        "tool": "tools/action_shot_design_gate.py",
+        "arguments": [("--plan", "action_shot_design_plan")],
+        "script_bound_arguments": ["action_shot_design_plan"],
+    },
     "PERIOD-ANACHRONISM-LOCK": {
         "tool": "tools/anachronism_lock_gate.py",
         "arguments": [("--plan", "period_lock_plan")],
@@ -169,6 +174,14 @@ EXECUTORS: dict[str, dict[str, Any]] = {
     "FINAL-PACKAGE-BLOCKERS": {
         "tool": "tools/final_package_blocker_gate.py",
         "arguments": [("--manifest", "final_package_manifest")],
+    },
+    "RELEASE-BRANDING-CONTRACT": {
+        "tool": "tools/release_branding_contract_gate.py",
+        "arguments": [("--project", "agentcut_project")],
+        "optional_arguments": [
+            ("--render-manifest", "render_manifest"),
+            ("--final-video", "final_video"),
+        ],
     },
     "AUDIO-SOURCE-PUBLISHED-MIX-BINDING": {
         "tool": "tools/audio_source_binding_gate.py",
@@ -318,6 +331,7 @@ RUNTIME_GATE_IDS = frozenset({
     "BGM-SOURCE-PRIORITY-AUTHENTICITY",
     "CHARACTER-IDENTITY-ADMISSION",
     "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL",
+    "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF",
     "DEFECT-TIER-TOLERANCE",
     "EDIT-CUT-MOTIVATION",
     "EDIT-PLAN-NATIVE-CADENCE",
@@ -349,6 +363,7 @@ RUNTIME_GATE_IDS = frozenset({
     "PACING-STYLE-BAN-V2_3",
     "PERIOD-ANACHRONISM-LOCK",
     "RELEASE-SIGNOFF-INTEGRITY",
+    "RELEASE-BRANDING-CONTRACT",
     "SCRIPT-COUNCIL-DRAMATIC-QUALITY",
     "SCRIPT-READINESS-EXCITEMENT-SHA",
     "SCRIPT-SCENE-DIVERSITY-PREFLIGHT",
@@ -375,6 +390,7 @@ PHASE_GATES: dict[str, tuple[str, ...]] = {
         "SCRIPT-SCENE-DIVERSITY-PREFLIGHT",
         "MECHANICAL-DEFAULT-META-GATE",
         "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL",
+        "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF",
         "PERIOD-ANACHRONISM-LOCK",
     ),
     "edit": (
@@ -415,6 +431,7 @@ PHASE_GATES: dict[str, tuple[str, ...]] = {
         "FINAL-CUT-DIALOGUE-LEGIBILITY",
     ),
     "release": (
+        "RELEASE-BRANDING-CONTRACT",
         "RELEASE-SIGNOFF-INTEGRITY",
         "GIGGLE-CREDIT-LEDGER-CLOSURE",
     ),

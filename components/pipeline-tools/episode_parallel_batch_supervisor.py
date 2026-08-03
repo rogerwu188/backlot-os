@@ -53,6 +53,10 @@ try:
     from mechanical_default_gate import evaluate as evaluate_mechanical_defaults
     from video_unit_anchor_count_gate import evaluate as evaluate_anchor_counts
     from common_sense_causality_gate import evaluate as evaluate_common_sense_causality
+    from action_shot_design_gate import (
+        evaluate as evaluate_action_shot_design,
+        validate_task_bindings as validate_action_shot_bindings,
+    )
     from anachronism_lock_gate import evaluate as evaluate_anachronism_lock
     from cut_motivation_gate import evaluate as evaluate_cut_motivation
     from performance_unit_split_gate import evaluate as evaluate_performance_unit_split
@@ -92,6 +96,10 @@ except ModuleNotFoundError:  # Imported as tools.episode_parallel_batch_supervis
     from tools.mechanical_default_gate import evaluate as evaluate_mechanical_defaults
     from tools.video_unit_anchor_count_gate import evaluate as evaluate_anchor_counts
     from tools.common_sense_causality_gate import evaluate as evaluate_common_sense_causality
+    from tools.action_shot_design_gate import (
+        evaluate as evaluate_action_shot_design,
+        validate_task_bindings as validate_action_shot_bindings,
+    )
     from tools.anachronism_lock_gate import evaluate as evaluate_anachronism_lock
     from tools.cut_motivation_gate import evaluate as evaluate_cut_motivation
     from tools.performance_unit_split_gate import evaluate as evaluate_performance_unit_split
@@ -212,6 +220,7 @@ RUNTIME_GATE_IDS = frozenset({
     "MECHANICAL-DEFAULT-META-GATE",
     "VIDEO-UNIT-DYNAMIC-ANCHOR-COUNT",
     "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL",
+    "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF",
     "PERIOD-ANACHRONISM-LOCK",
     "COMPLETE-VIDEO-PROMPT-MANIFEST",
     "EXACT-DIALOGUE-AUDIO-MANIFEST-COVERAGE",
@@ -228,6 +237,7 @@ RUNTIME_GATE_BINDINGS = {
     "MECHANICAL-DEFAULT-META-GATE": "validate_corrected_pipeline_quality",
     "VIDEO-UNIT-DYNAMIC-ANCHOR-COUNT": "validate_corrected_pipeline_quality",
     "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL": "validate_corrected_pipeline_quality",
+    "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF": "validate_corrected_pipeline_quality",
     "PERIOD-ANACHRONISM-LOCK": "validate_corrected_pipeline_quality",
     "COMPLETE-VIDEO-PROMPT-MANIFEST": "validate_complete_video_prompt_manifest",
     "EXACT-DIALOGUE-AUDIO-MANIFEST-COVERAGE": "validate_dialogue_manifest_coverage",
@@ -1066,6 +1076,7 @@ def validate_corrected_pipeline_quality(config: dict) -> dict:
         ("mechanical_default_plan_ref", evaluate_mechanical_defaults),
         ("anchor_count_plan_ref", evaluate_anchor_counts),
         ("common_sense_causality_plan_ref", evaluate_common_sense_causality),
+        ("action_shot_design_plan_ref", evaluate_action_shot_design),
         ("period_lock_plan_ref", evaluate_anachronism_lock),
     ):
         value = config.get(key)
@@ -1080,6 +1091,12 @@ def validate_corrected_pipeline_quality(config: dict) -> dict:
         reports[key] = {"path": str(path), "result": result}
         if result.get("status") != "PASS":
             failures.append(f"corrected_pipeline_gate_failed:{key}")
+        if key == "action_shot_design_plan_ref" and result.get("status") == "PASS":
+            plan = read_json(path)
+            failures.extend(
+                f"corrected_pipeline_action_prompt_binding:{value}"
+                for value in validate_action_shot_bindings(plan, config.get("tasks") or [], ROOT)
+            )
         if key == "anchor_count_plan_ref" and result.get("status") == "PASS":
             planned_by_unit = {
                 str(row.get("unit_id")): row.get("planned_reference_image_count")
@@ -2381,6 +2398,7 @@ def main() -> int:
         "mechanical_default_plan_ref": "MECHANICAL-DEFAULT-META-GATE",
         "anchor_count_plan_ref": "VIDEO-UNIT-DYNAMIC-ANCHOR-COUNT",
         "common_sense_causality_plan_ref": "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL",
+        "action_shot_design_plan_ref": "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF",
         "period_lock_plan_ref": "PERIOD-ANACHRONISM-LOCK",
     }
     for report_key, gate_id in corrected_gate_ids.items():
