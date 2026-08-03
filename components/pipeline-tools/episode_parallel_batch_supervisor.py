@@ -49,6 +49,11 @@ try:
     from generation_first_pass_policy_gate import evaluate as evaluate_generation_first_pass_policy
     from shot_duration_policy import validate_duration_task
     from shot_space_camera_constraint_gate import evaluate_batch as evaluate_space_camera_constraints
+    from camera_motion_sequence_gate import evaluate_sequence as evaluate_camera_motion_sequence
+    from performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
+    from action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
+    from generation_dependency_topology_gate import evaluate_batch as evaluate_generation_dependency_topology
+    from delivery_resolution_gate import evaluate_batch as evaluate_delivery_resolution
     from dramatic_quality_gate import evaluate as evaluate_dramatic_quality
     from mechanical_default_gate import evaluate as evaluate_mechanical_defaults
     from video_unit_anchor_count_gate import evaluate as evaluate_anchor_counts
@@ -92,6 +97,11 @@ except ModuleNotFoundError:  # Imported as tools.episode_parallel_batch_supervis
     from tools.generation_first_pass_policy_gate import evaluate as evaluate_generation_first_pass_policy
     from tools.shot_duration_policy import validate_duration_task
     from tools.shot_space_camera_constraint_gate import evaluate_batch as evaluate_space_camera_constraints
+    from tools.camera_motion_sequence_gate import evaluate_sequence as evaluate_camera_motion_sequence
+    from tools.performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
+    from tools.action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
+    from tools.generation_dependency_topology_gate import evaluate_batch as evaluate_generation_dependency_topology
+    from tools.delivery_resolution_gate import evaluate_batch as evaluate_delivery_resolution
     from tools.dramatic_quality_gate import evaluate as evaluate_dramatic_quality
     from tools.mechanical_default_gate import evaluate as evaluate_mechanical_defaults
     from tools.video_unit_anchor_count_gate import evaluate as evaluate_anchor_counts
@@ -1839,6 +1849,36 @@ def task_config_is_ready(task: dict) -> bool:
     return "READY" in status and "SUBMIT" in status
 
 
+def bind_predecessor_tail_frame(task: dict, dependency: dict) -> bool:
+    """Make the accepted predecessor tail the dependent shot's first-frame authority."""
+    contract = task.get("action_sequence_contract") or {}
+    destination_value = contract.get("predecessor_tail_frame_ref")
+    source_value = dependency.get("output_path")
+    if not destination_value or not source_value:
+        return False
+    source = abs_path(source_value)
+    destination = abs_path(destination_value)
+    if not source.is_file():
+        return False
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.is_file():
+        proc = subprocess.run([
+            str(resolve_media_binary("ffmpeg")), "-hide_banner", "-loglevel", "error", "-y",
+            "-sseof", "-0.05", "-i", str(source), "-frames:v", "1", "-q:v", "2", str(destination),
+        ], cwd=ROOT, check=False)
+        if proc.returncode != 0 or not destination.is_file():
+            return False
+    refs = [str(value) for value in task.get("reference_images") or []]
+    if str(destination) not in refs:
+        refs.insert(0, str(destination))
+    task["reference_images"] = refs
+    task["predecessor_tail_frame_sha256"] = sha256_file(destination)
+    task["predecessor_output_sha256"] = dependency.get("sha256") or sha256_file(source)
+    task["predecessor_tail_bound_at"] = now()
+    task["dependencies_ready"] = True
+    return True
+
+
 def refresh_streaming_task_readiness(receipt: dict, config: dict) -> dict:
     """Merge newly ready units without waiting for the rest of the episode."""
     existing = {task.get("task_key"): task for task in receipt.get("tasks", [])}
@@ -1864,7 +1904,14 @@ def refresh_streaming_task_readiness(receipt: dict, config: dict) -> dict:
             for field, value in template.items():
                 if field not in {"state", "task_id", "credit_attempts"}:
                     task[field] = value
-            if task_config_is_ready(template):
+            dependency_key = task.get("depends_on_task")
+            dependency = existing.get(dependency_key) if dependency_key else None
+            dependency_ready = bool(
+                dependency
+                and dependency.get("state") in SUCCESS_TASK_STATES
+                and bind_predecessor_tail_frame(task, dependency)
+            )
+            if dependency_ready or task_config_is_ready(template):
                 task["state"] = "pending"
                 task["dependency_ready_at"] = now()
                 activated.append(key)
@@ -2492,14 +2539,37 @@ def main() -> int:
             "recorded_at": now(),
         })
         return 2
+    prompt_texts = {}
+    for task in config.get("tasks", []):
+        prompt_ref = task.get("prompt_file")
+        if prompt_ref:
+            prompt_path = abs_path(prompt_ref)
+            if prompt_path.is_file():
+                prompt_texts[str(task.get("task_key"))] = prompt_path.read_text(encoding="utf-8")
+    for name, evaluator, blocked_status, rollback in (
+        ("CAMERA_MOTION_SEQUENCE", lambda: evaluate_camera_motion_sequence(config.get("tasks", []), prompt_texts), "BLOCKED_CAMERA_MOTION_SEQUENCE", "Replace only the blocked camera clause with fixed composition or add a fixed-composition cooldown."),
+        ("PERFORMANCE_TEMPO", lambda: evaluate_performance_tempo(config.get("tasks", [])), "BLOCKED_PERFORMANCE_TEMPO", "Shorten the atomic action and bind a real-time completion window."),
+        ("ACTION_SEQUENCE_CONTINUITY", lambda: evaluate_action_sequence_continuity(config.get("tasks", [])), "BLOCKED_ACTION_SEQUENCE_CONTINUITY", "Add explicit bridge units and predecessor tail-frame bindings."),
+        ("GENERATION_DEPENDENCY_TOPOLOGY", lambda: evaluate_generation_dependency_topology(config.get("tasks", [])), "BLOCKED_GENERATION_DEPENDENCY_TOPOLOGY", "Serialize only continuity-critical chains; keep independent shots parallel."),
+        ("DELIVERY_RESOLUTION", lambda: evaluate_delivery_resolution(config), "BLOCKED_DELIVERY_RESOLUTION", "Regenerate affected formal-release shots natively at the declared resolution; do not upscale lower-resolution sources as a substitute."),
+    ):
+        result = evaluator()
+        report_path = abs_path(config.get("qa_dir", "qa")) / f"{safe(config.get('episode', 'episode'))}_{name}_GATE.json"
+        atomic_json(report_path, result)
+        if result.get("status") != "PASS":
+            atomic_blocked_receipt(receipt_path, {
+                "schema": "qingshan.episode_parallel_batch.v1",
+                "episode": config.get("episode"),
+                "status": blocked_status,
+                "local_pid": None,
+                "config": str(config_path),
+                "report": str(report_path),
+                "failures": result.get("failures", []),
+                "rollback": rollback,
+                "recorded_at": now(),
+            })
+            return 2
     if config.get("space_camera_constraint_gate_required") is True:
-        prompt_texts = {}
-        for task in config.get("tasks", []):
-            prompt_ref = task.get("prompt_file")
-            if prompt_ref:
-                prompt_path = abs_path(prompt_ref)
-                if prompt_path.is_file():
-                    prompt_texts[str(task.get("task_key"))] = prompt_path.read_text(encoding="utf-8")
         space_camera_gate = evaluate_space_camera_constraints(config.get("tasks", []), prompt_texts)
         space_camera_path = abs_path(config.get("qa_dir", "qa")) / f"{safe(config.get('episode', 'episode'))}_SHOT_SPACE_CAMERA_CONSTRAINT_GATE.json"
         atomic_json(space_camera_path, space_camera_gate)
