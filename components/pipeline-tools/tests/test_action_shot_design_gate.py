@@ -92,6 +92,44 @@ class ActionShotDesignGateTests(unittest.TestCase):
                 for item in validate_task_bindings(plan, [task], root)
             ))
 
+    def test_provider_bindings_fail_when_action_shot_is_omitted(self):
+        first = action_shot()
+        second = action_shot("S2", "CONTACT_DONE", "WALL_OPEN", "locked_front")
+        plan = {"shots": [first, second]}
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            prompt = root / "prompt.txt"
+            prompt.write_text(prompt_marker(first), encoding="utf-8")
+            task = {
+                "task_key": "T1",
+                "tool_type": "video_generation",
+                "action_design_shot_id": "S1",
+                "action_design_contract_sha256": contract_sha256(first),
+                "prompt_path": "prompt.txt",
+            }
+            failures = validate_task_bindings(plan, [task], root)
+        self.assertIn("S2:action_design_shot_unbound", failures)
+
+    def test_provider_bindings_fail_when_action_shot_is_duplicated(self):
+        shot = action_shot()
+        plan = {"shots": [shot]}
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            prompt = root / "prompt.txt"
+            prompt.write_text(prompt_marker(shot), encoding="utf-8")
+            task = {
+                "tool_type": "video_generation",
+                "action_design_shot_id": "S1",
+                "action_design_contract_sha256": contract_sha256(shot),
+                "prompt_path": "prompt.txt",
+            }
+            failures = validate_task_bindings(
+                plan,
+                [{**task, "task_key": "T1"}, {**task, "task_key": "T2"}],
+                root,
+            )
+        self.assertIn("S1:action_design_shot_bound_multiple_times:2", failures)
+
 
 if __name__ == "__main__":
     unittest.main()

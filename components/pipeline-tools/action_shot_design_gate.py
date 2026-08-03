@@ -57,6 +57,10 @@ def validate_task_bindings(
     """Prove that the structured design was compiled into each provider prompt."""
     failures: list[str] = []
     shots = {str(row.get("shot_id")): row for row in plan.get("shots") or [] if row.get("shot_id")}
+    required_action_shots = {
+        shot_id for shot_id, row in shots.items() if row.get("action_unit") is True
+    }
+    bound_action_shots: list[str] = []
     for task in tasks:
         if task.get("tool_type", "video_generation") != "video_generation":
             continue
@@ -65,6 +69,8 @@ def validate_task_bindings(
         if not shot_id or shot_id not in shots:
             failures.append(f"{task_id}:action_design_shot_binding_missing")
             continue
+        if shots[shot_id].get("action_unit") is True:
+            bound_action_shots.append(shot_id)
         expected = contract_sha256(shots[shot_id])
         if task.get("action_design_contract_sha256") != expected:
             failures.append(f"{task_id}:action_design_contract_sha256_mismatch")
@@ -80,6 +86,11 @@ def validate_task_bindings(
             continue
         if prompt_marker(shots[shot_id]) not in prompt_path.read_text(encoding="utf-8"):
             failures.append(f"{task_id}:action_design_contract_not_compiled_into_prompt")
+    for shot_id in sorted(required_action_shots - set(bound_action_shots)):
+        failures.append(f"{shot_id}:action_design_shot_unbound")
+    for shot_id, count in Counter(bound_action_shots).items():
+        if count > 1:
+            failures.append(f"{shot_id}:action_design_shot_bound_multiple_times:{count}")
     return failures
 
 
