@@ -291,7 +291,7 @@ class AgentCutTests(unittest.TestCase):
         self.assertTrue(response["ok"])
         self.assertEqual(response["id"], "task2")
         self.assertEqual(response["result"]["status"], "ready")
-        self.assertEqual(response["result"]["version"], "0.9.17")
+        self.assertEqual(response["result"]["version"], "0.9.18")
         self.assertEqual(len(response["result"]["runtimeHash"]), 64)
         self.assertTrue(response["result"]["ffmpegInfo"]["available"])
         self.assertEqual(len(response["result"]["ffmpegInfo"]["sha256"]), 64)

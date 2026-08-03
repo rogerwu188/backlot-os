@@ -80,7 +80,7 @@ def main() -> int:
     compilation = run("compile", "--overwrite", str(OUTPUT))
     recipes = compilation["summary"]["shotRecipes"]
     materialized = recipes["materializedTimeline"]
-    if health.get("version") != "0.9.17" or not health.get("ready"):
+    if health.get("version") != "0.9.18" or not health.get("ready"):
         raise SystemExit("AgentCut health failed")
     if not validation.get("valid") or validation.get("issues"):
         raise SystemExit("strict validation failed")

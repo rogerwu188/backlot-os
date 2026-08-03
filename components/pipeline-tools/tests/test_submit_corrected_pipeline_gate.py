@@ -26,6 +26,10 @@ class SubmitCorrectedPipelineGateTests(unittest.TestCase):
             failures,
         )
         self.assertIn(
+            "FAIL_CORRECTED_PIPELINE_REPORT_MISSING:action_shot_design_plan_ref",
+            failures,
+        )
+        self.assertIn(
             "FAIL_CORRECTED_PIPELINE_REPORT_MISSING:period_lock_plan_ref",
             failures,
         )

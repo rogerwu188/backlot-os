@@ -38,7 +38,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 - **Story Agent 0.2.1** — Claude >=4.8 policy, replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
 - **Producer/Supervisor Agent 0.2.0** — project planning, idempotent dispatch, Giggle image/video provider, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
-- **AgentCut 0.9.17** — timeline validation, compilation, rendering, shot recipes, dialogue/subtitle alignment, audio, and release gates.
+- **AgentCut 0.9.18** — timeline validation, compilation, rendering, shot recipes, dialogue/subtitle alignment, audio, and fail-closed release contracts.
 - **Factory Runtime 2.0.20** — file-native queues, workers, dispatcher, supervisor, idempotency, receipts, rollback, and shared-message protocol.
 - **Pipeline Tools** — production gates and orchestration utilities proven in the original production line.
 - **Legacy compatibility prompts** — the original Qingshan agent prompts are retained as migration references, not as the BacklotOS product identity.

@@ -621,6 +621,8 @@ agentcut demucs-isolate source.wav --output-dir separated --report separation.js
 
 发行项目必须声明 `masterAudioPolicy`。可显式设置 `releaseProject:true`；同时，输出路径包含 `release_candidate`、`final`、`publish`、`distribution` 或“发行”时也自动按发行项目处理，避免生产配置漏标。
 
+从 0.9.18 起，显式 `releaseProject:true` 也是完整发行契约：项目必须同时设置 `requireBurnedSubtitles:true`、非空 `expectedDialogueIds`、`requireBrandedOutro:true`、启用 Nalu Motion 片尾，并设置 `releaseGate.required:true`。该契约在 `compile`、普通/严格 `validate` 和 `render` 前检中一致执行；缺少任一项都会硬失败，并写入 `coverage.releaseProjectContract`，不允许以“后续 QA 会补”为由继续渲染。
+
 ```json
 {
   "releaseProject": true,

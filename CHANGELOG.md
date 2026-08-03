@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.3
+
+- Add a fail-closed action-shot design gate before paid provider submission: one
+  primary contact, bounded information and camera motion, fixed action axis,
+  readable force/result state, exact cross-shot handoff tokens, and SHA-bound
+  provider-prompt compilation.
+- Upgrade AgentCut to 0.9.18 so explicit release projects cannot compile,
+  validate, or render without complete burned subtitles, expected dialogue IDs,
+  the Nalu Motion branded outro, and a required full-cut visual review gate.
+- Add a SHA-bound release-branding pipeline gate for final-media preflight.
+
 ## 0.2.2
 
 - Add a bundled StoryClaw Chat Completions image-analysis adapter with GPT‑5.5

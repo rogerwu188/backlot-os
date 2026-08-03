@@ -231,7 +231,7 @@ def main() -> int:
             "episode": "E37",
             "status": "NOT_FINAL_PREVIS_ONLY_REPLACEMENT_MAP",
             "production_profile": "E37_PREVIS_ONLY_ZERO_CREDIT",
-            "agentcut_required_version": "0.9.17",
+            "agentcut_required_version": "0.9.18",
             "canonical_script": str(SCRIPT_PATH),
             "canonical_script_sha256": EXPECTED_SCRIPT_SHA,
             "canonical_manifest": str(MANIFEST_PATH),

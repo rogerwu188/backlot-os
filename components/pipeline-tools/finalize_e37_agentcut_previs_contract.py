@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and persist the E37 AgentCut 0.9.17 previs contract."""
+"""Validate and persist the E37 AgentCut 0.9.18 previs contract."""
 
 from __future__ import annotations
 
@@ -51,8 +51,8 @@ def main() -> int:
     recipes = compilation["summary"]["shotRecipes"]
     timeline = recipes["materializedTimeline"]
 
-    if health.get("version") != "0.9.17" or not health.get("ready"):
-        raise SystemExit("AgentCut 0.9.17 health gate failed")
+    if health.get("version") != "0.9.18" or not health.get("ready"):
+        raise SystemExit("AgentCut 0.9.18 health gate failed")
     if not validation.get("valid") or validation.get("issues"):
         raise SystemExit("strict AgentCut project validation failed")
     if recipes.get("status") != "PASS" or len(timeline) != 22:
@@ -216,7 +216,7 @@ def main() -> int:
         },
         "credits": {"pay": 0, "refund": 0, "net": 0},
         "blocked_by": "PROVIDER_OUTPUT_ASSET_DB_ERROR1406_REPRODUCED_ON_PRO_OMNI_AND_FAST_I2V",
-        "workaround_executed": "Materialized a complete zero-credit 22-clip AgentCut 0.9.17 replacement timeline with exact SHA provenance and director recipes.",
+        "workaround_executed": "Materialized a complete zero-credit 22-clip AgentCut 0.9.18 replacement timeline with exact SHA provenance and director recipes.",
         "next_action": "Replace only the matching interval after an independently QA-accepted generated clip exists; rerun strict validation and production review before assembly.",
     }
     RECEIPT.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

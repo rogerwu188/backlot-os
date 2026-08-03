@@ -29,6 +29,10 @@ try:
     from mechanical_default_gate import evaluate as evaluate_mechanical_defaults
     from video_unit_anchor_count_gate import evaluate as evaluate_anchor_counts
     from common_sense_causality_gate import evaluate as evaluate_common_sense_causality
+    from action_shot_design_gate import (
+        evaluate as evaluate_action_shot_design,
+        validate_task_bindings as validate_action_shot_bindings,
+    )
     from anachronism_lock_gate import evaluate as evaluate_anachronism_lock
 except ImportError:
     from tools.episode_video_generation_guard import (
@@ -46,6 +50,10 @@ except ImportError:
     from tools.mechanical_default_gate import evaluate as evaluate_mechanical_defaults
     from tools.video_unit_anchor_count_gate import evaluate as evaluate_anchor_counts
     from tools.common_sense_causality_gate import evaluate as evaluate_common_sense_causality
+    from tools.action_shot_design_gate import (
+        evaluate as evaluate_action_shot_design,
+        validate_task_bindings as validate_action_shot_bindings,
+    )
     from tools.anachronism_lock_gate import evaluate as evaluate_anachronism_lock
 
 
@@ -66,6 +74,7 @@ RUNTIME_GATE_IDS = frozenset({
     "MECHANICAL-DEFAULT-META-GATE",
     "VIDEO-UNIT-DYNAMIC-ANCHOR-COUNT",
     "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL",
+    "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF",
     "PERIOD-ANACHRONISM-LOCK",
 })
 RUNTIME_GATE_BINDINGS = {
@@ -76,6 +85,7 @@ RUNTIME_GATE_BINDINGS = {
     "MECHANICAL-DEFAULT-META-GATE": "validate_corrected_pipeline_reports",
     "VIDEO-UNIT-DYNAMIC-ANCHOR-COUNT": "validate_corrected_pipeline_reports",
     "COMMON-SENSE-CAUSALITY-COUNTERFACTUAL": "validate_corrected_pipeline_reports",
+    "ACTION-SHOT-DESIGN-AND-STATE-HANDOFF": "validate_corrected_pipeline_reports",
     "PERIOD-ANACHRONISM-LOCK": "validate_corrected_pipeline_reports",
 }
 assert frozenset(RUNTIME_GATE_BINDINGS) == RUNTIME_GATE_IDS
@@ -307,6 +317,7 @@ def validate_corrected_pipeline_reports(
         ("mechanical_default_plan_ref", evaluate_mechanical_defaults),
         ("anchor_count_plan_ref", evaluate_anchor_counts),
         ("common_sense_causality_plan_ref", evaluate_common_sense_causality),
+        ("action_shot_design_plan_ref", evaluate_action_shot_design),
         ("period_lock_plan_ref", evaluate_anachronism_lock),
     ):
         value = manifest.get(key)
@@ -321,6 +332,12 @@ def validate_corrected_pipeline_reports(
         result = evaluator(json.loads(path.read_text(encoding="utf-8")))
         if result.get("status") != "PASS":
             problems.append(f"FAIL_CORRECTED_PIPELINE_GATE:{key}")
+        if key == "action_shot_design_plan_ref" and result.get("status") == "PASS":
+            plan = json.loads(path.read_text(encoding="utf-8"))
+            problems.extend(
+                f"FAIL_ACTION_SHOT_PROMPT_BINDING:{value}"
+                for value in validate_action_shot_bindings(plan, ready, BASE)
+            )
         if key == "anchor_count_plan_ref":
             anchor_result = result
     if anchor_result and anchor_result.get("status") == "PASS":
