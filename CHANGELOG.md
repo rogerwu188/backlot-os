@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.8
+
+- Exclude composition and ownership references marked `REFERENCE_ONLY` from
+  temporal anchor counts and adjacent-keyframe interpolation requirements.
+  This keeps those references available to the provider without falsely
+  inflating the designed action-state chain or blocking a valid paid submit.
+- Add regression coverage for a two-state tail-to-terminal chain carrying
+  separate ownership-composition and identity references.
+
 ## 0.2.7
 
 - Rebind a newly accepted predecessor tail into both provider reference fields,
