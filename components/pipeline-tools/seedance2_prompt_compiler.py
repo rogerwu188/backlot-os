@@ -129,6 +129,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     times, timeline, compiled_frames = [], [], []
     states = set()
     previous_zone = previous_state = None
+    previous_camera_side = None
     for index, frame in enumerate(keyframes, start=1):
         timestamp = float(require(frame.get("timestamp_seconds"), f"keyframe {index} timestamp_seconds is required"))
         if times and timestamp <= times[-1]:
@@ -148,6 +149,9 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         blocking = require(frame.get("actor_blocking"), f"keyframe {index} actor_blocking is required")
         event = require(frame.get("action_event"), f"keyframe {index} action_event is required")
         reference_role = require(frame.get("reference_role"), f"keyframe {index} reference_role is required")
+        camera_side = require(frame.get("camera_side"), f"keyframe {index} camera_side is required")
+        camera_position = require(frame.get("camera_position"), f"keyframe {index} camera_position is required")
+        camera_facing = require(frame.get("camera_facing"), f"keyframe {index} camera_facing is required")
         preserve = require(frame.get("preserve_from_previous"), f"keyframe {index} preserve_from_previous is required")
         reject_inheritance = require(frame.get("do_not_inherit"), f"keyframe {index} do_not_inherit is required")
         transition = frame.get("transition_from_previous")
@@ -163,8 +167,30 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
                 raise ValueError(f"keyframe {index} must explicitly forbid teleport")
             if transition.get("action_reset_allowed") is not False:
                 raise ValueError(f"keyframe {index} must explicitly forbid action reset")
+            require(transition.get("continuous_camera_path"), f"keyframe {index} continuous_camera_path is required")
+            if transition.get("camera_axis_reset_allowed") is not False:
+                raise ValueError(f"keyframe {index} must explicitly forbid camera-axis reset")
+            if transition.get("camera_from_side") != previous_camera_side:
+                raise ValueError(f"keyframe {index} camera_from_side does not match the previous keyframe")
+            if transition.get("camera_to_side") != camera_side:
+                raise ValueError(f"keyframe {index} camera_to_side does not match the current keyframe")
+            travel = float(require(transition.get("camera_travel_distance_m"), f"keyframe {index} camera_travel_distance_m is required"))
+            axis_change = float(require(transition.get("camera_axis_change_degrees"), f"keyframe {index} camera_axis_change_degrees is required"))
+            interval = timestamp - times[-1]
+            if travel / interval > 2.5:
+                raise ValueError(f"keyframe {index} camera path exceeds 2.5 m/s")
+            if axis_change > 90:
+                raise ValueError(f"keyframe {index} camera axis change exceeds 90 degrees")
+            if transition.get("kind") == "SAME_APERTURE_CROSSING":
+                if transition.get("camera_path_kind") != "FOLLOW_THROUGH_SAME_APERTURE":
+                    raise ValueError(f"keyframe {index} crossing requires FOLLOW_THROUGH_SAME_APERTURE camera path")
+                if transition.get("camera_crosses_with_subjects") is not True:
+                    raise ValueError(f"keyframe {index} crossing camera must move with the subjects")
+                if transition.get("camera_path_aperture_id") != transition.get("aperture_id"):
+                    raise ValueError(f"keyframe {index} camera aperture does not match subject aperture")
         timeline.append(
             f"{timestamp:g}秒到达@图片{index}：该图只负责{reference_role}；{event}；人物站位：{blocking}；"
+            f"摄影机位于{camera_side}，位置{camera_position}，朝向{camera_facing}；"
             f"必须继承{preserve}；不得从该图继承{'、'.join(reject_inheritance)}；"
             f"动作状态从{previous_state or '镜头起始'}连续推进到{state}。"
         )
@@ -172,11 +198,13 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
             "reference": f"@图片{index}", "timestamp_seconds": timestamp,
             "image_path": str(image_path), "image_sha256": actual_sha,
             "state_token": state, "location_zone": zone,
-            "reference_role": reference_role, "preserve_from_previous": preserve,
+            "reference_role": reference_role,
+            "camera_side": camera_side, "camera_position": camera_position,
+            "camera_facing": camera_facing, "preserve_from_previous": preserve,
             "do_not_inherit": reject_inheritance, "transition_from_previous": transition,
         })
         times.append(timestamp)
-        previous_zone, previous_state = zone, state
+        previous_zone, previous_state, previous_camera_side = zone, state, camera_side
     if times[0] != 0 or times[-1] != 15:
         raise ValueError("keyframe timeline must start at 0 seconds and end at 15 seconds")
     subject_lock = require(spec.get("subject_and_identity_lock"), "subject_and_identity_lock is required")
@@ -211,7 +239,8 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         "gates": ["ORDERED_KEYFRAME_SHA_BINDING", "REFERENCE_ROLE_AND_INHERITANCE_SCOPE",
                   "NO_REPEATED_ACTION_STATE", "NO_TELEPORT_OR_ACTION_RESET",
                   "SAME_APERTURE_LOCATION_CROSSING", "REAL_TIME_1X",
-                  "NO_UNMOTIVATED_CAMERA_MOTION", "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED"],
+                  "NO_UNMOTIVATED_CAMERA_MOTION", "ADJACENT_CAMERA_TRAJECTORY_REACHABILITY",
+                  "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED"],
     }
 
 

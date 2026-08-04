@@ -3,11 +3,12 @@
   "format": "LoRA-ready JSONL plus deterministic compiler retrieval",
   "training_status": "RULE_ADAPTER_ACTIVE_WEIGHT_TRAINING_NOT_CLAIMED",
   "dataset": "seedance2_prompt_failure_training.jsonl",
-  "sample_count": 2,
+  "sample_count": 3,
   "runtime_behavior": "Every multi_keyframe_long_take compilation loads admitted samples and injects their guard clauses before paid generation.",
   "hard_rules": [
     "Conflicting reference geometry is removed; prose-only negative isolation is insufficient.",
-    "A unique story prop has one named owner; every non-owner receives a distinct visible empty-hand action."
+    "A unique story prop has one named owner; every non-owner receives a distinct visible empty-hand action.",
+    "Every adjacent keyframe pair declares a physically reachable camera side, position, facing and continuous path before paid generation."
   ],
   "deployment": "The dataset ships with BacklotOS and is loaded relative to seedance2_prompt_compiler.py."
 }

@@ -52,20 +52,20 @@ Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 Download the immutable public package without cloning repository history:
 
 ```bash
-curl -L -o backlotos-v0.2.19.tar.gz \
-  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.19/backlotos-v0.2.19.tar.gz
+curl -L -o backlotos-v0.2.20.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.20/backlotos-v0.2.20.tar.gz
 expected_sha=$(curl -fsSL \
-  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.19 | \
-  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.19.tar.gz"))')
-actual_sha=$(shasum -a 256 backlotos-v0.2.19.tar.gz | awk '{print $1}')
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.20 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.20.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.20.tar.gz | awk '{print $1}')
 test "$actual_sha" = "$expected_sha"
-tar -xzf backlotos-v0.2.19.tar.gz
-cd backlotos-v0.2.19
+tar -xzf backlotos-v0.2.20.tar.gz
+cd backlotos-v0.2.20
 ./scripts/install.sh
 ./scripts/doctor.sh
 ```
 
-The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.19` provenance even though release archives intentionally contain no `.git` directory.
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.20` provenance even though release archives intentionally contain no `.git` directory.
 
 ### Git checkout (contributors)
 
@@ -111,7 +111,10 @@ When several short clips cannot preserve one continuous physical event, use
 `multi_keyframe_long_take` instead of adding more edit seams. This mode compiles
 one 15-second Seedance 2 Pro Omni generation from 3-9 ordered, SHA-bound
 keyframes. Every reference declares its exact role, inherited state, forbidden
-inheritance, actor blocking, and unique action state. A room-to-street change is
+inheritance, actor blocking, unique action state, camera side, position, and
+facing. Adjacent camera paths must be physically reachable within their time
+window; impossible axis flips, speed, or aperture crossings fail before paid
+generation. A room-to-street change is
 accepted only through one named `SAME_APERTURE_CROSSING`; teleporting, action
 resets, slow motion, and unmotivated sway/orbit/roam fail before provider spend.
 The compiler also ships with a local LoRA-ready prompt-failure dataset. It
