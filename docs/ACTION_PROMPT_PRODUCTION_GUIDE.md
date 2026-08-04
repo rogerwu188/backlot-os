@@ -23,6 +23,27 @@ should be discovered.
    speed, and remove only duplicate tail frames. Never hide excess duration with
    slow motion or time stretching.
 
+Before assigning percentages, preserve the story function of every action prop.
+An environmental barrier must remain grounded architecture; a footprint repair
+cannot silently turn it into a handheld shield, floating rectangle, or other
+easier object. Declare `action_prop_function_contract` with a required function
+class, forbidden classes, and positive/negative prompt terms. Declare human and
+architectural relationships in `action_scale_contract`; frame ratios are only a
+secondary check after those real-world relationships pass.
+
+Use `action_causality_contract` to allow exactly one visible physical phase per
+generated action shot. Formation, contact, recoil, and terminal consequence are
+separate phases when any one of them would become unreadable in the provider's
+minimum clip duration. Compile the phase plan with
+`action_causal_chain_compiler.py`; every dependent phase uses the accepted tail
+of its predecessor, while unrelated generation, polling, and QA stay parallel.
+
+For multi-actor movement, declare `action_movement_lane_contract` before prompt
+optimization. Give every actor a named floor corridor, require a real-world
+minimum lateral clearance, and bind positive separation terms plus forbidden
+overlap language. The pre-submit gate rejects missing lanes, intersecting body
+paths, authored torso overlap, and prompts that leave clearance implicit.
+
 For a task using `generation_schedule_mode=TAIL_CHAINED_SERIAL`, declare an
 `action_sequence_contract.chain_id`, numeric `sequence_index`,
 `depends_on_task`, and `predecessor_tail_frame_ref`. At submission time there

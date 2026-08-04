@@ -37,6 +37,38 @@ def action_task():
 
 
 class GenerationPromptOptimizerTests(unittest.TestCase):
+    def environment_screen_task(self):
+        task = action_task()
+        task["action_prop_function_contract"] = {
+            "required_function_class": "落地环境冰屏",
+            "forbidden_function_classes": ["手持盾牌", "掌前护盾"],
+            "required_prompt_terms": ["冰屏下缘与地板连续相接"],
+            "forbidden_prompt_terms": ["小型透明冰盾", "四边都可见"],
+        }
+        task["action_causality_contract"] = {
+            "visible_phases": ["冰屏从地面升起"],
+            "maximum_phases_per_shot": 1,
+            "required_prompt_terms": ["本镜不发生撞击"],
+        }
+        task["action_scale_contract"] = {
+            "required_relational_terms": ["高度约到成年男子肩部", "宽度足以隔开一人和火墙"],
+            "frame_ratio_is_secondary_check": True,
+        }
+        return task
+
+    def lane_separated_task(self):
+        task = action_task()
+        task["action_movement_lane_contract"] = {
+            "lanes": [
+                {"actor": "陈迹", "corridor": "画面左侧后撤走廊"},
+                {"actor": "守宅人", "corridor": "画面中部前冲走廊"},
+            ],
+            "minimum_lateral_clearance": "一个成年男子肩宽",
+            "required_prompt_terms": ["两人轮廓完全分离"],
+            "forbidden_prompt_terms": ["贴身擦过", "从背后穿过"],
+        }
+        return task
+
     def test_compiles_positive_spatial_geometry(self):
         prompt, receipt = optimize_prompt(action_task(), "基础提示词")
         self.assertIn("开放碰撞通道", prompt)
@@ -56,6 +88,45 @@ class GenerationPromptOptimizerTests(unittest.TestCase):
         task["prompt_optimizer_receipt"] = receipt
         self.assertEqual(validate_batch([task], {"B02": prompt})["status"], "PASS")
         self.assertEqual(validate_batch([task], {"B02": prompt + "篡改"})["status"], "FAIL")
+
+    def test_environment_screen_function_and_relational_scale_pass(self):
+        task = self.environment_screen_task()
+        base = "冰屏下缘与地板连续相接，高度约到成年男子肩部，宽度足以隔开一人和火墙。本镜不发生撞击。"
+        prompt, receipt = optimize_prompt(task, base)
+        task["prompt_optimizer_receipt"] = receipt
+        self.assertEqual(validate_batch([task], {"B02": prompt})["status"], "PASS")
+        self.assertTrue({"PF-013", "PF-014", "PF-015"}.issubset(receipt["applied_failure_memory_rules"]))
+
+    def test_handheld_tablet_rewrite_fails_closed(self):
+        task = self.environment_screen_task()
+        base = "冰屏下缘与地板连续相接，高度约到成年男子肩部，宽度足以隔开一人和火墙。本镜不发生撞击。小型透明冰盾，四边都可见。"
+        prompt, receipt = optimize_prompt(task, base)
+        task["prompt_optimizer_receipt"] = receipt
+        failures = validate_batch([task], {"B02": prompt})["failures"]
+        self.assertTrue(any(row["code"] == "PROP_FUNCTION_CLASS_REWRITTEN" for row in failures))
+
+    def test_multiple_visible_causal_phases_fail_closed(self):
+        task = self.environment_screen_task()
+        task["action_causality_contract"]["visible_phases"] = ["冰屏升起", "守宅人撞击"]
+        base = "冰屏下缘与地板连续相接，高度约到成年男子肩部，宽度足以隔开一人和火墙。本镜不发生撞击。"
+        prompt, receipt = optimize_prompt(task, base)
+        task["prompt_optimizer_receipt"] = receipt
+        failures = validate_batch([task], {"B02": prompt})["failures"]
+        self.assertTrue(any(row["code"] == "ACTION_PHASE_BUDGET_EXCEEDED" for row in failures))
+
+    def test_non_intersecting_movement_lanes_pass(self):
+        task = self.lane_separated_task()
+        prompt, receipt = optimize_prompt(task, "两人轮廓完全分离")
+        task["prompt_optimizer_receipt"] = receipt
+        self.assertEqual(validate_batch([task], {"B02": prompt})["status"], "PASS")
+        self.assertIn("PF-016", receipt["applied_failure_memory_rules"])
+
+    def test_authored_body_overlap_fails_closed(self):
+        task = self.lane_separated_task()
+        prompt, receipt = optimize_prompt(task, "两人轮廓完全分离，守宅人从背后穿过陈迹")
+        task["prompt_optimizer_receipt"] = receipt
+        failures = validate_batch([task], {"B02": prompt})["failures"]
+        self.assertTrue(any(row["code"] == "MOVEMENT_LANE_OVERLAP_AUTHORED" for row in failures))
 
     def test_reads_all_prior_actions_and_blocks_duplicate_signature(self):
         first = action_task()

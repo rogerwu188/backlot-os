@@ -35,6 +35,53 @@ def _action_signature(task: dict[str, Any]) -> str:
     return "|".join(str(beat.get(key) or "").strip() for key in ("subject", "action", "contact_point", "direction", "end_state"))
 
 
+def _prompt_contract_failures(task: dict[str, Any], prompt: str) -> list[dict[str, str]]:
+    failures: list[dict[str, str]] = []
+    key = str(task.get("task_key") or task.get("source_id") or "unknown")
+    prop = task.get("action_prop_function_contract") or {}
+    if prop:
+        required_class = str(prop.get("required_function_class") or "")
+        forbidden_classes = [str(value) for value in prop.get("forbidden_function_classes") or []]
+        for term in prop.get("required_prompt_terms") or []:
+            if str(term) not in prompt:
+                failures.append({"task_key": key, "code": "PROP_FUNCTION_REQUIRED_TERM_MISSING", "term": str(term)})
+        for term in prop.get("forbidden_prompt_terms") or []:
+            if str(term) in prompt:
+                failures.append({"task_key": key, "code": "PROP_FUNCTION_CLASS_REWRITTEN", "term": str(term)})
+        if not required_class:
+            failures.append({"task_key": key, "code": "PROP_FUNCTION_CLASS_MISSING"})
+        if not forbidden_classes:
+            failures.append({"task_key": key, "code": "PROP_FUNCTION_FORBIDDEN_CLASSES_MISSING"})
+    causality = task.get("action_causality_contract") or {}
+    if causality:
+        phases = [str(value) for value in causality.get("visible_phases") or []]
+        if not phases or len(phases) > int(causality.get("maximum_phases_per_shot", 1)):
+            failures.append({"task_key": key, "code": "ACTION_PHASE_BUDGET_EXCEEDED"})
+        for term in causality.get("required_prompt_terms") or []:
+            if str(term) not in prompt:
+                failures.append({"task_key": key, "code": "ACTION_CAUSALITY_TERM_MISSING", "term": str(term)})
+    scale = task.get("action_scale_contract") or {}
+    if scale:
+        for term in scale.get("required_relational_terms") or []:
+            if str(term) not in prompt:
+                failures.append({"task_key": key, "code": "RELATIONAL_SCALE_TERM_MISSING", "term": str(term)})
+        if scale.get("frame_ratio_is_secondary_check") is not True:
+            failures.append({"task_key": key, "code": "FRAME_RATIO_USED_WITHOUT_RELATIONAL_SCALE"})
+    lanes = task.get("action_movement_lane_contract") or {}
+    if lanes:
+        if len(lanes.get("lanes") or []) < 2:
+            failures.append({"task_key": key, "code": "MULTI_ACTOR_MOVEMENT_LANES_MISSING"})
+        if not lanes.get("minimum_lateral_clearance"):
+            failures.append({"task_key": key, "code": "MOVEMENT_LANE_CLEARANCE_MISSING"})
+        for term in lanes.get("required_prompt_terms") or []:
+            if str(term) not in prompt:
+                failures.append({"task_key": key, "code": "MOVEMENT_LANE_TERM_MISSING", "term": str(term)})
+        for term in lanes.get("forbidden_prompt_terms") or []:
+            if str(term) in prompt:
+                failures.append({"task_key": key, "code": "MOVEMENT_LANE_OVERLAP_AUTHORED", "term": str(term)})
+    return failures
+
+
 def optimize_prompt(task: dict[str, Any], prompt: str, prior_tasks: list[dict[str, Any]] | None = None) -> tuple[str, dict[str, Any]]:
     """Return an idempotently optimized prompt and auditable rule receipt."""
     base = _without_previous_block(prompt)
@@ -89,6 +136,41 @@ def optimize_prompt(task: dict[str, Any], prompt: str, prior_tasks: list[dict[st
             "尾帧保留保护道具、明确人物落点，并保持下一镜可执行姿态。"
         )
         applied_rules.append("PF-011")
+    prop = task.get("action_prop_function_contract") or {}
+    if prop:
+        clauses.append(
+            f"【PF-013道具功能类别】本镜道具必须保持{prop.get('required_function_class')}；"
+            f"禁止改写成{'、'.join(str(value) for value in prop.get('forbidden_function_classes') or [])}。"
+            "尺寸修正只能在原功能类别内完成，不得以缩小、四边显形或手持化偷换道具类别。"
+        )
+        applied_rules.append("PF-013")
+    causality = task.get("action_causality_contract") or {}
+    if causality:
+        clauses.append(
+            "【PF-014动作相位】本镜只表现"
+            + "、".join(str(value) for value in causality.get("visible_phases") or [])
+            + "；不得把后续接触、受力或结果提前塞入本镜，尾帧必须为下一相位提供可执行姿态。"
+        )
+        applied_rules.append("PF-014")
+    scale = task.get("action_scale_contract") or {}
+    if scale:
+        clauses.append(
+            "【PF-015关系尺度】先按"
+            + "、".join(str(value) for value in scale.get("required_relational_terms") or [])
+            + "建立真实人体与建筑尺度；画幅比例仅作二次验算，不能覆盖道具的空间功能。"
+        )
+        applied_rules.append("PF-015")
+    lanes = task.get("action_movement_lane_contract") or {}
+    if lanes:
+        lane_text = "；".join(
+            f"{row.get('actor')}只沿{row.get('corridor')}"
+            for row in lanes.get("lanes") or []
+        )
+        clauses.append(
+            f"【PF-016运动走廊】{lane_text}；全程保持{lanes.get('minimum_lateral_clearance')}。"
+            "人物躯干轮廓不得交叠、穿模或融合；若通道相交，必须先拆成不同生成镜头。"
+        )
+        applied_rules.append("PF-016")
     prior_action_tasks = [row for row in prior_tasks if row.get("action_sequence_contract")]
     if task.get("action_sequence_contract") and prior_action_tasks:
         completed = [
@@ -141,6 +223,14 @@ def validate_batch(tasks: list[dict[str, Any]], prompts: dict[str, str]) -> dict
             expected.add("PF-010")
         if task.get("action_spatial_feasibility_contract"):
             expected.add("PF-011")
+        if task.get("action_prop_function_contract"):
+            expected.add("PF-013")
+        if task.get("action_causality_contract"):
+            expected.add("PF-014")
+        if task.get("action_scale_contract"):
+            expected.add("PF-015")
+        if task.get("action_movement_lane_contract"):
+            expected.add("PF-016")
         if task.get("action_sequence_contract") and prior_action_keys:
             expected.add("PF-012")
         actual = set(receipt.get("applied_failure_memory_rules") or [])
@@ -148,6 +238,7 @@ def validate_batch(tasks: list[dict[str, Any]], prompts: dict[str, str]) -> dict
             failures.append({"task_key": key, "code": "REQUIRED_OPTIMIZATION_RULE_MISSING"})
         if expected and (BEGIN not in prompt or END not in prompt):
             failures.append({"task_key": key, "code": "OPTIMIZED_CONTRACT_BLOCK_MISSING"})
+        failures.extend(_prompt_contract_failures(task, prompt))
         material = task.get("period_entity_material_contract") or {}
         if material:
             if material.get("status") != "PASS_PRECOMPILED" or material.get("hard_fail_override") is not True:

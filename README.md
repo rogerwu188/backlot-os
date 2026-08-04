@@ -96,7 +96,9 @@ are accepted only through deployment environment variables.
 Action shots are compiled before provider submission. The compiler reads every
 earlier related action prompt, rejects repeated action pictures, checks actor
 ownership and screen direction, and requires physically possible entry/contact/
-result/exit states. Dependent action chains remain sequential; the dispatcher
+result/exit states. Multi-actor shots additionally require named, non-intersecting
+movement corridors and real-world lateral clearance before provider submission.
+Dependent action chains remain sequential; the dispatcher
 admits only one ready shot per chain and requires the exact accepted predecessor
 tail as the next shot's first provider image. Identity and composition-only
 references are not counted as temporal anchors. Unrelated shots remain parallel.
