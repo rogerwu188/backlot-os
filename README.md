@@ -106,6 +106,14 @@ The supervisor uses dependency lanes rather than an episode-wide batch barrier:
 each exact-tail chain advances one ready head at a time, while all independent
 shots and other chains submit together. Remote polling runs in parallel, and
 completed outputs are downloaded and QA-checked in bounded parallel workers.
+
+When several short clips cannot preserve one continuous physical event, use
+`multi_keyframe_long_take` instead of adding more edit seams. This mode compiles
+one 15-second Seedance 2 Pro Omni generation from 3-9 ordered, SHA-bound
+keyframes. Every reference declares its exact role, inherited state, forbidden
+inheritance, actor blocking, and unique action state. A room-to-street change is
+accepted only through one named `SAME_APERTURE_CROSSING`; teleporting, action
+resets, slow motion, and unmotivated sway/orbit/roam fail before provider spend.
 Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
 provider or workstation needs lower concurrency.
 Every atomic action also carries an authored assembly window. The release

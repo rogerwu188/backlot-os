@@ -23,6 +23,28 @@ should be discovered.
    speed, and remove only duplicate tail frames. Never hide excess duration with
    slow motion or time stretching.
 
+## Fifteen-second multi-keyframe action takes
+
+Use a multi-keyframe long take when the story event is spatially indivisible,
+such as moving from a burning room through one wall breach into the street.
+Fragmenting that event into independent clips makes the edit guess the missing
+body path. Instead, submit one 15-second Seedance 2 Pro Omni task with 3-9
+chronological keyframes and let the model synthesize the in-between motion.
+
+Each keyframe must bind an existing image path and SHA, timestamp, unique action
+state, location zone, actor blocking, action event, reference role, inherited
+state, and a list of elements that must not be inherited. Timestamps start at
+0, end at 15, and strictly increase. Adjacent frames explicitly forbid
+teleporting and action reset. A location-zone change additionally names the
+same physical aperture and crossing direction. The compiler rejects Fast,
+non-1080p output, slow motion, camera roam/orbit/sway, repeated action states,
+missing reference duties, or a broken crossing contract before any paid call.
+
+Generate related keyframes serially from the accepted predecessor frame.
+Independent dialogue, QA, and unrelated action chains remain parallel. If an
+inline image payload is too large, create visually equivalent 1080p transport
+copies and rebind their SHA values; never resend the same timed-out payload.
+
 Before assigning percentages, preserve the story function of every action prop.
 An environmental barrier must remain grounded architecture; a footprint repair
 cannot silently turn it into a handheld shield, floating rectangle, or other
