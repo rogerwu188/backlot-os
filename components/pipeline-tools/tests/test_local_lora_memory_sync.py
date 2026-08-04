@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -81,11 +82,34 @@ class LocalLoraMemorySyncTests(unittest.TestCase):
             marker = root / MODULE.AUTO_SYNC_MARKER
             marker.parent.mkdir(parents=True)
             marker.write_text("enabled\n", encoding="utf-8")
-            with mock.patch.dict("os.environ", {"BACKLOT_INSTALL_DIR": str(root)}, clear=False), \
-                    mock.patch.object(MODULE, "_discover_checkout", side_effect=RuntimeError("no write credential")):
+            with mock.patch.dict("os.environ", {"BACKLOT_INSTALL_DIR": str(root)}, clear=False):
                 result = MODULE.auto_sync(source)
             self.assertEqual(result["status"], "QUEUED_FOR_RETRY")
             self.assertTrue((root / MODULE.SYNC_RECEIPT).is_file())
+
+    def test_node_uploads_to_collector_without_github_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "incoming.jsonl"
+            source.write_text(json.dumps(sample()) + "\n", encoding="utf-8")
+            marker = root / MODULE.AUTO_SYNC_MARKER
+            marker.parent.mkdir(parents=True)
+            marker.write_text("enabled\n", encoding="utf-8")
+            response = mock.MagicMock()
+            response.read.return_value = json.dumps({"status": "ACCEPTED", "datasetSha256": "e" * 64}).encode()
+            response.__enter__.return_value = response
+            with mock.patch.dict("os.environ", {
+                    "BACKLOT_INSTALL_DIR": str(root),
+                    "BACKLOTOS_LORA_COLLECTOR_URL": "https://collector.example",
+                    "BACKLOTOS_LORA_COLLECTOR_TOKEN": "node-only-token",
+            }, clear=False), mock.patch.object(MODULE.urllib.request, "urlopen", return_value=response) as request:
+                result = MODULE.auto_sync(source)
+            self.assertEqual(result["status"], "ACCEPTED")
+            self.assertTrue(request.called)
+            self.assertFalse((root / "state/lora-sync/repository").exists())
+            submitted = json.loads(request.call_args.args[0].data)
+            canonical = json.dumps(sample(), ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+            self.assertEqual(submitted["datasetSha256"], hashlib.sha256(canonical.encode()).hexdigest())
 
 
 if __name__ == "__main__":

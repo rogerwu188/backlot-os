@@ -22,6 +22,6 @@ if git grep -I -E "$secret_pattern" -- . ':!scripts/verify-repository.sh' >/dev/
   bad=1
 fi
 
-python3 -m compileall -q components/review-agent/qingshan_review components/agentcut/agentcut components/story-agent/src/claude_story_agent components/factory-runtime components/pipeline-tools/action_prompt_pipeline_cli.py components/pipeline-tools/action_spatial_feasibility_gate.py components/pipeline-tools/generation_prompt_optimizer.py components/pipeline-tools/bgm_authenticity_gate.py components/pipeline-tools/local_lora_memory_sync.py
+python3 -m compileall -q components/review-agent/qingshan_review components/agentcut/agentcut components/story-agent/src/claude_story_agent components/factory-runtime components/pipeline-tools/action_prompt_pipeline_cli.py components/pipeline-tools/action_spatial_feasibility_gate.py components/pipeline-tools/generation_prompt_optimizer.py components/pipeline-tools/bgm_authenticity_gate.py components/pipeline-tools/local_lora_memory_sync.py components/pipeline-tools/lora_memory_hub.py
 echo "Repository verification completed"
 exit "$bad"

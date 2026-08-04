@@ -1,0 +1,14 @@
+services:
+  lora-memory-hub:
+    build:
+      context: ../..
+      dockerfile: deploy/lora-memory-hub/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - github-checkout:/data
+
+volumes:
+  github-checkout:

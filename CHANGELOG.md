@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.23
+
+- Replace workstation-to-GitHub prompt-memory pushes with a collector-first
+  default: production nodes hold no GitHub or S3 credentials.
+- Add an authenticated central LoRA Memory Hub that validates submissions,
+  writes content-addressed S3 objects, and periodically converges them to GitHub.
+- Ship a reproducible Docker deployment, durable node-side retry queue, and an
+  explicit credential-boundary guide; retain direct Git sync only as a
+  development override.
+
 ## 0.2.22
 
 - Enable privacy-filtered LoRA prompt-memory synchronization by default on every installed workstation.
