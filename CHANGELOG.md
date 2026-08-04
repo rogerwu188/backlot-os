@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.11
+
+- Add a fail-closed authored action-window contract so provider minimum-duration
+  tails are discarded after the designed real-time action and result hold.
+- Reject assembly speed changes, oversized action windows, retained unauthored
+  tails, and invalid duplicate-frame policies before paid submission.
+- Require long dialogue, evidence, and exposition units to use fixed composition
+  plus a motivated hard cut, reaction cut, or evidence insert instead of
+  continuous camera drift.
+
 ## 0.2.10
 
 - Add a fail-closed period/entity material contract to the pre-generation

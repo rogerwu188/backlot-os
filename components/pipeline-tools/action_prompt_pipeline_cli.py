@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from action_actor_ownership_gate import evaluate_batch as actor_ownership_gate
+from authored_action_window_gate import evaluate_batch as authored_window_gate
 from action_direction_contract_gate import evaluate_batch as direction_gate
 from action_sequence_continuity_gate import evaluate_batch as continuity_gate
 from action_spatial_feasibility_gate import evaluate_batch as spatial_gate
@@ -61,6 +62,7 @@ def compile_manifest(manifest_path: Path, output_dir: Path) -> dict[str, Any]:
         "sequence_continuity": continuity_gate(compiled_tasks),
         "direction": direction_gate(compiled_tasks),
         "actor_ownership": actor_ownership_gate(compiled_tasks, prompts),
+        "authored_action_window": authored_window_gate(compiled_tasks),
     }
     status = "PASS" if all(row.get("status") == "PASS" for row in gates.values()) else "FAIL"
     compiled = {

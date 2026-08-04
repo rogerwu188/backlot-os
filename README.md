@@ -84,6 +84,11 @@ shots and other chains submit together. Remote polling runs in parallel, and
 completed outputs are downloaded and QA-checked in bounded parallel workers.
 Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
 provider or workstation needs lower concurrency.
+Every atomic action also carries an authored assembly window. The release
+builder preserves native real-time speed, keeps only the designed action plus
+result hold, and discards any unused provider minimum-duration tail. Long
+dialogue or evidence units use stable compositions with motivated hard cuts;
+continuous camera drift is rejected as a substitute for shot design.
 Period-specific props, creatures, and constructed characters can additionally
 declare a `period_entity_material_contract`. Before submission, the gate checks
 that the final provider prompt contains the required historical materials and

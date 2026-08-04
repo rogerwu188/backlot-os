@@ -51,6 +51,7 @@ try:
     from shot_space_camera_constraint_gate import evaluate_batch as evaluate_space_camera_constraints
     from camera_motion_sequence_gate import evaluate_sequence as evaluate_camera_motion_sequence
     from performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
+    from authored_action_window_gate import evaluate_batch as evaluate_authored_action_window
     from action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
     from action_direction_contract_gate import evaluate_batch as evaluate_action_direction_contract
     from action_actor_ownership_gate import evaluate_batch as evaluate_action_actor_ownership
@@ -104,6 +105,7 @@ except ModuleNotFoundError:  # Imported as tools.episode_parallel_batch_supervis
     from tools.shot_space_camera_constraint_gate import evaluate_batch as evaluate_space_camera_constraints
     from tools.camera_motion_sequence_gate import evaluate_sequence as evaluate_camera_motion_sequence
     from tools.performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
+    from tools.authored_action_window_gate import evaluate_batch as evaluate_authored_action_window
     from tools.action_sequence_continuity_gate import evaluate_batch as evaluate_action_sequence_continuity
     from tools.action_direction_contract_gate import evaluate_batch as evaluate_action_direction_contract
     from tools.action_actor_ownership_gate import evaluate_batch as evaluate_action_actor_ownership
@@ -2661,6 +2663,7 @@ def main() -> int:
     for name, evaluator, blocked_status, rollback in (
         ("CAMERA_MOTION_SEQUENCE", lambda: evaluate_camera_motion_sequence(config.get("tasks", []), prompt_texts), "BLOCKED_CAMERA_MOTION_SEQUENCE", "Replace only the blocked camera clause with fixed composition or add a fixed-composition cooldown."),
         ("PERFORMANCE_TEMPO", lambda: evaluate_performance_tempo(config.get("tasks", [])), "BLOCKED_PERFORMANCE_TEMPO", "Shorten the atomic action and bind a real-time completion window."),
+        ("AUTHORED_ACTION_WINDOW", lambda: evaluate_authored_action_window(config.get("tasks", [])), "BLOCKED_AUTHORED_ACTION_WINDOW", "Trim to the authored real-time action and result window; discard the provider minimum-duration tail without time stretching."),
         ("ACTION_SEQUENCE_CONTINUITY", lambda: evaluate_action_sequence_continuity(config.get("tasks", [])), "BLOCKED_ACTION_SEQUENCE_CONTINUITY", "Add explicit bridge units and predecessor tail-frame bindings."),
         ("ACTION_DIRECTION_CONTRACT", lambda: evaluate_action_direction_contract(config.get("tasks", [])), "BLOCKED_ACTION_DIRECTION_CONTRACT", "Resolve screen-side, travel, recoil, terminal-side and exact contact-point contradictions before prompt submission."),
         ("ACTION_ACTOR_OWNERSHIP", lambda: evaluate_action_actor_ownership(config.get("tasks", []), prompt_texts), "BLOCKED_ACTION_ACTOR_OWNERSHIP", "Name the inherited foreground actor, sole action owner, forbidden foreground actions and visible effect origin in the structured contract and prompt."),
