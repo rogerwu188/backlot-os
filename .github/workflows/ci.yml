@@ -34,6 +34,9 @@ jobs:
         run: python -m pytest -q components/producer-supervisor-agent/tests
       - name: Prompt and BGM production-gate tests
         run: python -m unittest discover -s components/pipeline-tools/tests -p 'test_action_prompt_pipeline_cli.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_bgm_authenticity_gate.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_dependency_lane_concurrency.py' -v
+      - name: Action prompt compatibility and root-cause gates
+        working-directory: components/pipeline-tools
+        run: python -m unittest -v tests.test_action_shot_design_gate tests.test_action_spatial_feasibility_gate tests.test_generation_prompt_optimizer tests.test_action_direction_contract_gate tests.test_action_actor_ownership_gate tests.test_shot_space_camera_constraint_gate tests.test_video_prompt_action_density_gate
       - name: AgentCut tests
         run: python -m unittest discover -s components/agentcut/tests -v
       - name: AgentCut compatibility tests
