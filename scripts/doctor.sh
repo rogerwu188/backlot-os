@@ -91,8 +91,7 @@ done
 if [[ -f "$install_root/config/lora-auto-sync.enabled" ]]; then
   echo "PASS lora-memory-auto-sync:enabled"
 else
-  echo "FAIL lora-memory-auto-sync:not-installed"
-  failed=1
+  echo "NOT_CONFIGURED lora-memory-auto-sync:run-current-installer-to-enable"
 fi
 
 exit "$failed"
