@@ -65,6 +65,7 @@ try:
     from action_shot_design_gate import (
         evaluate as evaluate_action_shot_design,
         validate_task_bindings as validate_action_shot_bindings,
+        validate_tail_chained_submission,
     )
     from anachronism_lock_gate import evaluate as evaluate_anachronism_lock
     from cut_motivation_gate import evaluate as evaluate_cut_motivation
@@ -117,6 +118,7 @@ except ModuleNotFoundError:  # Imported as tools.episode_parallel_batch_supervis
     from tools.action_shot_design_gate import (
         evaluate as evaluate_action_shot_design,
         validate_task_bindings as validate_action_shot_bindings,
+        validate_tail_chained_submission,
     )
     from tools.anachronism_lock_gate import evaluate as evaluate_anachronism_lock
     from tools.cut_motivation_gate import evaluate as evaluate_cut_motivation
@@ -1088,6 +1090,11 @@ def validate_corrected_pipeline_quality(config: dict) -> dict:
     if not required:
         return {"status": "NOT_APPLICABLE", "required": False, "failures": []}
     failures: list[str] = []
+    ready_tasks = [task for task in config.get("tasks") or [] if task_config_is_ready(task)]
+    failures.extend(
+        f"corrected_pipeline_tail_chain_submission:{value}"
+        for value in validate_tail_chained_submission(ready_tasks, ROOT)
+    )
     reports: dict[str, dict] = {}
     for key, evaluator in (
         ("dramatic_quality_report_ref", evaluate_dramatic_quality),
@@ -1131,7 +1138,13 @@ def validate_corrected_pipeline_quality(config: dict) -> dict:
                     row for row in sequence
                     if not any(
                         marker in str(row.get("role") or "").upper()
-                        for marker in ("IDENTITY", "CHARACTER_REFERENCE", "STYLE_REFERENCE", "SCENE_REFERENCE")
+                        for marker in (
+                            "IDENTITY",
+                            "CHARACTER_REFERENCE",
+                            "STYLE_REFERENCE",
+                            "SCENE_REFERENCE",
+                            "REFERENCE_ONLY",
+                        )
                     )
                 ]
                 actual = len(temporal) if sequence else len(task.get("reference_images") or [])

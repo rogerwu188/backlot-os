@@ -94,6 +94,56 @@ def validate_task_bindings(
     return failures
 
 
+def validate_tail_chained_submission(
+    tasks: list[dict[str, Any]], root: Path
+) -> list[str]:
+    """Allow one ready task per action chain and require its exact predecessor tail."""
+    failures: list[str] = []
+    by_chain: dict[str, list[dict[str, Any]]] = {}
+    for task in tasks:
+        if task.get("generation_schedule_mode") != "TAIL_CHAINED_SERIAL":
+            continue
+        sequence = task.get("action_sequence_contract") or {}
+        chain_id = str(sequence.get("chain_id") or "").strip()
+        task_id = str(task.get("task_key") or task.get("source_id") or "UNKNOWN")
+        if not chain_id:
+            failures.append(f"{task_id}:tail_chain_id_missing")
+            continue
+        by_chain.setdefault(chain_id, []).append(task)
+
+    for chain_id, chain_tasks in by_chain.items():
+        if len(chain_tasks) > 1:
+            failures.append(f"{chain_id}:tail_chain_parallel_submission_forbidden:{len(chain_tasks)}>1")
+        for task in chain_tasks:
+            task_id = str(task.get("task_key") or task.get("source_id") or "UNKNOWN")
+            sequence = task.get("action_sequence_contract") or {}
+            try:
+                sequence_index = int(sequence.get("sequence_index"))
+            except (TypeError, ValueError):
+                failures.append(f"{task_id}:tail_chain_sequence_index_invalid")
+                continue
+            if sequence_index <= 1:
+                continue
+            predecessor = str(sequence.get("predecessor_tail_frame_ref") or "").strip()
+            if not predecessor:
+                failures.append(f"{task_id}:exact_predecessor_tail_ref_missing")
+                continue
+            predecessor_path = Path(predecessor)
+            if not predecessor_path.is_absolute():
+                predecessor_path = root / predecessor_path
+            if not predecessor_path.is_file():
+                failures.append(f"{task_id}:exact_predecessor_tail_not_materialized:{predecessor}")
+            references = task.get("reference_image_sequence") or []
+            first = references[0] if references else {}
+            if first.get("path") != predecessor:
+                failures.append(f"{task_id}:first_reference_is_not_exact_predecessor_tail")
+            if first.get("role") != "EXACT_PREDECESSOR_ACCEPTED_TAIL_AND_START_FRAME":
+                failures.append(f"{task_id}:predecessor_tail_role_not_fail_closed")
+            if not str(task.get("depends_on_task") or "").strip():
+                failures.append(f"{task_id}:predecessor_task_dependency_missing")
+    return failures
+
+
 def _text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
