@@ -14,6 +14,7 @@ MOTION_PATTERNS = {
     "tracking": re.compile(r"tracking|跟拍|跟随运镜", re.I),
 }
 CONTINUOUS_FAMILIES = frozenset(MOTION_PATTERNS)
+STABLE_CUT_MODES = frozenset({"FIXED_HARD_CUT", "REACTION_CUT", "EVIDENCE_INSERT"})
 
 
 def classify_motion(task: dict[str, Any], prompt: str = "") -> str:
@@ -54,4 +55,14 @@ def evaluate_sequence(tasks: list[dict[str, Any]], prompts: dict[str, str] | Non
             previous_continuous = row
         else:
             previous_continuous = None
-    return {"schema": "qingshan.camera_motion_sequence_gate.v1", "status": "PASS" if not failures else "FAIL", "rows": rows, "failures": failures, "policy": {"dialogue_default": "FIXED_COMPOSITION", "max_adjacent_continuous_motion_shots": 1, "max_single_motion_seconds": 3.0, "oscillatory_camera_motion": "FORBIDDEN"}, "rollback": "Replace only blocked camera clauses; preserve accepted siblings."}
+        purpose = str(task.get("shot_purpose") or task.get("unit_type") or task.get("content_role") or "").upper()
+        if not task.get("action_unit") and duration > 3.0 and any(label in purpose for label in ("DIALOGUE", "EVIDENCE", "EXPOSITION")):
+            cut_contract = task.get("composition_change_contract") or {}
+            mode = str(cut_contract.get("mode") or "").upper()
+            cut_at = float(cut_contract.get("cut_at_seconds") or 0.0)
+            if family != "fixed":
+                failures.append({"code": "LONG_DIALOGUE_OR_EVIDENCE_REQUIRES_FIXED_COMPOSITION", "task_key": key})
+            if mode not in STABLE_CUT_MODES or not 1.0 <= cut_at <= duration - 1.0:
+                failures.append({"code": "LONG_STABLE_SHOT_REQUIRES_MOTIVATED_HARD_CUT", "task_key": key, "allowed_modes": sorted(STABLE_CUT_MODES)})
+            row["composition_change_contract"] = cut_contract
+    return {"schema": "qingshan.camera_motion_sequence_gate.v2", "status": "PASS" if not failures else "FAIL", "rows": rows, "failures": failures, "policy": {"dialogue_default": "FIXED_COMPOSITION_WITH_MOTIVATED_HARD_CUT_AFTER_3S", "max_adjacent_continuous_motion_shots": 1, "max_single_motion_seconds": 3.0, "oscillatory_camera_motion": "FORBIDDEN"}, "rollback": "Replace only blocked camera clauses; preserve accepted siblings."}

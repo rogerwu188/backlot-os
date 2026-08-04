@@ -18,6 +18,10 @@ should be discovered.
    the next start frame. Generate unrelated shots concurrently.
 8. Submit only the SHA-bound optimized provider prompt after every pre-submit
    gate passes.
+9. Declare the exact real-time assembly window. Provider minimum-duration tails
+   are not authored footage: discard them after the result hold, preserve native
+   speed, and remove only duplicate tail frames. Never hide excess duration with
+   slow motion or time stretching.
 
 For a task using `generation_schedule_mode=TAIL_CHAINED_SERIAL`, declare an
 `action_sequence_contract.chain_id`, numeric `sequence_index`,
@@ -69,7 +73,17 @@ and preventing a dependency in one lane from freezing unrelated work.
 Camera movement must reveal information or preserve an action relationship. Do
 not stack `smooth_roam`, `slow_push`, overhead reveals, or equivalent movement
 families across adjacent clips. Dialogue and evidence shots default to a stable
-camera. Action shots default to normal real-time speed and one readable contact.
+camera. A dialogue, evidence, or exposition unit longer than three seconds must
+declare a motivated fixed-composition hard cut, reaction cut, or evidence insert;
+continuous camera movement cannot substitute for shot design. Action shots
+default to normal real-time speed and one readable contact.
+
+Every action unit also declares `assembly_window_contract`. Its trim end may not
+exceed `primary_action_complete_by_seconds + result_hold_seconds + 0.25`, the
+window may not exceed 2.5 seconds, `preserve_native_speed` must be true, and an
+unused provider tail must be marked `DISCARD_UNAUTHORED_TAIL`. The same gate runs
+in the prompt compiler and the concurrent episode supervisor, so a malformed
+task cannot reach a paid provider submission or later assembly.
 
 ## Selective BGM flow
 
