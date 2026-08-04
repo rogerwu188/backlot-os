@@ -1889,11 +1889,15 @@ def bind_predecessor_tail_frame(task: dict, dependency: dict) -> bool:
         return False
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.is_file():
-        proc = subprocess.run([
-            str(resolve_media_binary("ffmpeg")), "-hide_banner", "-loglevel", "error", "-y",
-            "-sseof", "-0.05", "-i", str(source), "-frames:v", "1", "-q:v", "2", str(destination),
-        ], cwd=ROOT, check=False)
-        if proc.returncode != 0 or not destination.is_file():
+        ffmpeg = str(resolve_media_binary("ffmpeg"))
+        for tail_offset in ("-0.10", "-0.20", "-0.50"):
+            proc = subprocess.run([
+                ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                "-sseof", tail_offset, "-i", str(source), "-frames:v", "1", "-q:v", "2", str(destination),
+            ], cwd=ROOT, check=False)
+            if proc.returncode == 0 and destination.is_file() and destination.stat().st_size > 0:
+                break
+        if not destination.is_file() or destination.stat().st_size == 0:
             return False
     destination_ref = str(destination_value)
     tail_sha = sha256_file(destination)

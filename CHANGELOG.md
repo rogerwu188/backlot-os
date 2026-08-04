@@ -9,6 +9,8 @@
   individual action chain.
 - Record selected and deferred task keys in each receipt so concurrency choices
   are auditable and resumable without an episode-wide batch barrier.
+- Make exact-tail extraction retry frame-safe offsets and reject empty FFmpeg
+  output, preventing a valid predecessor from silently stalling its successor.
 
 ## 0.2.8
 
