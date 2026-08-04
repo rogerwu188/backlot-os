@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 from agentcut import AgentCutEngine, AgentCutError, RenderProgress, RenderResult, ValidationError
 from agentcut.agent import AgentServer
-from agentcut.validation import MediaValidator, validate_release_project_contract
+from agentcut.validation import MediaValidator, validate_release_project_contract, validate_replacement_bindings
 from agentcut.transform import content_hash
 from agentcut.isolation import isolation_confidence
 from agentcut.audio_backend import audio_save_health, require_audio_save_backend
@@ -561,6 +561,70 @@ class AgentCutTests(unittest.TestCase):
         data["releaseProject"] = True
         with self.assertRaisesRegex(ValidationError, "RELEASE_SUBTITLES_REQUIRED"):
             AgentCutEngine().compile(data)
+
+    def test_replacement_binding_gate_accepts_exact_new_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            replacement = Path(directory) / "fixed.mp4"
+            replacement.write_bytes(b"admitted replacement")
+            digest = hashlib.sha256(replacement.read_bytes()).hexdigest()
+            data = project()
+            clip = data["timeline"]["videoTracks"][0]["clips"][0]
+            clip.update({"id": "U03-S1-A", "source": str(replacement), "metadata": {"source_sha256": digest}})
+            data["metadata"] = {"replacementBindingPolicy": {
+                "enabled": True, "expectedTargetCount": 1,
+                "targets": [{"clipId": "U03-S1-A", "replacementSourceSha256": digest}],
+                "forbiddenPathTokens": ["SMOOTH_ROAM"],
+            }}
+            issues, coverage = validate_replacement_bindings(AgentCutEngine().load(data))
+            self.assertEqual(issues, [])
+            self.assertEqual(coverage["status"], "PASS")
+            self.assertEqual(coverage["matched"], 1)
+
+    def test_replacement_binding_gate_blocks_stale_project_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            replacement = Path(directory) / "fixed.mp4"
+            replacement.write_bytes(b"admitted replacement")
+            stale = Path(directory) / "U03_SMOOTH_ROAM_old.mp4"
+            stale.write_bytes(b"old moving source")
+            digest = hashlib.sha256(replacement.read_bytes()).hexdigest()
+            stale_digest = hashlib.sha256(stale.read_bytes()).hexdigest()
+            data = project()
+            clip = data["timeline"]["videoTracks"][0]["clips"][0]
+            clip.update({"id": "U03-S1-A", "source": str(stale), "metadata": {"source_sha256": stale_digest}})
+            data["metadata"] = {"replacementBindingPolicy": {
+                "enabled": True, "expectedTargetCount": 1,
+                "targets": [{"clipId": "U03-S1-A", "replacementSourceSha256": digest}],
+                "forbiddenSourceSha256": [stale_digest], "forbiddenPathTokens": ["SMOOTH_ROAM"],
+            }}
+            parsed = AgentCutEngine().load(data)
+            issues, coverage = validate_replacement_bindings(parsed)
+            codes = {issue.code for issue in issues}
+            self.assertIn("REPLACEMENT_BINDING_SHA_MISMATCH", codes)
+            self.assertIn("SUPERSEDED_SOURCE_STILL_BOUND", codes)
+            self.assertEqual(coverage["status"], "FAIL")
+            with self.assertRaisesRegex(ValidationError, "REPLACEMENT_BINDING_SHA_MISMATCH"):
+                AgentCutEngine().compile(data)
+
+    def test_replacement_binding_gate_blocks_incomplete_target_coverage(self):
+        data = project()
+        data["metadata"] = {"replacementBindingPolicy": {
+            "enabled": True, "expectedTargetCount": 2,
+            "targets": [{"clipId": "missing", "replacementSourceSha256": "a" * 64}],
+        }}
+        issues, coverage = validate_replacement_bindings(AgentCutEngine().load(data))
+        self.assertIn("REPLACEMENT_BINDING_COVERAGE_INCOMPLETE", {issue.code for issue in issues})
+        self.assertIn("REPLACEMENT_BINDING_TARGET_MISSING", {issue.code for issue in issues})
+        self.assertEqual(coverage["expected"], 2)
+
+    def test_release_repair_cannot_omit_replacement_binding_policy(self):
+        data = project()
+        data["releaseProject"] = True
+        clip = data["timeline"]["videoTracks"][0]["clips"][0]
+        clip["id"] = "repaired-clip"
+        clip["metadata"] = {"original_source": "old.mp4", "source_sha256": "a" * 64}
+        issues, coverage = validate_replacement_bindings(AgentCutEngine().load(data))
+        self.assertIn("REPLACEMENT_BINDING_POLICY_REQUIRED", {issue.code for issue in issues})
+        self.assertEqual(coverage["status"], "FAIL")
 
     def test_render_fails_before_media_work_when_release_contract_is_incomplete(self):
         data = project()

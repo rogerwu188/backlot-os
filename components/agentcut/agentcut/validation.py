@@ -272,6 +272,159 @@ def validate_release_project_contract(project: Project) -> tuple[list[Validation
     }
 
 
+def validate_replacement_bindings(project: Project) -> tuple[list[ValidationIssue], dict[str, Any]]:
+    """Prove that repaired clips are bound to the exact admitted replacement files."""
+    raw_policy = project.metadata.get("replacementBindingPolicy")
+    replacement_markers = []
+    for track in project.video_tracks:
+        if not track.enabled:
+            continue
+        for clip in track.clips:
+            metadata = clip.metadata
+            marked = any(
+                key in metadata for key in (
+                    "original_source", "v18_original_source", "superseded_source",
+                    "replacement_generation_id", "shot_recipe_superseded",
+                )
+            ) or "SATISFIED" in str(metadata.get("replacement_condition") or "").upper()
+            if marked:
+                replacement_markers.append(clip.id)
+    if raw_policy is None and project.release_project and replacement_markers:
+        issue = ValidationIssue(
+            "REPLACEMENT_BINDING_POLICY_REQUIRED", "error",
+            "release project contains repaired clips but no enabled replacementBindingPolicy",
+            related_clips=[{"clipId": clip_id} for clip_id in replacement_markers if clip_id],
+        )
+        return [issue], {"required": True, "status": "FAIL", "expected": len(replacement_markers),
+                         "matched": 0, "residualClips": [{"clipId": value, "reason": issue.code} for value in replacement_markers]}
+    if raw_policy is not None and not isinstance(raw_policy, dict):
+        issue = ValidationIssue("REPLACEMENT_BINDING_POLICY_INVALID", "error", "replacementBindingPolicy must be an object")
+        return [issue], {"required": True, "status": "FAIL", "expected": 0, "matched": 0,
+                         "residualClips": [{"clipId": None, "reason": issue.code}]}
+    policy = raw_policy or {}
+    if not policy.get("enabled", False):
+        return [], {"required": False, "status": "NOT_CONFIGURED", "expected": 0, "matched": 0, "residualClips": []}
+
+    issues: list[ValidationIssue] = []
+    targets = policy.get("targets", [])
+    raw_forbidden_shas = policy.get("forbiddenSourceSha256", [])
+    raw_forbidden_tokens = policy.get("forbiddenPathTokens", [])
+    forbidden_shas = {str(value).lower() for value in raw_forbidden_shas if value} if isinstance(raw_forbidden_shas, list) else set()
+    forbidden_tokens = [str(value).lower() for value in raw_forbidden_tokens if value] if isinstance(raw_forbidden_tokens, list) else []
+    expected_count = policy.get("expectedTargetCount", len(targets))
+    clips_by_id: dict[str, list[tuple[int, int, Any]]] = {}
+    enabled_clips: list[tuple[int, int, Any]] = []
+    for track_index, track in enumerate(project.video_tracks):
+        if not track.enabled:
+            continue
+        for clip_index, clip in enumerate(track.clips):
+            if clip.opacity <= 0:
+                continue
+            enabled_clips.append((track_index, clip_index, clip))
+            if clip.id:
+                clips_by_id.setdefault(clip.id, []).append((track_index, clip_index, clip))
+
+    residual: list[dict[str, Any]] = []
+    matched = 0
+    sha_cache: dict[str, str] = {}
+
+    def source_sha(path: str) -> str:
+        if path in sha_cache:
+            return sha_cache[path]
+        source = Path(path)
+        actual = ""
+        if source.is_file():
+            digest = hashlib.sha256()
+            with source.open("rb") as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            actual = digest.hexdigest()
+        sha_cache[path] = actual
+        return actual
+
+    if not isinstance(targets, list):
+        targets = []
+        issues.append(ValidationIssue("REPLACEMENT_BINDING_TARGETS_INVALID", "error", "replacementBindingPolicy.targets must be an array"))
+    if not isinstance(raw_forbidden_shas, list) or not isinstance(raw_forbidden_tokens, list):
+        issues.append(ValidationIssue(
+            "REPLACEMENT_BINDING_FORBIDDEN_LIST_INVALID", "error",
+            "forbiddenSourceSha256 and forbiddenPathTokens must be arrays",
+        ))
+    if not isinstance(expected_count, int) or isinstance(expected_count, bool) or expected_count < 1 or expected_count != len(targets):
+        issues.append(ValidationIssue(
+            "REPLACEMENT_BINDING_COVERAGE_INCOMPLETE", "error",
+            f"replacement binding target count is {len(targets)} but expectedTargetCount is {expected_count!r}",
+        ))
+    target_ids = [target.get("clipId") for target in targets if isinstance(target, dict)]
+    duplicate_target_ids = sorted({str(value) for value in target_ids if value and target_ids.count(value) > 1})
+    if duplicate_target_ids:
+        issues.append(ValidationIssue(
+            "REPLACEMENT_BINDING_TARGET_DUPLICATE", "error",
+            "replacement binding policy declares duplicate targets: " + ", ".join(duplicate_target_ids),
+        ))
+
+    for target in targets:
+        if not isinstance(target, dict):
+            issues.append(ValidationIssue("REPLACEMENT_BINDING_TARGET_INVALID", "error", "replacement binding target must be an object"))
+            continue
+        clip_id = target.get("clipId")
+        expected_sha = str(target.get("replacementSourceSha256") or "").lower()
+        found = clips_by_id.get(str(clip_id), [])
+        if len(found) != 1:
+            code = "REPLACEMENT_BINDING_TARGET_MISSING" if not found else "REPLACEMENT_BINDING_TARGET_DUPLICATE"
+            issues.append(ValidationIssue(code, "error", f"replacement target {clip_id!r} occurs {len(found)} times", clip_id=str(clip_id) if clip_id else None))
+            residual.append({"clipId": clip_id, "reason": code, "occurrences": len(found)})
+            continue
+        track_index, clip_index, clip = found[0]
+        common = dict(track_id=project.video_tracks[track_index].id, track_kind="video", track_index=track_index,
+                      clip_index=clip_index, clip_id=clip.id, source=clip.source,
+                      time_range=_range(clip.start, clip.start + clip.duration))
+        actual_sha = source_sha(clip.source)
+        if not expected_sha or actual_sha != expected_sha:
+            issues.append(ValidationIssue(
+                "REPLACEMENT_BINDING_SHA_MISMATCH", "error",
+                f"clip must bind replacement SHA {expected_sha or '<missing>'}, actual {actual_sha or '<unreadable>'}", **common,
+            ))
+            residual.append({"clipId": clip.id, "reason": "REPLACEMENT_BINDING_SHA_MISMATCH", "source": clip.source,
+                             "expectedSha256": expected_sha, "actualSha256": actual_sha})
+            continue
+        metadata_sha = str(clip.metadata.get("source_sha256") or "").lower()
+        if metadata_sha != actual_sha:
+            issues.append(ValidationIssue(
+                "REPLACEMENT_BINDING_METADATA_SHA_MISMATCH", "error",
+                f"clip metadata source_sha256 {metadata_sha or '<missing>'} does not match bound file {actual_sha}", **common,
+            ))
+            residual.append({"clipId": clip.id, "reason": "REPLACEMENT_BINDING_METADATA_SHA_MISMATCH", "source": clip.source})
+            continue
+        matched += 1
+
+    for track_index, clip_index, clip in enabled_clips:
+        source_lower = clip.source.lower()
+        metadata_sha = str(clip.metadata.get("source_sha256") or "").lower()
+        actual_sha = source_sha(clip.source)
+        reasons = []
+        if actual_sha in forbidden_shas or metadata_sha in forbidden_shas:
+            reasons.append("forbidden_source_sha")
+        matched_tokens = [token for token in forbidden_tokens if token in source_lower]
+        if matched_tokens:
+            reasons.append("forbidden_path_token:" + ",".join(matched_tokens))
+        if reasons:
+            issues.append(ValidationIssue(
+                "SUPERSEDED_SOURCE_STILL_BOUND", "error",
+                "superseded source remains bound: " + "; ".join(reasons),
+                track_id=project.video_tracks[track_index].id, track_kind="video", track_index=track_index,
+                clip_index=clip_index, clip_id=clip.id, source=clip.source,
+                time_range=_range(clip.start, clip.start + clip.duration),
+            ))
+            residual.append({"clipId": clip.id, "reason": "SUPERSEDED_SOURCE_STILL_BOUND", "source": clip.source})
+
+    return issues, {
+        "required": True, "status": "PASS" if not issues else "FAIL",
+        "expected": expected_count, "declared": len(targets), "matched": matched,
+        "residualClips": residual,
+    }
+
+
 def validate_outro(project: Project, ffmpeg: str | None = None) -> tuple[list[ValidationIssue], dict[str, Any]]:
     outro = project.outro
     if not outro.enabled:
@@ -1136,6 +1289,7 @@ class MediaValidator:
 
     def validate(self, project: Project) -> ValidationReport:
         release_contract_issues, release_contract_coverage = validate_release_project_contract(project)
+        replacement_issues, replacement_coverage = validate_replacement_bindings(project)
         subtitle_issues, subtitle_coverage = validate_subtitles(project)
         narrative_issues, narrative_coverage = validate_narrative(project)
         cut_reason_issues, cut_reason_coverage = validate_cut_reason_contract(project)
@@ -1147,7 +1301,7 @@ class MediaValidator:
         hold_issues, hold_coverage = validate_hold_slots(project)
         recipe_issues, recipe_coverage = validate_shot_recipes(project)
         issues: list[ValidationIssue] = [
-            *release_contract_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
+            *release_contract_issues, *replacement_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
             *cleanup_issues, *audio_issues, *source_issues, *release_issues, *hold_issues, *recipe_issues,
         ]
         media: dict[str, dict[str, Any]] = {}
@@ -1227,6 +1381,7 @@ class MediaValidator:
             ))
         coverage = {
             "releaseProjectContract": release_contract_coverage,
+            "replacementBindings": replacement_coverage,
             "tracks": track_coverage,
             "finalVideoRanges": [_range(a, b) for a, b in _merge(final_intervals)],
             "finalVideoGaps": [_range(a, b) for a, b in final_gaps],

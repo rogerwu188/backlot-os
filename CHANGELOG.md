@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.21
+
+- Add an exact replacement-binding hard gate. A repaired clip must point to the
+  admitted replacement file SHA, carry matching source metadata, and cover every
+  declared target before compile, render, final-visual approval, or release.
+- Reject superseded source SHAs and path signatures anywhere in the enabled
+  video timeline, with an exact residual clip list for deterministic repair.
+- Add portable, privacy-filtered local LoRA memory synchronization so admitted
+  prompt-learning samples can converge across configured BacklotOS machines.
+
 ## 0.2.18
 
 - Add a terminal-support prompt contract for gravity-stable result holds.

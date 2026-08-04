@@ -6,7 +6,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+
+try:
+    from .local_lora_memory_sync import auto_sync
+except ImportError:  # Direct script execution from components/pipeline-tools.
+    from local_lora_memory_sync import auto_sync
 
 
 MODES = {"storyboard", "continuous_long_take", "multi_keyframe_long_take"}
@@ -27,6 +33,8 @@ def require(value, message: str):
 
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
     """Load admitted LoRA-ready examples whose guards apply before paid generation."""
+    if os.environ.get("BACKLOTOS_LORA_AUTO_SYNC") == "1":
+        auto_sync(path)
     if not path.is_file():
         return [], None
     rows = []
