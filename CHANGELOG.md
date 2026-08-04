@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.7
+
+- Rebind a newly accepted predecessor tail into both provider reference fields,
+  replacing the generic temporal anchor while preserving identity and other
+  non-temporal references. This makes automatic chain activation satisfy the
+  exact-tail submission gate introduced in 0.2.6.
+
 ## 0.2.6
 
 - Make tail-chained action generation fail closed: only one ready shot per

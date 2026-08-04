@@ -12,6 +12,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.episode_parallel_batch_supervisor import (
+    bind_predecessor_tail_frame,
     cli_int_duration,
     clear_resolved_scene_block,
     confirmed_periodic_duplicate_frames,
@@ -65,6 +66,34 @@ def write_test_jpeg(path: Path, width: int = 512, height: int = 512) -> None:
 
 
 class EpisodeParallelBatchSupervisorActivityTest(unittest.TestCase):
+    def test_predecessor_tail_replaces_generic_temporal_anchor_and_preserves_identity(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "accepted.mp4"
+            destination = root / "tails" / "B03.png"
+            source.write_bytes(b"accepted source")
+            destination.parent.mkdir(parents=True)
+            destination.write_bytes(b"exact tail")
+            task = {
+                "reference_images": ["generic.png", "identity.png"],
+                "reference_image_sequence": [
+                    {"asset_label": "@图片1", "role": "ACTION_STATE_ANCHOR", "path": "generic.png"},
+                    {"asset_label": "@图片2", "role": "IDENTITY_REFERENCE_HERO", "path": "identity.png"},
+                ],
+                "action_sequence_contract": {
+                    "predecessor_tail_frame_ref": str(destination),
+                },
+            }
+            dependency = {"output_path": str(source), "sha256": "source-sha"}
+            self.assertTrue(bind_predecessor_tail_frame(task, dependency))
+            self.assertEqual(task["reference_images"], [str(destination), "identity.png"])
+            self.assertEqual(
+                task["reference_image_sequence"][0]["role"],
+                "EXACT_PREDECESSOR_ACCEPTED_TAIL_AND_START_FRAME",
+            )
+            self.assertEqual(task["reference_image_sequence"][0]["path"], str(destination))
+            self.assertEqual(task["reference_image_sequence"][1]["path"], "identity.png")
+
     def test_initial_asset_library_blocks_before_any_provider_submission(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

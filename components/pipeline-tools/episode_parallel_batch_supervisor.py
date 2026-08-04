@@ -1889,11 +1889,41 @@ def bind_predecessor_tail_frame(task: dict, dependency: dict) -> bool:
         ], cwd=ROOT, check=False)
         if proc.returncode != 0 or not destination.is_file():
             return False
-    refs = [str(value) for value in task.get("reference_images") or []]
-    if str(destination) not in refs:
-        refs.insert(0, str(destination))
-    task["reference_images"] = refs
-    task["predecessor_tail_frame_sha256"] = sha256_file(destination)
+    destination_ref = str(destination_value)
+    tail_sha = sha256_file(destination)
+    sequence = list(task.get("reference_image_sequence") or [])
+    temporal_markers = (
+        "IDENTITY",
+        "CHARACTER_REFERENCE",
+        "STYLE_REFERENCE",
+        "SCENE_REFERENCE",
+        "REFERENCE_ONLY",
+    )
+    replacement = {
+        "asset_label": "@图片1",
+        "role": "EXACT_PREDECESSOR_ACCEPTED_TAIL_AND_START_FRAME",
+        "path": destination_ref,
+        "sha256": tail_sha,
+        "identity_reference": False,
+    }
+    replaced = False
+    rebound_sequence = []
+    for row in sequence:
+        role = str(row.get("role") or "").upper()
+        is_non_temporal = any(marker in role for marker in temporal_markers)
+        if not replaced and not is_non_temporal:
+            rebound_sequence.append(replacement)
+            replaced = True
+            continue
+        if row.get("path") != destination_ref:
+            rebound_sequence.append(row)
+    if not replaced:
+        rebound_sequence.insert(0, replacement)
+    task["reference_image_sequence"] = rebound_sequence
+    task["reference_images"] = [
+        str(row.get("path")) for row in rebound_sequence if row.get("path")
+    ]
+    task["predecessor_tail_frame_sha256"] = tail_sha
     task["predecessor_output_sha256"] = dependency.get("sha256") or sha256_file(source)
     task["predecessor_tail_bound_at"] = now()
     task["dependencies_ready"] = True
