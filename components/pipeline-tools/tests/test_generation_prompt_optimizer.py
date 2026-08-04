@@ -1,4 +1,6 @@
+import hashlib
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -68,6 +70,44 @@ class GenerationPromptOptimizerTests(unittest.TestCase):
         self.assertIn("PF-012", second_receipt["applied_failure_memory_rules"])
         report = validate_batch([first, second], {"B01": first_prompt, "B02": second_prompt})
         self.assertTrue(any(row["code"] == "ACTION_VISUAL_DUPLICATES_PRIOR_SHOT" for row in report["failures"]))
+
+    def test_period_entity_material_contract_binds_prompt_and_reference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            reference = Path(directory) / "paper_effigy.png"
+            reference.write_bytes(b"period-correct-reference")
+            task = action_task()
+            task["period_entity_material_contract"] = {
+                "status": "PASS_PRECOMPILED",
+                "hard_fail_override": True,
+                "required_prompt_terms": ["桑皮纸", "竹篾"],
+                "required_negative_prompt_terms": ["禁止金属", "机器人"],
+                "terminal_reference": str(reference),
+                "terminal_reference_sha256": hashlib.sha256(reference.read_bytes()).hexdigest(),
+            }
+            prompt, receipt = optimize_prompt(task, "桑皮纸包覆竹篾。禁止金属，禁止机器人。")
+            task["prompt_optimizer_receipt"] = receipt
+            self.assertEqual(validate_batch([task], {"B02": prompt})["status"], "PASS")
+            broken = prompt.replace("竹篾", "木条")
+            failures = validate_batch([task], {"B02": broken})["failures"]
+            self.assertTrue(any(row["code"] == "PERIOD_ENTITY_POSITIVE_TERM_MISSING" for row in failures))
+
+    def test_period_entity_material_contract_rejects_reference_sha_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            reference = Path(directory) / "paper_effigy.png"
+            reference.write_bytes(b"period-correct-reference")
+            task = action_task()
+            task["period_entity_material_contract"] = {
+                "status": "PASS_PRECOMPILED",
+                "hard_fail_override": True,
+                "required_prompt_terms": [],
+                "required_negative_prompt_terms": [],
+                "terminal_reference": str(reference),
+                "terminal_reference_sha256": "0" * 64,
+            }
+            prompt, receipt = optimize_prompt(task, "基础提示词")
+            task["prompt_optimizer_receipt"] = receipt
+            failures = validate_batch([task], {"B02": prompt})["failures"]
+            self.assertTrue(any(row["code"] == "PERIOD_ENTITY_REFERENCE_SHA_MISMATCH" for row in failures))
 
 
 if __name__ == "__main__":

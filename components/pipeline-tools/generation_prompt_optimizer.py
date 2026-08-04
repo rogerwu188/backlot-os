@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 from typing import Any
 
 
 BEGIN = "【自动优化契约开始】"
 END = "【自动优化契约结束】"
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _without_previous_block(prompt: str) -> str:
@@ -146,6 +148,22 @@ def validate_batch(tasks: list[dict[str, Any]], prompts: dict[str, str]) -> dict
             failures.append({"task_key": key, "code": "REQUIRED_OPTIMIZATION_RULE_MISSING"})
         if expected and (BEGIN not in prompt or END not in prompt):
             failures.append({"task_key": key, "code": "OPTIMIZED_CONTRACT_BLOCK_MISSING"})
+        material = task.get("period_entity_material_contract") or {}
+        if material:
+            if material.get("status") != "PASS_PRECOMPILED" or material.get("hard_fail_override") is not True:
+                failures.append({"task_key": key, "code": "PERIOD_ENTITY_MATERIAL_CONTRACT_NOT_LOCKED"})
+            for term in material.get("required_prompt_terms") or []:
+                if str(term) not in prompt:
+                    failures.append({"task_key": key, "code": "PERIOD_ENTITY_POSITIVE_TERM_MISSING", "term": str(term)})
+            for term in material.get("required_negative_prompt_terms") or []:
+                if str(term) not in prompt:
+                    failures.append({"task_key": key, "code": "PERIOD_ENTITY_NEGATIVE_TERM_MISSING", "term": str(term)})
+            reference = ROOT / str(material.get("terminal_reference") or "")
+            expected_reference_sha = str(material.get("terminal_reference_sha256") or "")
+            if not reference.is_file() or not expected_reference_sha:
+                failures.append({"task_key": key, "code": "PERIOD_ENTITY_REFERENCE_MISSING"})
+            elif hashlib.sha256(reference.read_bytes()).hexdigest() != expected_reference_sha:
+                failures.append({"task_key": key, "code": "PERIOD_ENTITY_REFERENCE_SHA_MISMATCH"})
         signature = _action_signature(task)
         if signature and signature in seen_signatures:
             failures.append({"task_key": key, "code": "ACTION_VISUAL_DUPLICATES_PRIOR_SHOT"})
