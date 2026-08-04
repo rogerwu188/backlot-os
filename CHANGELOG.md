@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.12
+
+- Restore the original `tools.<module>` import contract in standalone public
+  archives without duplicating the executable pipeline modules.
+- Run the action-design, spatial-physics, prompt-memory, direction, ownership,
+  camera-space, and action-density root-cause gates in GitHub Actions.
+- Prevent a narrow green CI subset from hiding broken third-party imports in
+  the action prompt production tests.
+
 ## 0.2.11
 
 - Add a fail-closed authored action-window contract so provider minimum-duration
