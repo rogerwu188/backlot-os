@@ -21,6 +21,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_TYPES = {"GENERATED_EPISODE_BGM", "LIBRARY_FALLBACK"}
 MAX_BGM_COVERAGE_RATIO = 0.85
 MIN_AMBIENCE_ONLY_SECONDS = 8.0
+MAX_DIALOGUE_SPEECH_BAND_MEAN_INCREASE_DB = 1.0
+MAX_DIALOGUE_SPEECH_BAND_PEAK_INCREASE_DB = 1.5
+MIN_DIALOGUE_TO_BGM_SPEECH_BAND_MARGIN_DB = 12.0
+MAX_TOUCHING_CUE_BOUNDARY_STEP_DB = 6.0
+MIN_SELECTIVE_STEM_GLOBAL_MEAN_DB = -40.0
 
 
 def sha256(path: Path) -> str:
@@ -45,6 +50,99 @@ def volume(path: Path) -> dict:
         "mean_volume_db": float(mean.group(1)) if mean else None,
         "max_volume_db": float(maximum.group(1)) if maximum else None,
     }
+
+
+def band_volume(path: Path, start: float, duration: float) -> dict:
+    """Measure the dialogue-intelligibility band for one normal-speed cue window."""
+    ffmpeg = resolve_media_binary("ffmpeg")
+    completed = subprocess.run(
+        [
+            str(ffmpeg), "-hide_banner", "-nostats", "-ss", str(start), "-t", str(duration),
+            "-i", str(path), "-vn", "-af", "highpass=f=300,lowpass=f=3400,volumedetect",
+            "-f", "null", "-",
+        ],
+        text=True,
+        capture_output=True,
+    )
+    text = completed.stderr
+    mean = re.search(r"mean_volume:\s*(-?[0-9.]+) dB", text)
+    maximum = re.search(r"max_volume:\s*(-?[0-9.]+) dB", text)
+    return {
+        "mean_volume_db": float(mean.group(1)) if mean else None,
+        "max_volume_db": float(maximum.group(1)) if maximum else None,
+    }
+
+
+def validate_mix_metrics(dialogue_metrics: list[dict], boundary_metrics: list[dict]) -> list[str]:
+    """Fail closed on measured speech masking or abrupt touching-cue handoffs."""
+    failures: list[str] = []
+    for row in dialogue_metrics:
+        cue_id = row.get("cue_id")
+        mean_increase = row.get("mean_increase_db")
+        peak_increase = row.get("peak_increase_db")
+        margin = row.get("dialogue_to_bgm_mean_margin_db")
+        if mean_increase is None or mean_increase > MAX_DIALOGUE_SPEECH_BAND_MEAN_INCREASE_DB:
+            failures.append(f"BGM_DIALOGUE_SPEECH_BAND_MEAN_MASKING:{cue_id}")
+        if peak_increase is None or peak_increase > MAX_DIALOGUE_SPEECH_BAND_PEAK_INCREASE_DB:
+            failures.append(f"BGM_DIALOGUE_SPEECH_BAND_PEAK_MASKING:{cue_id}")
+        if margin is None or margin < MIN_DIALOGUE_TO_BGM_SPEECH_BAND_MARGIN_DB:
+            failures.append(f"BGM_DIALOGUE_TO_MUSIC_MARGIN_LT_12_DB:{cue_id}")
+    for row in boundary_metrics:
+        step = row.get("boundary_step_db")
+        if step is None or abs(step) > MAX_TOUCHING_CUE_BOUNDARY_STEP_DB:
+            failures.append(f"BGM_TOUCHING_CUE_BOUNDARY_STEP_GT_6_DB:{row.get('boundary_seconds')}")
+    return failures
+
+
+def measure_mix_metrics(project: dict, baseline: Path, final: Path, stem: Path) -> tuple[list[dict], list[dict]]:
+    tracks = project.get("timeline", {}).get("audioTracks", [])
+    bgm_track = next((track for track in tracks if track.get("id") == "Audio.BGM"), {})
+    clips = list(bgm_track.get("clips") or [])
+    dialogue_metrics: list[dict] = []
+    for clip in clips:
+        if (clip.get("metadata") or {}).get("dialogue_present") is not True:
+            continue
+        start = float(clip.get("start", 0))
+        duration = float(clip.get("duration", 0))
+        base = band_volume(baseline, start, duration)
+        mixed = band_volume(final, start, duration)
+        music = band_volume(stem, start, duration)
+        base_mean = base.get("mean_volume_db")
+        mixed_mean = mixed.get("mean_volume_db")
+        base_peak = base.get("max_volume_db")
+        mixed_peak = mixed.get("max_volume_db")
+        music_mean = music.get("mean_volume_db")
+        dialogue_metrics.append({
+            "cue_id": clip.get("id"),
+            "start": start,
+            "duration": duration,
+            "baseline": base,
+            "mixed": mixed,
+            "bgm_stem": music,
+            "mean_increase_db": round(mixed_mean - base_mean, 3) if None not in (mixed_mean, base_mean) else None,
+            "peak_increase_db": round(mixed_peak - base_peak, 3) if None not in (mixed_peak, base_peak) else None,
+            "dialogue_to_bgm_mean_margin_db": round(base_mean - music_mean, 3) if None not in (music_mean, base_mean) else None,
+        })
+    boundary_metrics: list[dict] = []
+    ordered = sorted(clips, key=lambda row: float(row.get("start", 0)))
+    for left, right in zip(ordered, ordered[1:]):
+        boundary = float(right.get("start", 0))
+        left_end = float(left.get("start", 0)) + float(left.get("duration", 0))
+        if abs(left_end - boundary) > 0.001:
+            continue
+        before = band_volume(stem, max(0.0, boundary - 0.5), 0.5)
+        after = band_volume(stem, boundary, 0.5)
+        before_mean = before.get("mean_volume_db")
+        after_mean = after.get("mean_volume_db")
+        boundary_metrics.append({
+            "boundary_seconds": boundary,
+            "left_cue_id": left.get("id"),
+            "right_cue_id": right.get("id"),
+            "before": before,
+            "after": after,
+            "boundary_step_db": round(after_mean - before_mean, 3) if None not in (after_mean, before_mean) else None,
+        })
+    return dialogue_metrics, boundary_metrics
 
 
 def validate_bgm_contract(project: dict) -> list[str]:
@@ -144,6 +242,7 @@ def main() -> int:
     parser.add_argument("--project", required=True)
     parser.add_argument("--stem", required=True)
     parser.add_argument("--final", required=True)
+    parser.add_argument("--baseline")
     parser.add_argument("--generation-log")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
@@ -182,12 +281,24 @@ def main() -> int:
         stem_metrics = {}
     else:
         stem_metrics = volume(stem_path)
-        if stem_metrics["mean_volume_db"] is None or stem_metrics["mean_volume_db"] < -35:
-            failures.append("BGM_STEM_NOT_AUDIBLE_MEAN_BELOW_MINUS_35_DB")
+        if stem_metrics["mean_volume_db"] is None or stem_metrics["mean_volume_db"] < MIN_SELECTIVE_STEM_GLOBAL_MEAN_DB:
+            failures.append("BGM_STEM_NOT_AUDIBLE_MEAN_BELOW_MINUS_40_DB")
         if stem_metrics["max_volume_db"] is None or stem_metrics["max_volume_db"] < -18:
             failures.append("BGM_STEM_NOT_AUDIBLE_PEAK_BELOW_MINUS_18_DB")
     if not final_path.is_file() or final_path.stat().st_size == 0:
         failures.append("MIXED_VIDEO_MISSING")
+
+    baseline_path = Path(args.baseline).resolve() if args.baseline else None
+    spectral_required = ((project.get("metadata") or {}).get("bgm_cue_policy") or {}).get(
+        "spectral_masking_gate_required"
+    ) is True
+    dialogue_metrics: list[dict] = []
+    boundary_metrics: list[dict] = []
+    if spectral_required and (baseline_path is None or not baseline_path.is_file()):
+        failures.append("BGM_NO_BGM_BASELINE_REQUIRED_FOR_SPECTRAL_GATE")
+    elif baseline_path and baseline_path.is_file() and final_path.is_file() and stem_path.is_file():
+        dialogue_metrics, boundary_metrics = measure_mix_metrics(project, baseline_path, final_path, stem_path)
+        failures.extend(validate_mix_metrics(dialogue_metrics, boundary_metrics))
 
     generation_log = Path(args.generation_log).resolve() if args.generation_log else None
     generation_text = generation_log.read_text(encoding="utf-8") if generation_log and generation_log.is_file() else ""
@@ -238,6 +349,13 @@ def main() -> int:
         "mixed_video": {
             "path": str(final_path),
             "sha256": sha256(final_path) if final_path.is_file() else None,
+        },
+        "spectral_masking_gate": {
+            "required": spectral_required,
+            "baseline": str(baseline_path) if baseline_path else None,
+            "baseline_sha256": sha256(baseline_path) if baseline_path and baseline_path.is_file() else None,
+            "dialogue_cues": dialogue_metrics,
+            "touching_cue_boundaries": boundary_metrics,
         },
         "new_agentcut_bgm_generation": {
             "status": generation_status,

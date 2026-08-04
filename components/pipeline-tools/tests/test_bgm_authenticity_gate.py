@@ -5,7 +5,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 
-from bgm_authenticity_gate import validate_bgm_contract, validate_bgm_cue_policy
+from bgm_authenticity_gate import validate_bgm_contract, validate_bgm_cue_policy, validate_mix_metrics
 
 
 class BgmAuthenticityContractTests(unittest.TestCase):
@@ -74,6 +74,28 @@ class BgmAuthenticityContractTests(unittest.TestCase):
         failures = validate_bgm_cue_policy(project)
         self.assertIn("BGM_WALL_TO_WALL_COVERAGE_GT_85_PERCENT", failures)
         self.assertIn("BGM_AMBIENCE_ONLY_WINDOW_LT_8_SECONDS", failures)
+
+    def test_measured_dialogue_masking_and_boundary_pass(self):
+        dialogue = [{
+            "cue_id": "opening",
+            "mean_increase_db": 0.4,
+            "peak_increase_db": 0.0,
+            "dialogue_to_bgm_mean_margin_db": 18.3,
+        }]
+        boundaries = [{"boundary_seconds": 62.0, "boundary_step_db": 4.7}]
+        self.assertEqual(validate_mix_metrics(dialogue, boundaries), [])
+
+    def test_measured_dialogue_masking_and_boundary_fail_closed(self):
+        dialogue = [{
+            "cue_id": "masked",
+            "mean_increase_db": 1.2,
+            "peak_increase_db": 1.8,
+            "dialogue_to_bgm_mean_margin_db": 9.0,
+        }]
+        boundaries = [{"boundary_seconds": 62.0, "boundary_step_db": 7.0}]
+        failures = validate_mix_metrics(dialogue, boundaries)
+        self.assertEqual(len(failures), 4)
+        self.assertTrue(all("masked" in item or "62.0" in item for item in failures))
 
 
 if __name__ == "__main__":
