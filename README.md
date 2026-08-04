@@ -52,20 +52,20 @@ Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 Download the immutable public package without cloning repository history:
 
 ```bash
-curl -L -o backlotos-v0.2.22.tar.gz \
-  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.22/backlotos-v0.2.22.tar.gz
+curl -L -o backlotos-v0.2.23.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.23/backlotos-v0.2.23.tar.gz
 expected_sha=$(curl -fsSL \
-  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.22 | \
-  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.22.tar.gz"))')
-actual_sha=$(shasum -a 256 backlotos-v0.2.22.tar.gz | awk '{print $1}')
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.23 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.23.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.23.tar.gz | awk '{print $1}')
 test "$actual_sha" = "$expected_sha"
-tar -xzf backlotos-v0.2.22.tar.gz
-cd backlotos-v0.2.22
+tar -xzf backlotos-v0.2.23.tar.gz
+cd backlotos-v0.2.23
 ./scripts/install.sh
 ./scripts/doctor.sh
 ```
 
-The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.22` provenance even though release archives intentionally contain no `.git` directory.
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.23` provenance even though release archives intentionally contain no `.git` directory.
 
 ### Git checkout (contributors)
 
@@ -80,11 +80,14 @@ The installer creates an isolated runtime and does not copy production media or 
 
 Every installation enables portable prompt-memory synchronization. Admitted
 failed-prompt/rewrite/pass samples are stripped of local paths and credentials,
-persisted through offline periods, and uploaded to GitHub automatically when
-that machine has repository write credentials. Upload failures remain queued
-and visible in a local receipt; they are retried before later Seedance prompt
-compilation. This shares the LoRA-ready training corpus and deterministic rule
-adapter, not private episode media or unverified binary model weights.
+persisted through offline periods, and sent to an authenticated central
+collector. Production machines never need GitHub or S3 credentials. The hub
+writes content-addressed objects to a shared private S3 area, validates and
+deduplicates them, then periodically pushes the deterministic corpus from the
+only GitHub-authorized service. Upload failures remain queued and visible in a
+local receipt. This shares the LoRA-ready training corpus and deterministic rule
+adapter, not private episode media or unverified binary model weights. See the
+[LoRA Memory Hub deployment guide](deploy/lora-memory-hub/README.md).
 
 On StoryClaw, the host-managed GPT runtime is used by the Agents and no separate
 `OPENAI_API_KEY` is required. `doctor.sh` detects that environment and reports

@@ -10,6 +10,8 @@ import os
 import socket
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -30,6 +32,7 @@ AUTO_SYNC_MARKER = Path("config/lora-auto-sync.enabled")
 SYNC_RECEIPT = Path("state/lora-sync/latest-sync-receipt.json")
 PENDING_DATASET = Path("state/lora-sync/pending-memory.jsonl")
 SYNC_LOCK = Path("state/lora-sync/sync.lock")
+COLLECTOR_URL_FILE = Path("config/lora-collector-url")
 
 
 def _run(argv: list[str], cwd: Path, *, timeout: int = 90) -> str:
@@ -107,6 +110,41 @@ def _stage_pending(source: Path) -> Path:
         merged[sample_id] = row
     _write_dataset(pending, merged)
     return pending
+
+
+def _collector_url() -> str:
+    explicit = os.environ.get("BACKLOTOS_LORA_COLLECTOR_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    path = _install_root() / COLLECTOR_URL_FILE
+    return path.read_text(encoding="utf-8").strip().rstrip("/") if path.is_file() else ""
+
+
+def upload_to_collector(source: Path) -> dict:
+    url = _collector_url()
+    if not url:
+        raise RuntimeError("LoRA memory collector URL is not configured")
+    rows = _load(source)
+    canonical_body = "".join(
+        json.dumps(rows[key], ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+        for key in sorted(rows)
+    ).encode("utf-8")
+    body = json.dumps({
+        "schema": "backlotos.lora_memory_submission.v1",
+        "datasetSha256": hashlib.sha256(canonical_body).hexdigest(),
+        "sourceId": hashlib.sha256(socket.gethostname().encode("utf-8")).hexdigest()[:24],
+        "samples": [rows[key] for key in sorted(rows)],
+    }, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    token = os.environ.get("BACKLOTOS_LORA_COLLECTOR_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"{url}/v1/memory", data=body, headers=headers, method="POST")
+    with urllib.request.urlopen(request, timeout=45) as response:
+        result = json.loads(response.read().decode("utf-8"))
+    if result.get("status") != "ACCEPTED":
+        raise RuntimeError("LoRA memory collector did not accept the submission")
+    return result
 
 
 def _load(path: Path) -> dict[str, dict]:
@@ -198,15 +236,21 @@ def auto_sync(source: Path) -> dict:
     with _sync_lock():
         pending = _stage_pending(source)
         try:
-            result = synchronize(pending, _discover_checkout(), push=True)
+            mode = os.environ.get("BACKLOTOS_LORA_SYNC_MODE", "collector").strip().lower()
+            if mode == "direct-git":
+                result = synchronize(pending, _discover_checkout(), push=True)
+            elif mode == "collector":
+                result = upload_to_collector(pending)
+            else:
+                raise RuntimeError(f"unsupported LoRA memory sync mode: {mode}")
             return _write_receipt(result)
-        except (RuntimeError, subprocess.SubprocessError, OSError) as exc:
+        except (RuntimeError, subprocess.SubprocessError, OSError, urllib.error.URLError) as exc:
             return _write_receipt({
                 "status": "QUEUED_FOR_RETRY",
                 "pushed": False,
                 "pendingSampleCount": len(_load(pending)),
                 "errorType": type(exc).__name__,
-                "nextAction": "Retry automatically before the next Seedance prompt compilation; configure GitHub write credentials if push remains unavailable.",
+                "nextAction": "Retry automatically before the next Seedance prompt compilation; configure the collector URL/token if upload remains unavailable.",
             })
 
 
