@@ -34,6 +34,10 @@ class ActionCausalChainCompilerTests(unittest.TestCase):
             "lanes": [{"actor": "甲", "corridor": "左侧"}, {"actor": "乙", "corridor": "中部"}],
             "minimum_lateral_clearance": "一肩宽",
         }
+        row["terminal_support_contract"] = {
+            "result_hold_requires_stable_support": True,
+            "required_support_points": ["双脚落地"],
+        }
         task = compile_chain({"chain_id": "fight", "beats": [row]})["tasks"][0]
         self.assertEqual(task["action_prop_function_contract"]["required_function_class"], "落地环境冰屏")
         self.assertEqual(task["action_causality_contract"]["maximum_phases_per_shot"], 1)
@@ -41,6 +45,7 @@ class ActionCausalChainCompilerTests(unittest.TestCase):
         self.assertTrue(task["performance_tempo_contract"]["real_time_1x"])
         self.assertEqual(task["action_scale_contract"]["required_relational_terms"], ["两倍肩宽"])
         self.assertEqual(len(task["action_movement_lane_contract"]["lanes"]), 2)
+        self.assertEqual(task["action_terminal_support_contract"]["required_support_points"], ["双脚落地"])
 
 
 if __name__ == "__main__":

@@ -69,6 +69,16 @@ class GenerationPromptOptimizerTests(unittest.TestCase):
         }
         return task
 
+    def stable_terminal_task(self):
+        task = action_task()
+        task["action_terminal_support_contract"] = {
+            "result_hold_requires_stable_support": True,
+            "required_support_points": ["双脚落地"],
+            "required_prompt_terms": ["双脚完整踩住木地板"],
+            "forbidden_prompt_terms": ["单脚悬空保持到结尾"],
+        }
+        return task
+
     def test_compiles_positive_spatial_geometry(self):
         prompt, receipt = optimize_prompt(action_task(), "基础提示词")
         self.assertIn("开放碰撞通道", prompt)
@@ -127,6 +137,20 @@ class GenerationPromptOptimizerTests(unittest.TestCase):
         task["prompt_optimizer_receipt"] = receipt
         failures = validate_batch([task], {"B02": prompt})["failures"]
         self.assertTrue(any(row["code"] == "MOVEMENT_LANE_OVERLAP_AUTHORED" for row in failures))
+
+    def test_stable_terminal_support_passes(self):
+        task = self.stable_terminal_task()
+        prompt, receipt = optimize_prompt(task, "双脚完整踩住木地板")
+        task["prompt_optimizer_receipt"] = receipt
+        self.assertEqual(validate_batch([task], {"B02": prompt})["status"], "PASS")
+        self.assertIn("PF-017", receipt["applied_failure_memory_rules"])
+
+    def test_suspended_terminal_pose_fails_closed(self):
+        task = self.stable_terminal_task()
+        prompt, receipt = optimize_prompt(task, "双脚完整踩住木地板，单脚悬空保持到结尾")
+        task["prompt_optimizer_receipt"] = receipt
+        failures = validate_batch([task], {"B02": prompt})["failures"]
+        self.assertTrue(any(row["code"] == "SUSPENDED_TERMINAL_POSE_AUTHORED" for row in failures))
 
     def test_reads_all_prior_actions_and_blocks_duplicate_signature(self):
         first = action_task()

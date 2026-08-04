@@ -79,6 +79,16 @@ def _prompt_contract_failures(task: dict[str, Any], prompt: str) -> list[dict[st
         for term in lanes.get("forbidden_prompt_terms") or []:
             if str(term) in prompt:
                 failures.append({"task_key": key, "code": "MOVEMENT_LANE_OVERLAP_AUTHORED", "term": str(term)})
+    support = task.get("action_terminal_support_contract") or {}
+    if support:
+        if support.get("result_hold_requires_stable_support") is not True:
+            failures.append({"task_key": key, "code": "TERMINAL_STABLE_SUPPORT_NOT_REQUIRED"})
+        for term in support.get("required_prompt_terms") or []:
+            if str(term) not in prompt:
+                failures.append({"task_key": key, "code": "TERMINAL_SUPPORT_TERM_MISSING", "term": str(term)})
+        for term in support.get("forbidden_prompt_terms") or []:
+            if str(term) in prompt:
+                failures.append({"task_key": key, "code": "SUSPENDED_TERMINAL_POSE_AUTHORED", "term": str(term)})
     return failures
 
 
@@ -171,6 +181,14 @@ def optimize_prompt(task: dict[str, Any], prompt: str, prior_tasks: list[dict[st
             "人物躯干轮廓不得交叠、穿模或融合；若通道相交，必须先拆成不同生成镜头。"
         )
         applied_rules.append("PF-016")
+    support = task.get("action_terminal_support_contract") or {}
+    if support:
+        clauses.append(
+            "【PF-017终态支撑】结果停留必须落在"
+            + "、".join(str(value) for value in support.get("required_support_points") or [])
+            + "的重力稳定姿态；禁止把迈步、腾空或单脚悬空的过渡姿态拉长为尾态。"
+        )
+        applied_rules.append("PF-017")
     prior_action_tasks = [row for row in prior_tasks if row.get("action_sequence_contract")]
     if task.get("action_sequence_contract") and prior_action_tasks:
         completed = [
@@ -231,6 +249,8 @@ def validate_batch(tasks: list[dict[str, Any]], prompts: dict[str, str]) -> dict
             expected.add("PF-015")
         if task.get("action_movement_lane_contract"):
             expected.add("PF-016")
+        if task.get("action_terminal_support_contract"):
+            expected.add("PF-017")
         if task.get("action_sequence_contract") and prior_action_keys:
             expected.add("PF-012")
         actual = set(receipt.get("applied_failure_memory_rules") or [])

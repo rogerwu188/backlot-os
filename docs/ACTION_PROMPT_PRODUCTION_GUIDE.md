@@ -44,6 +44,12 @@ minimum lateral clearance, and bind positive separation terms plus forbidden
 overlap language. The pre-submit gate rejects missing lanes, intersecting body
 paths, authored torso overlap, and prompts that leave clearance implicit.
 
+Any shot with a readable result hold must also declare
+`action_terminal_support_contract`. Bind the terminal body to explicit support
+points such as both feet on the floor, a hand on a beam, or a verified airborne
+exception with no hold. Transitional raised-foot or airborne poses cannot be
+stretched across the provider minimum duration as artificial slow motion.
+
 For a task using `generation_schedule_mode=TAIL_CHAINED_SERIAL`, declare an
 `action_sequence_contract.chain_id`, numeric `sequence_index`,
 `depends_on_task`, and `predecessor_tail_frame_ref`. At submission time there

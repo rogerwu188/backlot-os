@@ -76,6 +76,8 @@ def compile_chain(plan: dict[str, Any]) -> dict[str, Any]:
             task["action_scale_contract"] = beat["scale_contract"]
         if beat.get("movement_lane_contract"):
             task["action_movement_lane_contract"] = beat["movement_lane_contract"]
+        if beat.get("terminal_support_contract"):
+            task["action_terminal_support_contract"] = beat["terminal_support_contract"]
         task["compiled_contract_sha256"] = sha256_text(json.dumps(task, ensure_ascii=False, sort_keys=True))
         tasks.append(task)
         previous_key = key
