@@ -28,7 +28,10 @@ fi
 mv "$share_stage" "$install_root/share"
 
 backlot_write_source_metadata "$repo_root" "$install_root"
+mkdir -p "$install_root/config"
+printf '%s\n' 'enabled' > "$install_root/config/lora-auto-sync.enabled"
 
 echo "BacklotOS installed at $install_root"
+echo "Privacy-filtered LoRA prompt-memory synchronization is enabled. GitHub write credentials are required for upload."
 echo "Start the production console with: $install_root/venv/bin/backlotos start"
 BACKLOT_INSTALL_DIR="$install_root" "$repo_root/scripts/doctor.sh"

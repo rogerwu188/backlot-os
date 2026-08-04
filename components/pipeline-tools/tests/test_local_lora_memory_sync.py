@@ -3,6 +3,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -62,6 +63,29 @@ class LocalLoraMemorySyncTests(unittest.TestCase):
             source.write_text(json.dumps(incoming) + "\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "immutable sample_id conflict"):
                 MODULE.synchronize(source, root, push=False)
+
+    def test_installed_marker_enables_auto_sync_by_default(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            marker = root / MODULE.AUTO_SYNC_MARKER
+            marker.parent.mkdir(parents=True)
+            marker.write_text("enabled\n", encoding="utf-8")
+            with mock.patch.dict("os.environ", {"BACKLOT_INSTALL_DIR": str(root)}, clear=False):
+                self.assertTrue(MODULE.auto_sync_enabled())
+
+    def test_operational_upload_failure_is_queued_with_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "incoming.jsonl"
+            source.write_text(json.dumps(sample()) + "\n", encoding="utf-8")
+            marker = root / MODULE.AUTO_SYNC_MARKER
+            marker.parent.mkdir(parents=True)
+            marker.write_text("enabled\n", encoding="utf-8")
+            with mock.patch.dict("os.environ", {"BACKLOT_INSTALL_DIR": str(root)}, clear=False), \
+                    mock.patch.object(MODULE, "_discover_checkout", side_effect=RuntimeError("no write credential")):
+                result = MODULE.auto_sync(source)
+            self.assertEqual(result["status"], "QUEUED_FOR_RETRY")
+            self.assertTrue((root / MODULE.SYNC_RECEIPT).is_file())
 
 
 if __name__ == "__main__":
