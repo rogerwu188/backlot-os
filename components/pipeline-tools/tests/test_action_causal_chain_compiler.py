@@ -26,6 +26,22 @@ class ActionCausalChainCompilerTests(unittest.TestCase):
         self.assertEqual(result["status"], "FAIL")
         self.assertIn("ENTRY_DOES_NOT_MATCH_PREDECESSOR_EXIT", {row["code"] for row in result["failures"]})
 
+    def test_compiler_exposes_optimizer_contracts(self):
+        row = beat("a", "s0", "s1", "rise")
+        row["prop_function"] = {"required_function_class": "落地环境冰屏"}
+        row["scale_contract"] = {"required_relational_terms": ["两倍肩宽"], "frame_ratio_is_secondary_check": True}
+        row["movement_lane_contract"] = {
+            "lanes": [{"actor": "甲", "corridor": "左侧"}, {"actor": "乙", "corridor": "中部"}],
+            "minimum_lateral_clearance": "一肩宽",
+        }
+        task = compile_chain({"chain_id": "fight", "beats": [row]})["tasks"][0]
+        self.assertEqual(task["action_prop_function_contract"]["required_function_class"], "落地环境冰屏")
+        self.assertEqual(task["action_causality_contract"]["maximum_phases_per_shot"], 1)
+        self.assertEqual(task["action_sequence_contract"]["entry_state_token"], "s0")
+        self.assertTrue(task["performance_tempo_contract"]["real_time_1x"])
+        self.assertEqual(task["action_scale_contract"]["required_relational_terms"], ["两倍肩宽"])
+        self.assertEqual(len(task["action_movement_lane_contract"]["lanes"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

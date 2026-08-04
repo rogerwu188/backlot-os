@@ -53,6 +53,29 @@ def compile_chain(plan: dict[str, Any]) -> dict[str, Any]:
                 "NON_INTERSECTING_MOVEMENT_LANES",
             ],
         }
+        task["action_sequence_contract"] = {
+            "chain_id": plan.get("chain_id"),
+            "sequence_index": index,
+            "entry_state_token": beat.get("entry_state_token"),
+            "exit_state_token": beat.get("exit_state_token"),
+            "depends_on_task": previous_key,
+        }
+        task["performance_tempo_contract"] = {
+            "primary_action_complete_by_seconds": beat.get("primary_action_complete_by_seconds", 1.8),
+            "result_hold_seconds": beat.get("result_hold_seconds", 0.4),
+            "real_time_1x": True,
+        }
+        if prop:
+            task["action_prop_function_contract"] = prop
+        task["action_causality_contract"] = {
+            "visible_phases": phases,
+            "maximum_phases_per_shot": 1,
+            "required_prompt_terms": beat.get("causality_required_prompt_terms") or [],
+        }
+        if beat.get("scale_contract"):
+            task["action_scale_contract"] = beat["scale_contract"]
+        if beat.get("movement_lane_contract"):
+            task["action_movement_lane_contract"] = beat["movement_lane_contract"]
         task["compiled_contract_sha256"] = sha256_text(json.dumps(task, ensure_ascii=False, sort_keys=True))
         tasks.append(task)
         previous_key = key
