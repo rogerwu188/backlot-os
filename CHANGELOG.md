@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.18
+
+- Add a terminal-support prompt contract for gravity-stable result holds.
+- Reject raised-foot, suspended, or airborne transition poses when a provider
+  minimum-duration clip would stretch them into artificial slow motion.
+- Propagate terminal-support contracts from the action causal-chain compiler to
+  the paid-generation prompt gate.
+
 ## 0.2.17
 
 - Preserve action-prop function classes during prompt optimization so footprint
