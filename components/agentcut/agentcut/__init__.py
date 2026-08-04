@@ -12,4 +12,4 @@ from .speech import generate_speech, list_speech_voices, query_speech, submit_sp
 from .shot_recipes import list_short_drama_recipes, map_shot_recipe_repairs, validate_and_materialize_shot_recipes
 
 __all__ = ["AgentCutEngine", "RenderResult", "RenderProgress", "BatchItemResult", "ProjectTransformResult", "TransformResult", "ValidationIssue", "ValidationReport", "LongTakeValidator", "longtake_preflight", "prepare_first_last_submission", "finalize_first_last_submission", "CharacterCardValidator", "generate_character_card_prompt", "admit_character_card", "seedance_character_binding", "FinalVisualPolicy", "FinalVisualValidator", "submit_speech", "query_speech", "generate_speech", "list_speech_voices", "list_short_drama_recipes", "map_shot_recipe_repairs", "validate_and_materialize_shot_recipes", "AgentCutError", "ValidationError"]
-__version__ = "0.9.18"
+__version__ = "0.9.19"

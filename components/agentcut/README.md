@@ -623,6 +623,26 @@ agentcut demucs-isolate source.wav --output-dir separated --report separation.js
 
 从 0.9.18 起，显式 `releaseProject:true` 也是完整发行契约：项目必须同时设置 `requireBurnedSubtitles:true`、非空 `expectedDialogueIds`、`requireBrandedOutro:true`、启用 Nalu Motion 片尾，并设置 `releaseGate.required:true`。该契约在 `compile`、普通/严格 `validate` 和 `render` 前检中一致执行；缺少任一项都会硬失败，并写入 `coverage.releaseProjectContract`，不允许以“后续 QA 会补”为由继续渲染。
 
+从 0.9.19 起，修复素材生成完成后必须在项目 `metadata.replacementBindingPolicy` 中声明目标 clip 与新素材 SHA。AgentCut 会读取磁盘文件重新计算 SHA，并检查 clip 元数据、目标覆盖数量、被淘汰素材 SHA 和旧路径标记。任一不一致都会阻断编译、渲染、成片视觉批准和发行；精确残留清单位于 `coverage.replacementBindings.residualClips`。
+
+```json
+{
+  "metadata": {
+    "replacementBindingPolicy": {
+      "enabled": true,
+      "expectedTargetCount": 2,
+      "targets": [
+        {"clipId": "U03-S1-A", "replacementSourceSha256": "<sha256>"},
+        {"clipId": "U03-S1-B", "replacementSourceSha256": "<sha256>"}
+      ],
+      "forbiddenSourceSha256": ["<superseded-sha256>"],
+      "forbiddenPathTokens": ["SMOOTH_ROAM", "OVERHEAD_REVEAL"],
+      "failureAction": "BLOCK_COMPILE_RENDER_FINAL_VISUAL_RELEASE_AND_UPLOAD"
+    }
+  }
+}
+```
+
 ```json
 {
   "releaseProject": true,

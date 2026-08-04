@@ -4,6 +4,19 @@ BacklotOS treats prompt construction as a production gate. QA verifies results;
 it is not the first place where action logic, camera intent, or music presence
 should be discovered.
 
+## Replacement binding is an assembly hard gate
+
+Generating a repaired asset does not complete a repair. The final timeline must
+bind every declared target clip to the exact admitted replacement file SHA.
+Every repair builder writes `metadata.replacementBindingPolicy` with the target
+clip IDs, replacement SHAs, superseded SHAs, and recognizable legacy path
+tokens. AgentCut recalculates file hashes and blocks compile, render,
+final-visual approval, release validation, and upload authorization when even
+one target is missing, duplicated, still points at an old file, or carries
+metadata for a different source. The operator repairs the exact entries listed
+in `coverage.replacementBindings.residualClips`; a later QA pass cannot waive
+this failure.
+
 ## Action prompt flow
 
 1. Write one primary physical event per short action shot.
@@ -65,6 +78,17 @@ adapter and can later train model weights without changing its evidence schema.
 The public dataset contains only redacted evidence identifiers and SHA-256
 bindings, so it can be deployed on another workstation without private episode
 media while retaining the exact failed-to-accepted learning relation.
+
+Configured workstations synchronize admitted LoRA-ready memory through the
+repository with `local_lora_memory_sync.py`. The synchronizer allowlists the
+portable schema, rejects credentials and local/private evidence paths, merges
+by immutable `sample_id`, rewrites a deterministic manifest, and pushes only
+the memory dataset and manifest. Conflicting content under an existing sample
+ID fails closed instead of silently choosing one machine's version. Set
+`BACKLOTOS_LORA_AUTO_SYNC=1` and provide an authenticated Git checkout through
+`BACKLOTOS_LORA_SYNC_CHECKOUT`; without GitHub write credentials, compilation
+continues from bundled memory but reports that cross-machine upload is not
+configured.
 
 Long-take review uses a 60-point admission threshold. Scores at or above 60 are
 retained unless identity, safety, era, OCR, or media-integrity hard failures are

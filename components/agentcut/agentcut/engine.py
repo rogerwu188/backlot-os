@@ -20,7 +20,7 @@ from .models import Project
 from .runtime import resolve_binary
 from .release_gate import validate_release_output
 from .final_visual import FinalVisualPolicy, FinalVisualValidator
-from .validation import MediaValidator, ValidationReport, validate_audio_safety, validate_cleanup_regions, validate_cut_reason_contract, validate_hold_slots, validate_narrative, validate_outro, validate_release_gate, validate_release_project_contract, validate_shot_recipes, validate_source_admission, validate_subtitles
+from .validation import MediaValidator, ValidationReport, validate_audio_safety, validate_cleanup_regions, validate_cut_reason_contract, validate_hold_slots, validate_narrative, validate_outro, validate_release_gate, validate_release_project_contract, validate_replacement_bindings, validate_shot_recipes, validate_source_admission, validate_subtitles
 from .shot_recipes import list_short_drama_recipes, map_shot_recipe_repairs
 from .transform import TransformResult, load_json_value, rollback_project, transform_project, write_json_atomic, content_hash
 
@@ -98,11 +98,12 @@ class AgentCutEngine:
     def compile(self, source: str | Path | dict[str, Any], *, overwrite: bool = False) -> CompiledCommand:
         project = self.load(source)
         release_contract_issues, _release_contract_coverage = validate_release_project_contract(project)
+        replacement_issues, _replacement_coverage = validate_replacement_bindings(project)
         cut_reason_issues, _coverage = validate_cut_reason_contract(project)
         source_issues, _source_coverage = validate_source_admission(project)
         hold_issues, _hold_coverage = validate_hold_slots(project)
         recipe_issues, _recipe_coverage = validate_shot_recipes(project)
-        errors = [issue for issue in (*release_contract_issues, *cut_reason_issues, *source_issues, *hold_issues, *recipe_issues) if issue.severity == "error"]
+        errors = [issue for issue in (*release_contract_issues, *replacement_issues, *cut_reason_issues, *source_issues, *hold_issues, *recipe_issues) if issue.severity == "error"]
         if errors:
             detail = "; ".join(f"{issue.code}: {issue.message}" for issue in errors[:10])
             raise ValidationError(f"compile preflight failed: {detail}")
@@ -113,8 +114,10 @@ class AgentCutEngine:
         if strict_media:
             return MediaValidator(self.ffprobe).validate(project)
         release_contract_issues, release_contract_coverage = validate_release_project_contract(project)
+        replacement_issues, replacement_coverage = validate_replacement_bindings(project)
         issues, subtitle_coverage = validate_subtitles(project)
         issues.extend(release_contract_issues)
+        issues.extend(replacement_issues)
         narrative_issues, narrative_coverage = validate_narrative(project)
         issues.extend(narrative_issues)
         cut_reason_issues, cut_reason_coverage = validate_cut_reason_contract(project)
@@ -136,7 +139,7 @@ class AgentCutEngine:
         return ValidationReport(
             not any(x.severity == "error" for x in issues), project.duration,
             len(project.video_tracks), len(project.audio_tracks), len(project.subtitle_tracks),
-            tuple(issues), {}, {"releaseProjectContract": release_contract_coverage,
+            tuple(issues), {}, {"releaseProjectContract": release_contract_coverage, "replacementBindings": replacement_coverage,
                                "subtitles": subtitle_coverage, "narrative": narrative_coverage, "cutReason": cut_reason_coverage, "outro": outro_coverage,
                                "cleanup": cleanup_coverage, "audioSafety": audio_coverage,
                                "sourceAdmission": source_coverage, "releaseGate": release_coverage,
@@ -163,6 +166,7 @@ class AgentCutEngine:
         source_coverage: dict[str, Any] | None = None
         if project is not None:
             parsed = self.load(project)
+            replacement_issues, replacement_coverage = validate_replacement_bindings(parsed)
             source_issues, source_coverage = validate_source_admission(parsed)
             source_admission_valid = not any(issue.severity == "error" for issue in source_issues)
             conditional_count = int(source_coverage.get("conditionalSourceCount") or 0)
@@ -186,6 +190,13 @@ class AgentCutEngine:
                 "failures": [*result.get("failures", []), "RELEASE_UNRESOLVED_HOLD_SLOTS"],
                 "unresolvedHoldCount": unresolved_hold_count,
                 "nextAction": "replace_hold_slots_and_rerun_full_qa",
+            }
+        if project is not None and replacement_issues:
+            result = {
+                **result, "status": "FAIL", "cleanRelease": False,
+                "failures": [*result.get("failures", []), "REPLACEMENT_BINDING_NOT_CLEAN"],
+                "replacementBindings": replacement_coverage,
+                "nextAction": "bind_all_replacement_sources_and_rerun_full_qa",
             }
         if source_coverage is not None:
             result["sourceAdmission"] = source_coverage
@@ -215,6 +226,7 @@ class AgentCutEngine:
         )
         if parsed is not None:
             _source_issues, source_coverage = validate_source_admission(parsed)
+            replacement_issues, replacement_coverage = validate_replacement_bindings(parsed)
             release_blockers = []
             conditional_count = int(source_coverage.get("conditionalSourceCount") or 0)
             if conditional_count:
@@ -232,6 +244,12 @@ class AgentCutEngine:
                          "replacementCondition": slot.replacement_condition}
                         for slot in parsed.hold_slots
                     ],
+                })
+            if replacement_issues:
+                release_blockers.append({
+                    "code": "FINAL_VISUAL_REPLACEMENT_BINDINGS_INVALID",
+                    "message": "one or more repaired clips are not bound to the admitted replacement files",
+                    "replacementBindings": replacement_coverage,
                 })
             if release_blockers:
                 result["violations"] = [*result.get("violations", []), *release_blockers]
@@ -284,6 +302,7 @@ class AgentCutEngine:
                on_progress: Callable[[RenderProgress], None] | None = None) -> RenderResult:
         project = self.load(source)
         release_contract_issues, _release_contract_coverage = validate_release_project_contract(project)
+        replacement_issues, _replacement_coverage = validate_replacement_bindings(project)
         subtitle_issues, _coverage = validate_subtitles(project)
         narrative_issues, _narrative_coverage = validate_narrative(project)
         cut_reason_issues, _cut_reason_coverage = validate_cut_reason_contract(project)
@@ -293,7 +312,7 @@ class AgentCutEngine:
         source_issues, _source_coverage = validate_source_admission(project)
         hold_issues, _hold_coverage = validate_hold_slots(project)
         recipe_issues, _recipe_coverage = validate_shot_recipes(project)
-        preflight_errors = [x for x in (*release_contract_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues, *cleanup_issues, *audio_issues, *source_issues, *hold_issues, *recipe_issues) if x.severity == "error"]
+        preflight_errors = [x for x in (*release_contract_issues, *replacement_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues, *cleanup_issues, *audio_issues, *source_issues, *hold_issues, *recipe_issues) if x.severity == "error"]
         if preflight_errors:
             detail = "; ".join(f"{x.code}: {x.message}" for x in preflight_errors[:10])
             raise ValidationError(f"render preflight failed: {detail}")
