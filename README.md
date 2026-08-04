@@ -47,6 +47,28 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 
 Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 
+### Stable release archive (recommended)
+
+Download the immutable public package without cloning repository history:
+
+```bash
+curl -L -o backlotos-v0.2.16.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.16/backlotos-v0.2.16.tar.gz
+expected_sha=$(curl -fsSL \
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.16 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.16.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.16.tar.gz | awk '{print $1}')
+test "$actual_sha" = "$expected_sha"
+tar -xzf backlotos-v0.2.16.tar.gz
+cd backlotos-v0.2.16
+./scripts/install.sh
+./scripts/doctor.sh
+```
+
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.16` provenance even though release archives intentionally contain no `.git` directory.
+
+### Git checkout (contributors)
+
 ```bash
 git clone https://github.com/rogerwu188/backlot-os.git
 cd backlot-os
@@ -140,6 +162,8 @@ scripts/             Install, update, doctor, verification, and publishing
 ```
 
 Repository changes are developed on `agent/*` branches, validated in CI, and merged through pull requests. Version tags create immutable release artifacts; production machines update only when explicitly instructed.
+
+`scripts/update.sh` is for Git checkouts because it verifies the remote and dirty-worktree state before changing versions. Archive installations update by downloading and verifying the next immutable release archive, then running its installer against the same `BACKLOT_INSTALL_DIR`. Keep the previous archive until the new `doctor.sh` run passes so rollback remains immediate.
 
 For the Codex local test workspace, run `./scripts/enable-codex-github-sync.sh`
 once. Every subsequent development-branch commit is automatically pushed to

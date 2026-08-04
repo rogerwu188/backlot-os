@@ -2,7 +2,7 @@
 
 ## Workstation
 
-Run `./scripts/install.sh`. By default, the isolated runtime is installed under `$XDG_DATA_HOME/backlotos` or `~/.local/share/backlotos`. Override it with `BACKLOT_INSTALL_DIR`.
+Run `./scripts/install.sh` from either a verified release archive or a Git checkout. By default, the isolated runtime is installed under `$XDG_DATA_HOME/backlotos` or `~/.local/share/backlotos`. Override it with `BACKLOT_INSTALL_DIR`. Release archives intentionally contain no `.git` directory; the installer records deterministic `source-archive:v<version>` provenance instead.
 
 ## Configuration
 
@@ -49,7 +49,9 @@ reports, command arguments, or repository files.
 
 ## Update and rollback
 
-`scripts/update.sh` fetches the requested branch or tag and reinstalls the isolated environment. Set `BACKLOT_VERSION` to an immutable tag for production. To roll back, set it to the previous tag and rerun the script.
+For Git checkouts, `scripts/update.sh` fetches the requested branch or tag and reinstalls the isolated environment. Set `BACKLOT_VERSION` to an immutable tag for production. To roll back, set it to the previous tag and rerun the script.
+
+Archive installations have no Git remote by design. Update them by downloading the next release archive, verifying the SHA-256 published on its release page, and running that archive's `scripts/install.sh` with the existing `BACKLOT_INSTALL_DIR`. Retain the previous archive until the new `scripts/doctor.sh` run passes.
 
 ## Cloud
 
