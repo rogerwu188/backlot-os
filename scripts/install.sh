@@ -3,20 +3,12 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$repo_root/scripts/lib/source-metadata.sh"
+source "$repo_root/scripts/lib/python-runtime.sh"
 install_root="${BACKLOT_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/backlotos}"
-python_bin="${BACKLOT_PYTHON:-}"
-
-if [[ -z "$python_bin" ]]; then
-  for candidate in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3,10))'; then
-      python_bin="$candidate"
-      break
-    fi
-  done
-fi
-
-[[ -n "$python_bin" ]] || { echo "Python 3.10 or newer is required." >&2; exit 2; }
-command -v "$python_bin" >/dev/null || { echo "Python 3.10 or newer is required." >&2; exit 2; }
+python_bin="$(backlot_select_python)" || {
+  echo "Python 3.10, 3.11, or 3.12 is required (3.13+ is not yet supported by the OCR runtime)." >&2
+  exit 2
+}
 command -v git >/dev/null || { echo "Git is required." >&2; exit 2; }
 command -v ffmpeg >/dev/null || { echo "FFmpeg is required." >&2; exit 2; }
 command -v ffprobe >/dev/null || { echo "FFprobe is required." >&2; exit 2; }
