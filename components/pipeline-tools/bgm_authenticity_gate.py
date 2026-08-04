@@ -19,6 +19,8 @@ except ModuleNotFoundError:  # Imported as tools.bgm_authenticity_gate.
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_TYPES = {"GENERATED_EPISODE_BGM", "LIBRARY_FALLBACK"}
+MAX_BGM_COVERAGE_RATIO = 0.85
+MIN_AMBIENCE_ONLY_SECONDS = 8.0
 
 
 def sha256(path: Path) -> str:
@@ -74,6 +76,69 @@ def validate_bgm_contract(project: dict) -> list[str]:
     return failures
 
 
+def _merged_duration(intervals: list[tuple[float, float]]) -> float:
+    merged: list[list[float]] = []
+    for start, end in sorted(intervals):
+        if end <= start:
+            continue
+        if not merged or start > merged[-1][1]:
+            merged.append([start, end])
+        else:
+            merged[-1][1] = max(merged[-1][1], end)
+    return sum(end - start for start, end in merged)
+
+
+def validate_bgm_cue_policy(project: dict, bgm_track: dict | None = None) -> list[str]:
+    """Reject missing cue intent, wall-to-wall beds, and dialogue masking."""
+    failures: list[str] = []
+    policy = (project.get("metadata") or {}).get("bgm_cue_policy") or {}
+    if policy.get("mode") != "SELECTIVE_NARRATIVE_CUES":
+        failures.append("BGM_SELECTIVE_CUE_POLICY_MISSING")
+    if policy.get("ambience_only_required") is not True:
+        failures.append("BGM_AMBIENCE_ONLY_WINDOW_NOT_REQUIRED")
+
+    tracks = project.get("timeline", {}).get("audioTracks", [])
+    bgm_track = bgm_track or next((track for track in tracks if track.get("id") == "Audio.BGM"), None)
+    clips = list((bgm_track or {}).get("clips") or [])
+    if not clips:
+        return failures
+
+    video_clips = [
+        clip
+        for track in project.get("timeline", {}).get("videoTracks", [])
+        for clip in track.get("clips", [])
+    ]
+    episode_end = max(
+        (float(clip.get("start", 0)) + float(clip.get("duration", 0)) for clip in video_clips),
+        default=0.0,
+    )
+    intervals = [
+        (float(clip.get("start", 0)), float(clip.get("start", 0)) + float(clip.get("duration", 0)))
+        for clip in clips
+    ]
+    covered = _merged_duration(intervals)
+    if episode_end <= 0:
+        failures.append("BGM_EPISODE_DURATION_UNAVAILABLE")
+    else:
+        if covered / episode_end > MAX_BGM_COVERAGE_RATIO:
+            failures.append("BGM_WALL_TO_WALL_COVERAGE_GT_85_PERCENT")
+        if episode_end - covered < MIN_AMBIENCE_ONLY_SECONDS:
+            failures.append("BGM_AMBIENCE_ONLY_WINDOW_LT_8_SECONDS")
+
+    allowed_roles = {"OPENING_MYSTERY", "INVESTIGATION_TRANSITION", "ACTION_ESCALATION", "ENDING_HOOK"}
+    for clip in clips:
+        clip_metadata = clip.get("metadata") or {}
+        if str(clip_metadata.get("cue_role") or "") not in allowed_roles:
+            failures.append(f"BGM_CUE_ROLE_MISSING:{clip.get('id')}")
+        volume_value = clip.get("volume")
+        volume = float(volume_value) if isinstance(volume_value, (int, float)) else 99.0
+        if clip_metadata.get("dialogue_present") is True and volume > 0.16:
+            failures.append(f"BGM_DIALOGUE_CUE_VOLUME_GT_0P16:{clip.get('id')}")
+        if clip_metadata.get("dialogue_present") is not True and volume > 0.32:
+            failures.append(f"BGM_NON_DIALOGUE_CUE_VOLUME_GT_0P32:{clip.get('id')}")
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", required=True)
@@ -94,6 +159,7 @@ def main() -> int:
     )
     failures = []
     failures.extend(validate_bgm_contract(project))
+    failures.extend(validate_bgm_cue_policy(project, bgm_track))
     sources = []
     clips = list((bgm_track or {}).get("clips") or [])
     if not clips:

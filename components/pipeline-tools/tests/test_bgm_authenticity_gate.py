@@ -1,6 +1,11 @@
 import unittest
+import sys
+from pathlib import Path
 
-from tools.bgm_authenticity_gate import validate_bgm_contract
+TOOLS = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(TOOLS))
+
+from bgm_authenticity_gate import validate_bgm_contract, validate_bgm_cue_policy
 
 
 class BgmAuthenticityContractTests(unittest.TestCase):
@@ -39,6 +44,36 @@ class BgmAuthenticityContractTests(unittest.TestCase):
 
     def test_missing_source_priority_contract_fails(self):
         self.assertEqual(validate_bgm_contract({}), ["BGM_SOURCE_PRIORITY_CONTRACT_MISSING"])
+
+    def test_selective_cues_pass_with_ambience_gap_and_ducking(self):
+        project = {
+            "metadata": {"bgm_cue_policy": {"mode": "SELECTIVE_NARRATIVE_CUES", "ambience_only_required": True}},
+            "timeline": {
+                "videoTracks": [{"clips": [{"start": 0, "duration": 100}]}],
+                "audioTracks": [{"id": "Audio.BGM", "clips": [
+                    {"id": "opening", "start": 0, "duration": 20, "volume": 0.14,
+                     "metadata": {"cue_role": "OPENING_MYSTERY", "dialogue_present": True}},
+                    {"id": "action", "start": 40, "duration": 30, "volume": 0.30,
+                     "metadata": {"cue_role": "ACTION_ESCALATION", "dialogue_present": False}},
+                ]}],
+            },
+        }
+        self.assertEqual(validate_bgm_cue_policy(project), [])
+
+    def test_wall_to_wall_music_is_rejected(self):
+        project = {
+            "metadata": {"bgm_cue_policy": {"mode": "SELECTIVE_NARRATIVE_CUES", "ambience_only_required": True}},
+            "timeline": {
+                "videoTracks": [{"clips": [{"start": 0, "duration": 100}]}],
+                "audioTracks": [{"id": "Audio.BGM", "clips": [
+                    {"id": "wall", "start": 0, "duration": 100, "volume": 0.12,
+                     "metadata": {"cue_role": "OPENING_MYSTERY", "dialogue_present": True}},
+                ]}],
+            },
+        }
+        failures = validate_bgm_cue_policy(project)
+        self.assertIn("BGM_WALL_TO_WALL_COVERAGE_GT_85_PERCENT", failures)
+        self.assertIn("BGM_AMBIENCE_ONLY_WINDOW_LT_8_SECONDS", failures)
 
 
 if __name__ == "__main__":
