@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.9
+
+- Add dependency-lane scheduling: submit every independent task and one ready
+  head from each exact-tail action chain in the same concurrent wave.
+- Run remote polling and completed-output download/QA concurrently with explicit
+  worker limits, while preserving ordered tail-to-head generation within each
+  individual action chain.
+- Record selected and deferred task keys in each receipt so concurrency choices
+  are auditable and resumable without an episode-wide batch barrier.
+
 ## 0.2.8
 
 - Exclude composition and ownership references marked `REFERENCE_ONLY` from

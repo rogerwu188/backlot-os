@@ -50,6 +50,20 @@ example manifest. It writes optimized prompt files, a compiled manifest, and a
 single pre-submit report covering optimization, spatial feasibility, sequence
 continuity, direction, and actor ownership.
 
+## Dependency-lane concurrency
+
+The episode supervisor does not wait for a whole batch. Every scheduling wave
+contains all ready independent shots plus the earliest ready member of every
+`TAIL_CHAINED_SERIAL` chain. A later member of the same chain remains deferred
+until its predecessor passes and its accepted tail has been rebound as the
+successor's first provider image. Different chains still advance concurrently.
+
+Submission, remote polling, and completed-output QA use separate bounded worker
+pools. Set `max_submit_workers` and `max_poll_workers` (default `8`) and
+`max_qa_workers` (default `4`) in the batch config. Receipts store the selected
+and deferred task keys for every submission wave, making restarts deterministic
+and preventing a dependency in one lane from freezing unrelated work.
+
 ## Camera discipline
 
 Camera movement must reveal information or preserve an action relationship. Do

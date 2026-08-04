@@ -27,6 +27,7 @@ from tools.episode_parallel_batch_supervisor import (
     refresh_activity_state,
     refresh_credit_summary,
     run_local_tool,
+    select_parallel_submission_wave,
     settle_credit_attempt,
     submit_one,
     upsert_activity_line,
@@ -66,6 +67,26 @@ def write_test_jpeg(path: Path, width: int = 512, height: int = 512) -> None:
 
 
 class EpisodeParallelBatchSupervisorActivityTest(unittest.TestCase):
+    def test_parallel_wave_runs_independent_tasks_and_one_head_per_chain(self):
+        def chained(key: str, chain: str, index: int) -> dict:
+            return {
+                "task_key": key,
+                "generation_schedule_mode": "TAIL_CHAINED_SERIAL",
+                "action_sequence_contract": {"chain_id": chain, "sequence_index": index},
+            }
+
+        tasks = [
+            chained("A2", "A", 2),
+            chained("B1", "B", 1),
+            {"task_key": "FREE", "generation_schedule_mode": "INDEPENDENT_PARALLEL"},
+            chained("A1", "A", 1),
+        ]
+
+        selected, deferred = select_parallel_submission_wave(tasks)
+
+        self.assertEqual({task["task_key"] for task in selected}, {"A1", "B1", "FREE"})
+        self.assertEqual([task["task_key"] for task in deferred], ["A2"])
+
     def test_predecessor_tail_replaces_generic_temporal_anchor_and_preserves_identity(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
