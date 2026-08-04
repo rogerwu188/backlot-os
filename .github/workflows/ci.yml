@@ -22,7 +22,15 @@ jobs:
       - name: Verify repository boundaries
         run: ./scripts/verify-repository.sh
       - name: Runtime profile tests
-        run: python -m unittest -v scripts.tests.test_runtime_profile
+        run: python -m unittest -v scripts.tests.test_runtime_profile scripts.tests.test_source_metadata
+      - name: Source archive metadata smoke test
+        run: |
+          git archive --format=tar.gz --prefix=backlotos-ci/ -o "$RUNNER_TEMP/backlotos-ci.tar.gz" HEAD
+          mkdir -p "$RUNNER_TEMP/archive"
+          tar -xzf "$RUNNER_TEMP/backlotos-ci.tar.gz" -C "$RUNNER_TEMP/archive"
+          source "$RUNNER_TEMP/archive/backlotos-ci/scripts/lib/source-metadata.sh"
+          backlot_write_source_metadata "$RUNNER_TEMP/archive/backlotos-ci" "$RUNNER_TEMP/archive-install"
+          test "$(cat "$RUNNER_TEMP/archive-install/source/git-commit")" = "source-archive:v$(cat VERSION)"
       - name: Review Agent tests
         working-directory: components/review-agent
         run: python -m unittest -v tests.test_core.EpisodeRuntimeAndVisualPacingTests tests.test_core.ShotRecipeConformanceTests tests.test_storyclaw_image_adapter

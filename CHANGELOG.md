@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.13
+
+- Make `scripts/install.sh` work from the downloadable GitHub release archive, where `.git` metadata is intentionally absent.
+- Preserve exact commit and remote metadata for Git checkouts while writing deterministic versioned metadata for source archives.
+- Add regression and CI archive smoke coverage for third-party installation.
+
 ## 0.2.12
 
 - Restore the original `tools.<module>` import contract in standalone public
