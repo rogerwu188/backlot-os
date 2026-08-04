@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.17
+
+- Preserve action-prop function classes during prompt optimization so footprint
+  corrections cannot turn grounded environmental structures into handheld or
+  floating substitutes.
+- Add relational physical-scale, one-visible-causal-phase, and non-intersecting
+  multi-actor movement-lane gates before paid generation.
+- Add an exact-tail action causal-chain compiler: dependent phases run serially,
+  while unrelated generation, polling, and QA remain parallel.
+
 ## 0.2.16
 
 - Add a first-class immutable release-archive installation guide for third-party users.
