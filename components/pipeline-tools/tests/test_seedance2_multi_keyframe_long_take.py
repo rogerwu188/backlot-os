@@ -39,8 +39,12 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             prompt, manifest = compile_prompt(self.spec(frames))
             self.assertIn("@图片3", prompt)
             self.assertIn("LORA-SD2-001-REFERENCE-GEOMETRY-LEAK", prompt)
+            self.assertIn("LORA-SD2-002-UNIQUE-PROP-GROUP-REACTION", prompt)
             self.assertEqual(manifest["route"], "/api/v1/generation/omni-video")
-            self.assertEqual(manifest["local_lora_memory"]["applied_sample_ids"], ["LORA-SD2-001-REFERENCE-GEOMETRY-LEAK"])
+            self.assertEqual(manifest["local_lora_memory"]["applied_sample_ids"], [
+                "LORA-SD2-001-REFERENCE-GEOMETRY-LEAK",
+                "LORA-SD2-002-UNIQUE-PROP-GROUP-REACTION",
+            ])
 
     def test_rejects_unbound_location_jump(self):
         with tempfile.TemporaryDirectory() as directory:
