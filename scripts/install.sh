@@ -2,6 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$repo_root/scripts/lib/source-metadata.sh"
 install_root="${BACKLOT_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/backlotos}"
 python_bin="${BACKLOT_PYTHON:-}"
 
@@ -34,11 +35,7 @@ if [[ -d "$install_root/share" ]]; then
 fi
 mv "$share_stage" "$install_root/share"
 
-mkdir -p "$install_root/source"
-printf '%s\n' "$repo_root" > "$install_root/source/repository-path"
-printf '%s\n' "$(tr -d '[:space:]' < "$repo_root/VERSION")" > "$install_root/source/version"
-git -C "$repo_root" rev-parse HEAD > "$install_root/source/git-commit"
-git -C "$repo_root" remote get-url origin > "$install_root/source/git-origin"
+backlot_write_source_metadata "$repo_root" "$install_root"
 
 echo "BacklotOS installed at $install_root"
 echo "Start the production console with: $install_root/venv/bin/backlotos start"
