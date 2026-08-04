@@ -11,7 +11,7 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify source tree
         run: ./scripts/verify-repository.sh
       - name: Build source archive
@@ -20,4 +20,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: backlotos-${{ github.ref_name }}.tar.gz
-
