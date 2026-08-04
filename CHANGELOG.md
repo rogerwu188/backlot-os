@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.10
+
+- Add a fail-closed period/entity material contract to the pre-generation
+  prompt gate. Required construction terms and forbidden modern-form terms must
+  be present in the final provider prompt before any paid submission.
+- Bind the designed terminal reference image and its SHA to the same contract,
+  preventing a period prop or creature from drifting into robots, armor,
+  mechanical joints, or other incompatible silhouettes.
+- Add regression tests for missing prompt constraints and changed reference
+  images so these defects are blocked at prompt compilation, not deferred to QA.
+
 ## 0.2.9
 
 - Add dependency-lane scheduling: submit every independent task and one ready

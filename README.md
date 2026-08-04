@@ -84,6 +84,12 @@ shots and other chains submit together. Remote polling runs in parallel, and
 completed outputs are downloaded and QA-checked in bounded parallel workers.
 Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
 provider or workstation needs lower concurrency.
+Period-specific props, creatures, and constructed characters can additionally
+declare a `period_entity_material_contract`. Before submission, the gate checks
+that the final provider prompt contains the required historical materials and
+explicitly rejects incompatible modern forms, then verifies the terminal visual
+reference against its recorded SHA. Missing terms or a changed reference fail
+closed before credits are spent.
 Run the bundled example:
 
 ```bash
