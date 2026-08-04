@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.15
+
+- Move CI and release workflows to the current Node.js 24-based official GitHub Actions releases.
+- Remove the Node.js 20 action-runtime deprecation warning from maintained workflows.
+
 ## 0.2.14
 
 - Select only Python 3.10-3.12 during installation because the bundled OCR dependency does not yet support Python 3.13+.
