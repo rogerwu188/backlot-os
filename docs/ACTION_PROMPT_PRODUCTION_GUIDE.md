@@ -29,6 +29,13 @@ predecessor tail file must already exist and must be the first
 future tail, a generic action still, or a simultaneously submitted successor
 fails before provider spend.
 
+When the predecessor passes, the supervisor extracts its final frame and
+replaces the dependent task's generic temporal entry in both
+`reference_images` and `reference_image_sequence`. Identity and other
+non-temporal entries are retained in their existing order. Merely inserting the
+tail into one field is invalid because provider transport and the submission
+gate would otherwise disagree about the authoritative first frame.
+
 Dynamic anchor counts describe temporal states, not every provider reference.
 Identity, character, style, scene, and composition-only references remain
 available to the model but do not inflate temporal interpolation counts. A
