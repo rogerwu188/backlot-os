@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.14
+
+- Select only Python 3.10-3.12 during installation because the bundled OCR dependency does not yet support Python 3.13+.
+- Fail early with an actionable version message instead of failing late during dependency resolution.
+- Add regression coverage for supported and unsupported Python runtimes.
+
 ## 0.2.13
 
 - Make `scripts/install.sh` work from the downloadable GitHub release archive, where `.git` metadata is intentionally absent.

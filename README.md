@@ -45,7 +45,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 
 ## Quick install
 
-Requirements: macOS or Linux, Python 3.10+, Git, FFmpeg, and Node.js 20+.
+Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 
 ```bash
 git clone https://github.com/rogerwu188/backlot-os.git

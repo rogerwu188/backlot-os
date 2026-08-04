@@ -22,7 +22,7 @@ jobs:
       - name: Verify repository boundaries
         run: ./scripts/verify-repository.sh
       - name: Runtime profile tests
-        run: python -m unittest -v scripts.tests.test_runtime_profile scripts.tests.test_source_metadata
+        run: python -m unittest -v scripts.tests.test_runtime_profile scripts.tests.test_source_metadata scripts.tests.test_python_runtime
       - name: Source archive metadata smoke test
         run: |
           git archive --format=tar.gz --prefix=backlotos-ci/ -o "$RUNNER_TEMP/backlotos-ci.tar.gz" HEAD
