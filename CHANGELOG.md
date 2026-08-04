@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.16
+
+- Add a first-class immutable release-archive installation guide for third-party users.
+- Document SHA verification, archive provenance, archive updates, and immediate rollback.
+- Clarify that `scripts/update.sh` applies to Git checkouts while archive installations replace verified release packages.
+
 ## 0.2.15
 
 - Move CI and release workflows to the current Node.js 24-based official GitHub Actions releases.
