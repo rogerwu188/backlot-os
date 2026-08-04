@@ -74,8 +74,11 @@ are accepted only through deployment environment variables.
 Action shots are compiled before provider submission. The compiler reads every
 earlier related action prompt, rejects repeated action pictures, checks actor
 ownership and screen direction, and requires physically possible entry/contact/
-result/exit states. Dependent action chains remain sequential; unrelated shots
-remain parallel. Run the bundled example:
+result/exit states. Dependent action chains remain sequential; the dispatcher
+admits only one ready shot per chain and requires the exact accepted predecessor
+tail as the next shot's first provider image. Identity and composition-only
+references are not counted as temporal anchors. Unrelated shots remain parallel.
+Run the bundled example:
 
 ```bash
 python components/pipeline-tools/action_prompt_pipeline_cli.py \

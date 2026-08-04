@@ -6,7 +6,13 @@ from tempfile import TemporaryDirectory
 TOOLS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS))
 
-from action_shot_design_gate import contract_sha256, evaluate, prompt_marker, validate_task_bindings
+from action_shot_design_gate import (
+    contract_sha256,
+    evaluate,
+    prompt_marker,
+    validate_tail_chained_submission,
+    validate_task_bindings,
+)
 
 
 def action_shot(shot_id="S1", entry="READY", exit_state="CONTACT_DONE", family="locked_side"):
@@ -129,6 +135,45 @@ class ActionShotDesignGateTests(unittest.TestCase):
                 root,
             )
         self.assertIn("S1:action_design_shot_bound_multiple_times:2", failures)
+
+    def test_tail_chain_allows_one_task_with_materialized_exact_tail(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            tail = root / "accepted-tail.png"
+            tail.write_bytes(b"accepted tail")
+            task = {
+                "task_key": "B03",
+                "generation_schedule_mode": "TAIL_CHAINED_SERIAL",
+                "depends_on_task": "B02",
+                "action_sequence_contract": {
+                    "chain_id": "FIRE",
+                    "sequence_index": 3,
+                    "predecessor_tail_frame_ref": "accepted-tail.png",
+                },
+                "reference_image_sequence": [{
+                    "role": "EXACT_PREDECESSOR_ACCEPTED_TAIL_AND_START_FRAME",
+                    "path": "accepted-tail.png",
+                }],
+            }
+            self.assertEqual(validate_tail_chained_submission([task], root), [])
+
+    def test_tail_chain_rejects_parallel_or_generic_start(self):
+        task = {
+            "task_key": "B03",
+            "generation_schedule_mode": "TAIL_CHAINED_SERIAL",
+            "depends_on_task": "B02",
+            "action_sequence_contract": {
+                "chain_id": "FIRE",
+                "sequence_index": 3,
+                "predecessor_tail_frame_ref": "missing.png",
+            },
+            "reference_image_sequence": [{"role": "ACTION_STATE_ANCHOR", "path": "generic.png"}],
+        }
+        second = dict(task, task_key="B04")
+        failures = validate_tail_chained_submission([task, second], Path("/tmp"))
+        self.assertTrue(any("parallel_submission_forbidden" in value for value in failures))
+        self.assertTrue(any("exact_predecessor_tail_not_materialized" in value for value in failures))
+        self.assertTrue(any("first_reference_is_not_exact_predecessor_tail" in value for value in failures))
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.6
+
+- Make tail-chained action generation fail closed: only one ready shot per
+  continuity chain may be submitted, and every dependent shot must use the
+  materialized exact accepted predecessor tail as its first provider image.
+- Keep unrelated shots parallel while serializing only their own continuity
+  chain, and separate temporal anchors from identity, style, scene, and
+  composition-only references during dynamic anchor-count validation.
+- Add regression coverage for valid exact-tail handoffs and rejection of
+  simultaneous or generic-start chain submissions.
+
 ## 0.2.5
 
 - Add a normal-speed spectral masking gate for release BGM. Dialogue cues now

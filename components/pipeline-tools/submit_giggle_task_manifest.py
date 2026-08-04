@@ -32,6 +32,7 @@ try:
     from action_shot_design_gate import (
         evaluate as evaluate_action_shot_design,
         validate_task_bindings as validate_action_shot_bindings,
+        validate_tail_chained_submission,
     )
     from anachronism_lock_gate import evaluate as evaluate_anachronism_lock
 except ImportError:
@@ -53,6 +54,7 @@ except ImportError:
     from tools.action_shot_design_gate import (
         evaluate as evaluate_action_shot_design,
         validate_task_bindings as validate_action_shot_bindings,
+        validate_tail_chained_submission,
     )
     from tools.anachronism_lock_gate import evaluate as evaluate_anachronism_lock
 
@@ -311,6 +313,10 @@ def validate_corrected_pipeline_reports(
     problems: list[str] = [
         "FAIL_CORRECTED_PIPELINE_DIRECT_SUBMIT_FORBIDDEN:USE_EPISODE_PARALLEL_BATCH_SUPERVISOR"
     ]
+    problems.extend(
+        f"FAIL_TAIL_CHAIN_SUBMISSION:{value}"
+        for value in validate_tail_chained_submission(ready, BASE)
+    )
     anchor_result: dict[str, Any] | None = None
     for key, evaluator in (
         ("dramatic_quality_report_ref", evaluate_dramatic_quality),
@@ -348,7 +354,21 @@ def validate_corrected_pipeline_reports(
         for task in ready:
             unit_id = str(task.get("unit_id") or task.get("source_id") or "")
             planned = planned_by_unit.get(unit_id)
-            actual = len(task.get("reference_image_sequence") or resolve_reference_images(task))
+            sequence = task.get("reference_image_sequence") or []
+            temporal = [
+                row for row in sequence
+                if not any(
+                    marker in str(row.get("role") or "").upper()
+                    for marker in (
+                        "IDENTITY",
+                        "CHARACTER_REFERENCE",
+                        "STYLE_REFERENCE",
+                        "SCENE_REFERENCE",
+                        "REFERENCE_ONLY",
+                    )
+                )
+            ]
+            actual = len(temporal) if sequence else len(resolve_reference_images(task))
             if planned is None:
                 problems.append(f"FAIL_CORRECTED_PIPELINE_ANCHOR_UNIT_MISSING:{unit_id or 'UNKNOWN'}")
             elif task.get("planned_reference_image_count") != planned or actual != planned:

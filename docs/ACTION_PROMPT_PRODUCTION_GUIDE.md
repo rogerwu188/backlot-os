@@ -19,6 +19,22 @@ should be discovered.
 8. Submit only the SHA-bound optimized provider prompt after every pre-submit
    gate passes.
 
+For a task using `generation_schedule_mode=TAIL_CHAINED_SERIAL`, declare an
+`action_sequence_contract.chain_id`, numeric `sequence_index`,
+`depends_on_task`, and `predecessor_tail_frame_ref`. At submission time there
+may be only one ready task for that chain. For every index after the first, the
+predecessor tail file must already exist and must be the first
+`reference_image_sequence` entry with role
+`EXACT_PREDECESSOR_ACCEPTED_TAIL_AND_START_FRAME`. A path that merely predicts a
+future tail, a generic action still, or a simultaneously submitted successor
+fails before provider spend.
+
+Dynamic anchor counts describe temporal states, not every provider reference.
+Identity, character, style, scene, and composition-only references remain
+available to the model but do not inflate temporal interpolation counts. A
+start plus a non-interpolable terminal target is two temporal anchors even when
+additional identity and ownership-composition references are supplied.
+
 Use `components/pipeline-tools/action_prompt_pipeline_cli.py` with the bundled
 example manifest. It writes optimized prompt files, a compiled manifest, and a
 single pre-submit report covering optimization, spatial feasibility, sequence
