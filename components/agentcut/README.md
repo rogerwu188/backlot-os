@@ -625,6 +625,8 @@ agentcut demucs-isolate source.wav --output-dir separated --report separation.js
 
 从 0.9.19 起，修复素材生成完成后必须在项目 `metadata.replacementBindingPolicy` 中声明目标 clip 与新素材 SHA。AgentCut 会读取磁盘文件重新计算 SHA，并检查 clip 元数据、目标覆盖数量、被淘汰素材 SHA 和旧路径标记。任一不一致都会阻断编译、渲染、成片视觉批准和发行；精确残留清单位于 `coverage.replacementBindings.residualClips`。
 
+从 0.9.20 起，上述检查覆盖所有启用的视频和音频 clip，并递归扫描嵌套元数据；旧素材路径即使只残留在 provenance 中也会失败。同一视频轨或音频轨的 clip 时间重叠同样会在编译前失败，确需叠画或混音时必须拆到不同轨道。证据分别位于 `coverage.replacementBindings` 与 `coverage.timelineOverlaps`。
+
 ```json
 {
   "metadata": {

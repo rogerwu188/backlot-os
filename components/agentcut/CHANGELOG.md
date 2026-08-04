@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.20
+
+- Scan every enabled video and audio clip for forbidden superseded source SHA
+  values, source-path tokens, and recursively nested metadata provenance.
+- Reject same-track video or audio timeline overlaps before compile or render;
+  intentional composites and mixes must use separate tracks.
+- Report live-clip, metadata-hit, and overlap evidence in validation coverage so
+  repaired media cannot pass QA while the final project remains bound to stale
+  sources.
+
 ## 0.9.18
 
 - Make `releaseProject:true` a complete, fail-closed distribution contract.

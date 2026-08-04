@@ -93,6 +93,68 @@ def _gaps(intervals: list[tuple[float, float]], duration: float) -> list[tuple[f
     return gaps
 
 
+def validate_track_clip_overlaps(project: Project) -> tuple[list[ValidationIssue], dict[str, Any]]:
+    """Reject ambiguous same-track edits before compile or render."""
+    issues: list[ValidationIssue] = []
+    overlaps: list[dict[str, Any]] = []
+    for kind, tracks in (("video", project.video_tracks), ("audio", project.audio_tracks)):
+        for track_index, track in enumerate(tracks):
+            if not track.enabled:
+                continue
+            live = [
+                (clip_index, clip) for clip_index, clip in enumerate(track.clips)
+                if (kind != "video" or clip.opacity > 0) and (kind != "audio" or clip.volume > 0)
+            ]
+            ordered = sorted(live, key=lambda item: (item[1].start, item[1].start + item[1].duration, item[0]))
+            for left_pos, (left_index, left) in enumerate(ordered):
+                left_end = left.start + left.duration
+                for right_index, right in ordered[left_pos + 1:]:
+                    if right.start >= left_end - 1e-6:
+                        break
+                    overlap_end = min(left_end, right.start + right.duration)
+                    row = {
+                        "trackId": track.id,
+                        "trackKind": kind,
+                        "leftClipId": left.id,
+                        "rightClipId": right.id,
+                        "timeRange": _range(right.start, overlap_end),
+                    }
+                    overlaps.append(row)
+                    issues.append(ValidationIssue(
+                        "TIMELINE_SAME_TRACK_OVERLAP", "error",
+                        "enabled clips on the same track overlap; split intentional composites or mixes onto separate tracks",
+                        track_id=track.id, track_kind=kind, track_index=track_index,
+                        clip_index=right_index, clip_id=right.id,
+                        time_range=row["timeRange"],
+                        related_clips=[{
+                            "trackId": track.id, "trackIndex": track_index,
+                            "clipIndex": left_index, "clipId": left.id,
+                        }],
+                    ))
+    return issues, {
+        "status": "PASS" if not issues else "FAIL",
+        "sameTrackOverlapCount": len(overlaps),
+        "overlaps": overlaps,
+        "policy": "Intentional simultaneous video composites and audio mixes require separate tracks.",
+    }
+
+
+def _metadata_token_hits(value: Any, tokens: list[str], path: str = "metadata") -> list[dict[str, str]]:
+    hits: list[dict[str, str]] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            hits.extend(_metadata_token_hits(item, tokens, f"{path}.{key}"))
+    elif isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            hits.extend(_metadata_token_hits(item, tokens, f"{path}[{index}]"))
+    elif isinstance(value, str):
+        lowered = value.lower()
+        for token in tokens:
+            if token in lowered:
+                hits.append({"path": path, "token": token})
+    return hits
+
+
 def _font_codepoints(path: str) -> set[int]:
     """Read Unicode cmap format 4/12 from TTF, OTF or the first face of a TTC."""
     with open(path, "rb") as stream:
@@ -276,19 +338,21 @@ def validate_replacement_bindings(project: Project) -> tuple[list[ValidationIssu
     """Prove that repaired clips are bound to the exact admitted replacement files."""
     raw_policy = project.metadata.get("replacementBindingPolicy")
     replacement_markers = []
-    for track in project.video_tracks:
-        if not track.enabled:
-            continue
-        for clip in track.clips:
-            metadata = clip.metadata
-            marked = any(
-                key in metadata for key in (
-                    "original_source", "v18_original_source", "superseded_source",
-                    "replacement_generation_id", "shot_recipe_superseded",
-                )
-            ) or "SATISFIED" in str(metadata.get("replacement_condition") or "").upper()
-            if marked:
-                replacement_markers.append(clip.id)
+    all_track_groups = (("video", project.video_tracks), ("audio", project.audio_tracks))
+    for _kind, tracks in all_track_groups:
+        for track in tracks:
+            if not track.enabled:
+                continue
+            for clip in track.clips:
+                metadata = clip.metadata
+                marked = any(
+                    key in metadata for key in (
+                        "original_source", "v18_original_source", "superseded_source",
+                        "replacement_generation_id", "shot_recipe_superseded",
+                    )
+                ) or "SATISFIED" in str(metadata.get("replacement_condition") or "").upper()
+                if marked:
+                    replacement_markers.append(clip.id)
     if raw_policy is None and project.release_project and replacement_markers:
         issue = ValidationIssue(
             "REPLACEMENT_BINDING_POLICY_REQUIRED", "error",
@@ -313,16 +377,23 @@ def validate_replacement_bindings(project: Project) -> tuple[list[ValidationIssu
     forbidden_tokens = [str(value).lower() for value in raw_forbidden_tokens if value] if isinstance(raw_forbidden_tokens, list) else []
     expected_count = policy.get("expectedTargetCount", len(targets))
     clips_by_id: dict[str, list[tuple[int, int, Any]]] = {}
-    enabled_clips: list[tuple[int, int, Any]] = []
+    enabled_clips: list[tuple[str, int, int, Any]] = []
     for track_index, track in enumerate(project.video_tracks):
         if not track.enabled:
             continue
         for clip_index, clip in enumerate(track.clips):
             if clip.opacity <= 0:
                 continue
-            enabled_clips.append((track_index, clip_index, clip))
+            enabled_clips.append(("video", track_index, clip_index, clip))
             if clip.id:
                 clips_by_id.setdefault(clip.id, []).append((track_index, clip_index, clip))
+    for track_index, track in enumerate(project.audio_tracks):
+        if not track.enabled:
+            continue
+        for clip_index, clip in enumerate(track.clips):
+            if clip.volume <= 0:
+                continue
+            enabled_clips.append(("audio", track_index, clip_index, clip))
 
     residual: list[dict[str, Any]] = []
     matched = 0
@@ -398,7 +469,9 @@ def validate_replacement_bindings(project: Project) -> tuple[list[ValidationIssu
             continue
         matched += 1
 
-    for track_index, clip_index, clip in enabled_clips:
+    metadata_residual_count = 0
+    for track_kind, track_index, clip_index, clip in enabled_clips:
+        tracks = project.video_tracks if track_kind == "video" else project.audio_tracks
         source_lower = clip.source.lower()
         metadata_sha = str(clip.metadata.get("source_sha256") or "").lower()
         actual_sha = source_sha(clip.source)
@@ -408,19 +481,29 @@ def validate_replacement_bindings(project: Project) -> tuple[list[ValidationIssu
         matched_tokens = [token for token in forbidden_tokens if token in source_lower]
         if matched_tokens:
             reasons.append("forbidden_path_token:" + ",".join(matched_tokens))
+        metadata_hits = _metadata_token_hits(clip.metadata, forbidden_tokens)
+        if metadata_hits:
+            metadata_residual_count += len(metadata_hits)
+            reasons.append("forbidden_metadata_token:" + ",".join(sorted({hit["token"] for hit in metadata_hits})))
         if reasons:
             issues.append(ValidationIssue(
                 "SUPERSEDED_SOURCE_STILL_BOUND", "error",
                 "superseded source remains bound: " + "; ".join(reasons),
-                track_id=project.video_tracks[track_index].id, track_kind="video", track_index=track_index,
+                track_id=tracks[track_index].id, track_kind=track_kind, track_index=track_index,
                 clip_index=clip_index, clip_id=clip.id, source=clip.source,
+                metadata={"forbiddenMetadataHits": metadata_hits} if metadata_hits else None,
                 time_range=_range(clip.start, clip.start + clip.duration),
             ))
-            residual.append({"clipId": clip.id, "reason": "SUPERSEDED_SOURCE_STILL_BOUND", "source": clip.source})
+            residual.append({
+                "clipId": clip.id, "trackKind": track_kind,
+                "reason": "SUPERSEDED_SOURCE_STILL_BOUND", "source": clip.source,
+                "metadataHits": metadata_hits,
+            })
 
     return issues, {
         "required": True, "status": "PASS" if not issues else "FAIL",
         "expected": expected_count, "declared": len(targets), "matched": matched,
+        "liveClipCount": len(enabled_clips), "forbiddenMetadataHitCount": metadata_residual_count,
         "residualClips": residual,
     }
 
@@ -1290,6 +1373,7 @@ class MediaValidator:
     def validate(self, project: Project) -> ValidationReport:
         release_contract_issues, release_contract_coverage = validate_release_project_contract(project)
         replacement_issues, replacement_coverage = validate_replacement_bindings(project)
+        overlap_issues, overlap_coverage = validate_track_clip_overlaps(project)
         subtitle_issues, subtitle_coverage = validate_subtitles(project)
         narrative_issues, narrative_coverage = validate_narrative(project)
         cut_reason_issues, cut_reason_coverage = validate_cut_reason_contract(project)
@@ -1301,7 +1385,7 @@ class MediaValidator:
         hold_issues, hold_coverage = validate_hold_slots(project)
         recipe_issues, recipe_coverage = validate_shot_recipes(project)
         issues: list[ValidationIssue] = [
-            *release_contract_issues, *replacement_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
+            *release_contract_issues, *replacement_issues, *overlap_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
             *cleanup_issues, *audio_issues, *source_issues, *release_issues, *hold_issues, *recipe_issues,
         ]
         media: dict[str, dict[str, Any]] = {}
@@ -1382,6 +1466,7 @@ class MediaValidator:
         coverage = {
             "releaseProjectContract": release_contract_coverage,
             "replacementBindings": replacement_coverage,
+            "timelineOverlaps": overlap_coverage,
             "tracks": track_coverage,
             "finalVideoRanges": [_range(a, b) for a, b in _merge(final_intervals)],
             "finalVideoGaps": [_range(a, b) for a, b in final_gaps],
