@@ -1142,6 +1142,45 @@ class EpisodeParallelBatchSupervisorActivityTest(unittest.TestCase):
 
         self.assertTrue(any(row["check"] == "dynamic_anchor_count" for row in failures))
 
+    def test_performance_generation_excludes_reference_only_images_from_temporal_chain(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tail = root / "previous-tail.png"
+            composition = root / "owner-contact-composition.png"
+            identity = root / "identity.png"
+            terminal = root / "terminal-target.png"
+            for path in (tail, composition, identity, terminal):
+                write_test_png(path)
+            failures = validate_entity_reference_task({
+                "generation_mode": "performance_generation",
+                "batch_id": "ACTION-B03-R2",
+                "unit_id": "B03",
+                "still_sequence_only_allowed": True,
+                "audio_reference_optional": True,
+                "planned_reference_image_count": 2,
+                "state_reference_minimum": 2,
+                "reference_images": [str(tail), str(composition), str(identity), str(terminal)],
+                "reference_image_sequence": [
+                    {"state_id": "TAIL", "path": str(tail), "role": "EXACT_PREVIOUS_TAIL_TEMPORAL"},
+                    {"state_id": "OWNER_CONTACT", "path": str(composition), "role": "ABILITY_OWNER_CONTACT_COMPOSITION_REFERENCE_ONLY"},
+                    {"state_id": "IDENTITY", "path": str(identity), "role": "CHARACTER_IDENTITY_REFERENCE"},
+                    {"state_id": "TERMINAL", "path": str(terminal), "role": "TERMINAL_SPATIAL_TARGET"},
+                ],
+                "performance_spec": {
+                    "prop_ownership": {"paper": "actor"},
+                    "motion_beats": [{
+                        "subject": "actor", "action": "touch paper and deploy guard",
+                        "contact_point": "finger to paper", "direction": "down then outward",
+                        "end_state": "guard supports beam", "intent": "protect the group",
+                        "visible_causality": "touch deploys guard; guard catches beam",
+                        "expression": "focused", "viewer_read": "owner and causal chain are clear",
+                    }],
+                },
+                "keyframe_interpolation_gate": {"status": "PASS", "checked_adjacent_pairs": 1},
+            })
+
+        self.assertEqual(failures, [])
+
     def test_performance_generation_reports_unstructured_prop_ownership_without_crashing(self):
         failures = validate_entity_reference_task({
             "generation_mode": "performance_generation",

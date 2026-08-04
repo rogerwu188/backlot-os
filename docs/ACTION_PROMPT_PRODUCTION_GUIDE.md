@@ -40,7 +40,10 @@ Dynamic anchor counts describe temporal states, not every provider reference.
 Identity, character, style, scene, and composition-only references remain
 available to the model but do not inflate temporal interpolation counts. A
 start plus a non-interpolable terminal target is two temporal anchors even when
-additional identity and ownership-composition references are supplied.
+additional identity and ownership-composition references are supplied. Mark a
+provider-visible ownership or composition guide with a role containing
+`REFERENCE_ONLY`; it is still forwarded to the model but is excluded from the
+temporal-state count and adjacent-keyframe pair calculation.
 
 Use `components/pipeline-tools/action_prompt_pipeline_cli.py` with the bundled
 example manifest. It writes optimized prompt files, a compiled manifest, and a

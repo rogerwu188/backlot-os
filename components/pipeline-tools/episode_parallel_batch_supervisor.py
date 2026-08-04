@@ -852,7 +852,13 @@ def validate_entity_reference_task(task: dict) -> list[dict]:
                 "required_repair": "Use a SHA-bound RGB transport derivative; preserve the canonical source as identity authority.",
             })
     image_sequence = list(task.get("reference_image_sequence") or [])
-    non_temporal_role_markers = ("IDENTITY", "CHARACTER_REFERENCE", "STYLE_REFERENCE", "SCENE_REFERENCE")
+    non_temporal_role_markers = (
+        "IDENTITY",
+        "CHARACTER_REFERENCE",
+        "STYLE_REFERENCE",
+        "SCENE_REFERENCE",
+        "REFERENCE_ONLY",
+    )
     temporal_image_sequence = [
         row
         for row in image_sequence
