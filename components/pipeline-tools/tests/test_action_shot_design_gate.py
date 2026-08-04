@@ -130,6 +130,5 @@ class ActionShotDesignGateTests(unittest.TestCase):
             )
         self.assertIn("S1:action_design_shot_bound_multiple_times:2", failures)
 
-
 if __name__ == "__main__":
     unittest.main()
