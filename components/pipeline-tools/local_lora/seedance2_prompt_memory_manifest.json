@@ -1,0 +1,10 @@
+{
+  "schema": "backlotos.seedance_prompt_memory_manifest.v1",
+  "format": "LoRA-ready JSONL plus deterministic compiler retrieval",
+  "training_status": "RULE_ADAPTER_ACTIVE_WEIGHT_TRAINING_NOT_CLAIMED",
+  "dataset": "seedance2_prompt_failure_training.jsonl",
+  "sample_count": 1,
+  "runtime_behavior": "Every multi_keyframe_long_take compilation loads admitted samples and injects their guard clauses before paid generation.",
+  "hard_rule": "Conflicting reference geometry is removed; prose-only negative isolation is insufficient.",
+  "deployment": "The dataset ships with BacklotOS and is loaded relative to seedance2_prompt_compiler.py."
+}

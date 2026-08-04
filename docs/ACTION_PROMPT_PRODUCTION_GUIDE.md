@@ -45,6 +45,20 @@ Independent dialogue, QA, and unrelated action chains remain parallel. If an
 inline image payload is too large, create visually equivalent 1080p transport
 copies and rebind their SHA values; never resend the same timed-out payload.
 
+Before each paid long-take compilation, the compiler loads the bundled local
+LoRA-ready failure-memory dataset. Admitted failure/rewrite/pass pairs inject a
+deterministic guard clause and are recorded by sample ID and dataset SHA in the
+compiled manifest. Multiple image references may have only one
+`STATE_AUTHORITY` for geometry, camera, actor blocking, and scale. Remove any
+secondary reference with conflicting geometry; prose-only negative isolation
+is not reliable. The bundled dataset is deployable immediately as a rule
+adapter and can later train model weights without changing its evidence schema.
+
+Long-take review uses a 60-point admission threshold. Scores at or above 60 are
+retained unless identity, safety, era, OCR, or media-integrity hard failures are
+present. Minor taste or polish issues above the threshold do not authorize a
+paid regeneration.
+
 Before assigning percentages, preserve the story function of every action prop.
 An environmental barrier must remain grounded architecture; a footprint repair
 cannot silently turn it into a handheld shield, floating rectangle, or other

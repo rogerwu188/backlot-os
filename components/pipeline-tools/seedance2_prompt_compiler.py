@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 MODES = {"storyboard", "continuous_long_take", "multi_keyframe_long_take"}
+DEFAULT_LOCAL_LORA_MEMORY = Path(__file__).resolve().parent / "local_lora/seedance2_prompt_failure_training.jsonl"
 VISUAL_FIELDS = (
     "duration_seconds", "shot_scale", "lens_intent", "camera_height", "camera_motion",
     "depth_layers", "scale_anchor", "palette", "key_light", "atmosphere",
@@ -22,6 +23,23 @@ def require(value, message: str):
     if value is None or value == "" or value == []:
         raise ValueError(message)
     return value
+
+
+def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
+    """Load admitted LoRA-ready examples whose guards apply before paid generation."""
+    if not path.is_file():
+        return [], None
+    rows = []
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("status") != "ADMITTED" or mode not in (row.get("applicable_modes") or []):
+            continue
+        require(row.get("sample_id"), f"local LoRA memory line {line_number} sample_id is required")
+        require(row.get("compiler_guard_clause"), f"local LoRA memory line {line_number} compiler_guard_clause is required")
+        rows.append(row)
+    return rows, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def entity_header(entities: list[dict], setting: str) -> str:
@@ -165,9 +183,17 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     spatial_lock = require(spec.get("spatial_continuity_lock"), "spatial_continuity_lock is required")
     action_axis = require(spec.get("action_axis"), "action_axis is required")
     negative = require(spec.get("negative_constraints"), "negative_constraints are required")
+    memory_path = Path(spec.get("local_lora_memory_path") or DEFAULT_LOCAL_LORA_MEMORY)
+    memory_rows, memory_sha = load_local_lora_memory("multi_keyframe_long_take", memory_path)
+    memory_clause = ""
+    if memory_rows:
+        memory_clause = "\n【本地LoRA失败记忆预编译】" + "；".join(
+            f"{row['sample_id']}：{row['compiler_guard_clause']}" for row in memory_rows
+        ) + "。"
     prompt = (
         f"15秒一镜到底，Seedance 2.0 Pro，原生1080p，实时1倍速。{subject_lock}\n"
         f"动作轴：{action_axis}。空间连续硬锁：{spatial_lock}。\n" + "\n".join(timeline)
+        + memory_clause
         + f"\n镜头只为跟清楚动作因果而移动；禁止无动机摇摆、smooth roam、slow push、orbit、overhead reveal、慢动作、插帧、动作重演、人物瞬移、机位重置、空间跳切。禁止：{' / '.join(negative)}。\n"
     )
     return prompt, {
@@ -177,10 +203,15 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         "model": spec["model"], "resolution": spec["resolution"], "real_time_1x": True,
         "camera_motion_policy": camera_policy, "keyframes": compiled_frames,
         "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+        "local_lora_memory": {
+            "path": str(memory_path), "sha256": memory_sha,
+            "applied_sample_ids": [row["sample_id"] for row in memory_rows],
+            "precompiled_before_paid_generation": True,
+        },
         "gates": ["ORDERED_KEYFRAME_SHA_BINDING", "REFERENCE_ROLE_AND_INHERITANCE_SCOPE",
                   "NO_REPEATED_ACTION_STATE", "NO_TELEPORT_OR_ACTION_RESET",
                   "SAME_APERTURE_LOCATION_CROSSING", "REAL_TIME_1X",
-                  "NO_UNMOTIVATED_CAMERA_MOTION"],
+                  "NO_UNMOTIVATED_CAMERA_MOTION", "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED"],
     }
 
 

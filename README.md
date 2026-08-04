@@ -52,20 +52,20 @@ Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 Download the immutable public package without cloning repository history:
 
 ```bash
-curl -L -o backlotos-v0.2.16.tar.gz \
-  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.16/backlotos-v0.2.16.tar.gz
+curl -L -o backlotos-v0.2.19.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.19/backlotos-v0.2.19.tar.gz
 expected_sha=$(curl -fsSL \
-  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.16 | \
-  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.16.tar.gz"))')
-actual_sha=$(shasum -a 256 backlotos-v0.2.16.tar.gz | awk '{print $1}')
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.19 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.19.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.19.tar.gz | awk '{print $1}')
 test "$actual_sha" = "$expected_sha"
-tar -xzf backlotos-v0.2.16.tar.gz
-cd backlotos-v0.2.16
+tar -xzf backlotos-v0.2.19.tar.gz
+cd backlotos-v0.2.19
 ./scripts/install.sh
 ./scripts/doctor.sh
 ```
 
-The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.16` provenance even though release archives intentionally contain no `.git` directory.
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.19` provenance even though release archives intentionally contain no `.git` directory.
 
 ### Git checkout (contributors)
 
@@ -114,6 +114,11 @@ keyframes. Every reference declares its exact role, inherited state, forbidden
 inheritance, actor blocking, and unique action state. A room-to-street change is
 accepted only through one named `SAME_APERTURE_CROSSING`; teleporting, action
 resets, slow motion, and unmotivated sway/orbit/roam fail before provider spend.
+The compiler also ships with a local LoRA-ready prompt-failure dataset. It
+precompiles admitted failure lessons into every long-take prompt and records the
+dataset SHA and sample IDs, so another workstation reproduces the same learned
+guardrails without private media. Long takes pass at 60 points unless identity,
+safety, era, OCR, or media-integrity hard failures override the score.
 Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
 provider or workstation needs lower concurrency.
 Every atomic action also carries an authored assembly window. The release
