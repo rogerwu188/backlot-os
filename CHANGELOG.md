@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5
+
+- Add a normal-speed spectral masking gate for release BGM. Dialogue cues now
+  require an equivalent no-BGM baseline, a 12 dB dialogue-to-music speech-band
+  margin, bounded mean/peak increases, and smooth touching-cue role handoffs.
+
 ## 0.2.4
 
 - Add a deterministic action-prompt optimizer that reads every earlier related

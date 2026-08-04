@@ -47,14 +47,23 @@ Dialogue cues use volume `<=0.16`; non-dialogue cues use `<=0.32`; the contract
 declares ducking between -10 and -6 dB.
 
 BGM may cover at most 85% of the story runtime and must leave at least eight
-seconds for native ambience alone. A rendered solo stem must measure at least
--35 dB mean and -18 dB peak, and the final mixed file must exist. Missing music
+seconds for native ambience alone. A rendered selective-cue solo stem must
+measure at least -40 dB global mean and -18 dB peak, while the per-cue spectral
+gate carries the stricter dialogue-masking decision. The final mixed file must exist. Missing music
 is a hard failure unless an explicit, evidence-backed creative exemption is
 added by a future versioned policy.
 
 ## Release checklist
 
 Run the BGM authenticity gate against the final project, solo stem, and mixed
-master. Then run normal AgentCut full-cut review, cadence, subtitle, branded
+master. For release projects, set
+`metadata.bgm_cue_policy.spectral_masking_gate_required=true` and pass
+`--baseline` with the equivalent no-BGM master. The gate decodes every dialogue
+cue at normal speed, checks the 300-3400 Hz speech band, requires music to remain
+at least 12 dB below the dialogue-band mean, limits mixed mean/peak increases to
+1.0/1.5 dB, and rejects touching cue-role handoffs above a 6 dB stem step. This
+pre-release gate does not replace the final subjective full-cut listen.
+
+Then run normal AgentCut full-cut review, cadence, subtitle, branded
 outro, audio safety, and release validation. Platform publication remains a
 separate irreversible action and is never implied by a passing media gate.
