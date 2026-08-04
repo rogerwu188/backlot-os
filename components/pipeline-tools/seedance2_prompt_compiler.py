@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 
-MODES = {"storyboard", "continuous_long_take"}
+MODES = {"storyboard", "continuous_long_take", "multi_keyframe_long_take"}
 VISUAL_FIELDS = (
     "duration_seconds", "shot_scale", "lens_intent", "camera_height", "camera_motion",
     "depth_layers", "scale_anchor", "palette", "key_light", "atmosphere",
@@ -91,10 +91,105 @@ def scene_lock_header(scene_lock: dict) -> str:
     )
 
 
+def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
+    """Compile a spatially continuous 15-second Omni shot from ordered keyframes."""
+    duration = require(spec.get("duration_seconds"), "duration_seconds is required")
+    if duration != 15:
+        raise ValueError("multi_keyframe_long_take requires exactly 15 seconds")
+    if spec.get("model") != "seedance-2.0-pro":
+        raise ValueError("multi_keyframe_long_take requires seedance-2.0-pro")
+    if spec.get("resolution") != "1080p":
+        raise ValueError("multi_keyframe_long_take requires native 1080p")
+    if spec.get("real_time_1x") is not True:
+        raise ValueError("multi_keyframe_long_take requires real_time_1x=true")
+    camera_policy = require(spec.get("camera_motion_policy"), "camera_motion_policy is required")
+    if camera_policy != "MOTIVATED_TRACK_OR_LOCKED_AXIS_NO_SWAY_NO_ORBIT_NO_ROAM":
+        raise ValueError("camera_motion_policy must forbid sway, orbit and roam")
+    keyframes = require(spec.get("keyframes"), "keyframes are required")
+    if not 3 <= len(keyframes) <= 9:
+        raise ValueError("multi_keyframe_long_take requires 3 to 9 keyframes")
+    times, timeline, compiled_frames = [], [], []
+    states = set()
+    previous_zone = previous_state = None
+    for index, frame in enumerate(keyframes, start=1):
+        timestamp = float(require(frame.get("timestamp_seconds"), f"keyframe {index} timestamp_seconds is required"))
+        if times and timestamp <= times[-1]:
+            raise ValueError(f"keyframe {index} timestamps must be strictly increasing")
+        image_path = Path(require(frame.get("image_path"), f"keyframe {index} image_path is required"))
+        expected_sha = require(frame.get("image_sha256"), f"keyframe {index} image_sha256 is required")
+        if not image_path.is_file():
+            raise ValueError(f"keyframe {index} image does not exist: {image_path}")
+        actual_sha = hashlib.sha256(image_path.read_bytes()).hexdigest()
+        if actual_sha != expected_sha:
+            raise ValueError(f"keyframe {index} image SHA mismatch")
+        state = require(frame.get("state_token"), f"keyframe {index} state_token is required")
+        if state in states:
+            raise ValueError(f"keyframe {index} repeats action state: {state}")
+        states.add(state)
+        zone = require(frame.get("location_zone"), f"keyframe {index} location_zone is required")
+        blocking = require(frame.get("actor_blocking"), f"keyframe {index} actor_blocking is required")
+        event = require(frame.get("action_event"), f"keyframe {index} action_event is required")
+        reference_role = require(frame.get("reference_role"), f"keyframe {index} reference_role is required")
+        preserve = require(frame.get("preserve_from_previous"), f"keyframe {index} preserve_from_previous is required")
+        reject_inheritance = require(frame.get("do_not_inherit"), f"keyframe {index} do_not_inherit is required")
+        transition = frame.get("transition_from_previous")
+        if previous_zone is not None and zone != previous_zone:
+            if not transition or transition.get("kind") != "SAME_APERTURE_CROSSING":
+                raise ValueError(f"keyframe {index} changes location without SAME_APERTURE_CROSSING")
+            require(transition.get("aperture_id"), f"keyframe {index} crossing aperture_id is required")
+            require(transition.get("direction"), f"keyframe {index} crossing direction is required")
+        if previous_state is not None:
+            if not transition:
+                raise ValueError(f"keyframe {index} transition_from_previous is required")
+            if transition.get("teleport_allowed") is not False:
+                raise ValueError(f"keyframe {index} must explicitly forbid teleport")
+            if transition.get("action_reset_allowed") is not False:
+                raise ValueError(f"keyframe {index} must explicitly forbid action reset")
+        timeline.append(
+            f"{timestamp:g}秒到达@图片{index}：该图只负责{reference_role}；{event}；人物站位：{blocking}；"
+            f"必须继承{preserve}；不得从该图继承{'、'.join(reject_inheritance)}；"
+            f"动作状态从{previous_state or '镜头起始'}连续推进到{state}。"
+        )
+        compiled_frames.append({
+            "reference": f"@图片{index}", "timestamp_seconds": timestamp,
+            "image_path": str(image_path), "image_sha256": actual_sha,
+            "state_token": state, "location_zone": zone,
+            "reference_role": reference_role, "preserve_from_previous": preserve,
+            "do_not_inherit": reject_inheritance, "transition_from_previous": transition,
+        })
+        times.append(timestamp)
+        previous_zone, previous_state = zone, state
+    if times[0] != 0 or times[-1] != 15:
+        raise ValueError("keyframe timeline must start at 0 seconds and end at 15 seconds")
+    subject_lock = require(spec.get("subject_and_identity_lock"), "subject_and_identity_lock is required")
+    spatial_lock = require(spec.get("spatial_continuity_lock"), "spatial_continuity_lock is required")
+    action_axis = require(spec.get("action_axis"), "action_axis is required")
+    negative = require(spec.get("negative_constraints"), "negative_constraints are required")
+    prompt = (
+        f"15秒一镜到底，Seedance 2.0 Pro，原生1080p，实时1倍速。{subject_lock}\n"
+        f"动作轴：{action_axis}。空间连续硬锁：{spatial_lock}。\n" + "\n".join(timeline)
+        + f"\n镜头只为跟清楚动作因果而移动；禁止无动机摇摆、smooth roam、slow push、orbit、overhead reveal、慢动作、插帧、动作重演、人物瞬移、机位重置、空间跳切。禁止：{' / '.join(negative)}。\n"
+    )
+    return prompt, {
+        "schema": "qingshan.seedance2_multi_keyframe_long_take.v1",
+        "mode": "multi_keyframe_long_take", "route": "/api/v1/generation/omni-video",
+        "contract": "15s_ordered_multi_keyframe_spatial_continuity", "duration_seconds": 15,
+        "model": spec["model"], "resolution": spec["resolution"], "real_time_1x": True,
+        "camera_motion_policy": camera_policy, "keyframes": compiled_frames,
+        "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+        "gates": ["ORDERED_KEYFRAME_SHA_BINDING", "REFERENCE_ROLE_AND_INHERITANCE_SCOPE",
+                  "NO_REPEATED_ACTION_STATE", "NO_TELEPORT_OR_ACTION_RESET",
+                  "SAME_APERTURE_LOCATION_CROSSING", "REAL_TIME_1X",
+                  "NO_UNMOTIVATED_CAMERA_MOTION"],
+    }
+
+
 def compile_prompt(spec: dict) -> tuple[str, dict]:
     mode = require(spec.get("mode"), "mode is required")
     if mode not in MODES:
         raise ValueError(f"unsupported mode: {mode}")
+    if mode == "multi_keyframe_long_take":
+        return compile_multi_keyframe_long_take(spec)
     entities = require(spec.get("entities"), "entities are required")
     shots = require(spec.get("shots"), "shots are required")
     header = entity_header(entities, spec.get("setting"))
