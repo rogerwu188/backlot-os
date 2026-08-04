@@ -78,6 +78,12 @@ result/exit states. Dependent action chains remain sequential; the dispatcher
 admits only one ready shot per chain and requires the exact accepted predecessor
 tail as the next shot's first provider image. Identity and composition-only
 references are not counted as temporal anchors. Unrelated shots remain parallel.
+The supervisor uses dependency lanes rather than an episode-wide batch barrier:
+each exact-tail chain advances one ready head at a time, while all independent
+shots and other chains submit together. Remote polling runs in parallel, and
+completed outputs are downloaded and QA-checked in bounded parallel workers.
+Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
+provider or workstation needs lower concurrency.
 Run the bundled example:
 
 ```bash

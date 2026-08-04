@@ -33,7 +33,7 @@ jobs:
       - name: Producer/Supervisor Agent tests
         run: python -m pytest -q components/producer-supervisor-agent/tests
       - name: Prompt and BGM production-gate tests
-        run: python -m unittest discover -s components/pipeline-tools/tests -p 'test_action_prompt_pipeline_cli.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_bgm_authenticity_gate.py' -v
+        run: python -m unittest discover -s components/pipeline-tools/tests -p 'test_action_prompt_pipeline_cli.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_bgm_authenticity_gate.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_dependency_lane_concurrency.py' -v
       - name: AgentCut tests
         run: python -m unittest discover -s components/agentcut/tests -v
       - name: AgentCut compatibility tests

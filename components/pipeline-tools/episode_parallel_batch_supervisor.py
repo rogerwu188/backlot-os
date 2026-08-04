@@ -1889,11 +1889,15 @@ def bind_predecessor_tail_frame(task: dict, dependency: dict) -> bool:
         return False
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.is_file():
-        proc = subprocess.run([
-            str(resolve_media_binary("ffmpeg")), "-hide_banner", "-loglevel", "error", "-y",
-            "-sseof", "-0.05", "-i", str(source), "-frames:v", "1", "-q:v", "2", str(destination),
-        ], cwd=ROOT, check=False)
-        if proc.returncode != 0 or not destination.is_file():
+        ffmpeg = str(resolve_media_binary("ffmpeg"))
+        for tail_offset in ("-0.10", "-0.20", "-0.50"):
+            proc = subprocess.run([
+                ffmpeg, "-hide_banner", "-loglevel", "error", "-y",
+                "-sseof", tail_offset, "-i", str(source), "-frames:v", "1", "-q:v", "2", str(destination),
+            ], cwd=ROOT, check=False)
+            if proc.returncode == 0 and destination.is_file() and destination.stat().st_size > 0:
+                break
+        if not destination.is_file() or destination.stat().st_size == 0:
             return False
     destination_ref = str(destination_value)
     tail_sha = sha256_file(destination)
@@ -1989,12 +1993,41 @@ def refresh_streaming_task_readiness(receipt: dict, config: dict) -> dict:
     return {"added": added, "activated": activated}
 
 
+def select_parallel_submission_wave(tasks: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Run every independent task plus one ready head from each serial chain."""
+    selected: list[dict] = []
+    deferred: list[dict] = []
+    claimed_chains: set[str] = set()
+    ordered = sorted(
+        tasks,
+        key=lambda task: (
+            str((task.get("action_sequence_contract") or {}).get("chain_id") or ""),
+            int((task.get("action_sequence_contract") or {}).get("sequence_index") or 0),
+            str(task.get("task_key") or ""),
+        ),
+    )
+    for task in ordered:
+        if task.get("generation_schedule_mode") != "TAIL_CHAINED_SERIAL":
+            selected.append(task)
+            continue
+        chain_id = str((task.get("action_sequence_contract") or {}).get("chain_id") or "").strip()
+        if not chain_id or chain_id not in claimed_chains:
+            selected.append(task)
+            if chain_id:
+                claimed_chains.add(chain_id)
+        else:
+            deferred.append(task)
+    return selected, deferred
+
+
 def submit_pending(receipt: dict) -> None:
     pending = [task for task in receipt["tasks"] if not task.get("task_id") and task.get("state") in {"pending", "retry_pending", "submit_failed"} and int(task.get("retry_count", 0)) <= int(receipt.get("max_retries", 2))]
     if not pending:
         return
-    with ThreadPoolExecutor(max_workers=len(pending)) as pool:
-        futures = {pool.submit(submit_one, task, receipt): task for task in pending}
+    wave, deferred = select_parallel_submission_wave(pending)
+    worker_limit = max(1, int(receipt.get("max_submit_workers", 8)))
+    with ThreadPoolExecutor(max_workers=min(worker_limit, len(wave))) as pool:
+        futures = {pool.submit(submit_one, task, receipt): task for task in wave}
         for future in as_completed(futures):
             task = futures[future]
             result = future.result()
@@ -2009,8 +2042,15 @@ def submit_pending(receipt: dict) -> None:
                 task["retry_count"] = int(task.get("retry_count", 0)) + 1
                 task["state"] = "retry_pending" if task["retry_count"] <= int(receipt.get("max_retries", 2)) else "submit_failed_terminal"
                 task["retry_after"] = now()
-    receipt["last_action"] = f"submitted_{len(pending)}_internal_tasks_concurrently"
+    receipt["last_action"] = f"submitted_{len(wave)}_tasks_across_dependency_lanes_concurrently"
     receipt["last_action_at"] = now()
+    receipt["concurrency_wave"] = {
+        "submitted_task_keys": [task.get("task_key") for task in wave],
+        "deferred_same_chain_task_keys": [task.get("task_key") for task in deferred],
+        "max_submit_workers": worker_limit,
+        "policy": "ONE_READY_HEAD_PER_SERIAL_CHAIN_PLUS_ALL_INDEPENDENT_TASKS",
+        "recorded_at": now(),
+    }
 
 
 def poll_one(task: dict) -> dict:
@@ -2114,6 +2154,38 @@ def mark_retry_or_terminal(task: dict, receipt: dict, terminal_state: str) -> No
     )
 
 
+def harvest_completed_task(task: dict, result: dict, receipt: dict) -> None:
+    """Download and QA one completed task inside its own dependency lane."""
+    attempt = next(
+        (row for row in reversed(task.get("credit_attempts") or []) if row.get("task_id") == task.get("task_id")),
+        None,
+    )
+    if not attempt or not isinstance(attempt.get("actual_charged_credits"), (int, float)):
+        task["state"] = "completed_credit_accounting_incomplete"
+        task["credit_accounting_block"] = "EXACT_TASK_ID_STATEMENT_REQUIRED_BEFORE_DOWNLOAD_QA"
+        return
+    task.pop("credit_accounting_block", None)
+    urls = (result.get("data") or {}).get("urls") or []
+    if not urls:
+        task["state"] = "completed_without_output_url"
+        return
+    suffix = ".png" if task.get("tool_type") == "image_generation" else ".mp4"
+    output = abs_path(receipt.get("output_dir", "working_assets")) / f"{safe(receipt['episode'])}_{safe(task['task_key'])}_{task['task_id']}{suffix}"
+    if not output.exists():
+        download(str(urls[0]), output)
+    if task.get("tool_type") == "image_generation":
+        task.update({"state": "image_pass", "output_path": str(output), "sha256": subprocess.check_output(["shasum", "-a", "256", str(output)], text=True).split()[0], "recorded_at": now()})
+        return
+    qa = run_qa(task, output, receipt)
+    if qa["status"] == "qa_pass":
+        task["state"] = "qa_pass"
+        return
+    task["failure_evidence"] = qa["failures"]
+    # Preserve the charged remote asset for prompt-aware failed-only repair.
+    task["retry_count"] = int(task.get("retry_count", 0)) + 1
+    task["state"] = "qa_failed_terminal"
+
+
 def poll_and_harvest(receipt: dict) -> None:
     active = [
         task
@@ -2122,7 +2194,8 @@ def poll_and_harvest(receipt: dict) -> None:
     ]
     if not active:
         return
-    with ThreadPoolExecutor(max_workers=len(active)) as pool:
+    poll_worker_limit = max(1, int(receipt.get("max_poll_workers", 8)))
+    with ThreadPoolExecutor(max_workers=min(poll_worker_limit, len(active))) as pool:
         futures = [pool.submit(poll_one, task) for task in active]
         results = [future.result() for future in as_completed(futures)]
     by_key = {task["task_key"]: task for task in receipt["tasks"]}
@@ -2139,6 +2212,17 @@ def poll_and_harvest(receipt: dict) -> None:
         task.pop("last_poll_error_at", None)
         settle_credit_attempt(task, status, result.get("data") or {})
     reconcile_completed_image_credits(receipt)
+    completed = [
+        (by_key[result["task_key"]], result)
+        for result in results
+        if not result.get("query_error") and result.get("remote_status") == "completed"
+    ]
+    if completed:
+        qa_worker_limit = max(1, int(receipt.get("max_qa_workers", 4)))
+        with ThreadPoolExecutor(max_workers=min(qa_worker_limit, len(completed))) as pool:
+            futures = [pool.submit(harvest_completed_task, task, result, receipt) for task, result in completed]
+            for future in as_completed(futures):
+                future.result()
     for result in results:
         task = by_key[result["task_key"]]
         if result.get("query_error"):
@@ -2147,36 +2231,7 @@ def poll_and_harvest(receipt: dict) -> None:
         if status in {"running", "pending", "queued", "processing", "submitted"}:
             task["state"] = "remote_running"
         elif status == "completed":
-            attempt = next(
-                (row for row in reversed(task.get("credit_attempts") or []) if row.get("task_id") == task.get("task_id")),
-                None,
-            )
-            if not attempt or not isinstance(attempt.get("actual_charged_credits"), (int, float)):
-                task["state"] = "completed_credit_accounting_incomplete"
-                task["credit_accounting_block"] = "EXACT_TASK_ID_STATEMENT_REQUIRED_BEFORE_DOWNLOAD_QA"
-                continue
-            task.pop("credit_accounting_block", None)
-            urls = (result.get("data") or {}).get("urls") or []
-            if not urls:
-                task["state"] = "completed_without_output_url"
-                continue
-            suffix = ".png" if task.get("tool_type") == "image_generation" else ".mp4"
-            output = abs_path(receipt.get("output_dir", "working_assets")) / f"{safe(receipt['episode'])}_{safe(task['task_key'])}_{task['task_id']}{suffix}"
-            if not output.exists():
-                download(str(urls[0]), output)
-            if task.get("tool_type") == "image_generation":
-                task.update({"state": "image_pass", "output_path": str(output), "sha256": subprocess.check_output(["shasum", "-a", "256", str(output)], text=True).split()[0], "recorded_at": now()})
-            else:
-                qa = run_qa(task, output, receipt)
-                if qa["status"] == "qa_pass":
-                    task["state"] = "qa_pass"
-                else:
-                    task["failure_evidence"] = qa["failures"]
-                    # The remote asset already exists and may have incurred cost.  A
-                    # local QA failure must be preserved for a prompt/asset-aware
-                    # failed-only repair, never replayed automatically unchanged.
-                    task["retry_count"] = int(task.get("retry_count", 0)) + 1
-                    task["state"] = "qa_failed_terminal"
+            continue
         elif status in {"failed", "error", "cancelled", "timeout"}:
             task["failure_reason"] = (result.get("data") or {}).get("error") or status
             mark_retry_or_terminal(task, receipt, "remote_failed_terminal")
@@ -2761,6 +2816,15 @@ def main() -> int:
         receipt["script_readiness_report"] = readiness_path
         receipt["script_readiness_status"] = "PASS"
     receipt["max_retries"] = int(config.get("max_retries", 2))
+    receipt["max_submit_workers"] = int(config.get("max_submit_workers", 8))
+    receipt["max_poll_workers"] = int(config.get("max_poll_workers", 8))
+    receipt["max_qa_workers"] = int(config.get("max_qa_workers", 4))
+    receipt["concurrency_policy"] = {
+        "serial_scope": "ONLY_WITHIN_ONE_EXACT_TAIL_DEPENDENCY_CHAIN",
+        "parallel_scope": "ALL_INDEPENDENT_CHAINS_AND_LOCAL_QA_LANES",
+        "one_ready_head_per_serial_chain": True,
+        "batch_barrier": False,
+    }
     receipt["supported_tool_types"] = sorted(set(receipt.get("supported_tool_types", [])) | {"video_generation", "image_generation", "agentcut", "ai_review"})
     receipt.setdefault("parallel_tool_policy", "Submit every independent tool task concurrently; only its own declared input dependency may gate it.")
     config_tasks = {task.get("task_key"): task for task in config.get("tasks", [])}
