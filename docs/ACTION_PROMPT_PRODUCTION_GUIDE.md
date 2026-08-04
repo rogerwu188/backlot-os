@@ -40,6 +40,15 @@ same physical aperture and crossing direction. The compiler rejects Fast,
 non-1080p output, slow motion, camera roam/orbit/sway, repeated action states,
 missing reference duties, or a broken crossing contract before any paid call.
 
+Every keyframe also declares `camera_side`, `camera_position`, and
+`camera_facing`. Every adjacent transition declares its continuous camera path,
+travel distance, axis change, and whether the camera crosses the same aperture
+with the subjects. The compiler rejects axis changes above 90 degrees, paths
+faster than 2.5 metres per second, mismatched camera endpoints, and room-to-
+street crossings that cannot follow through the named aperture. This makes
+physical camera reachability part of prompt generation instead of a late QA
+repair.
+
 Generate related keyframes serially from the accepted predecessor frame.
 Independent dialogue, QA, and unrelated action chains remain parallel. If an
 inline image payload is too large, create visually equivalent 1080p transport
@@ -53,6 +62,9 @@ compiled manifest. Multiple image references may have only one
 secondary reference with conflicting geometry; prose-only negative isolation
 is not reliable. The bundled dataset is deployable immediately as a rule
 adapter and can later train model weights without changing its evidence schema.
+The public dataset contains only redacted evidence identifiers and SHA-256
+bindings, so it can be deployed on another workstation without private episode
+media while retaining the exact failed-to-accepted learning relation.
 
 Long-take review uses a 60-point admission threshold. Scores at or above 60 are
 retained unless identity, safety, era, OCR, or media-integrity hard failures are
