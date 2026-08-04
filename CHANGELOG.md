@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.22
+
+- Enable privacy-filtered LoRA prompt-memory synchronization by default on every installed workstation.
+- Persist admitted local samples across upgrades and failed uploads, retry automatically before later prompt compilation, and serialize concurrent sync attempts.
+- Discover or create an isolated Git checkout for synchronization while preserving explicit checkout and remote overrides.
+- Record local sync receipts without credentials, private evidence paths, or episode media.
+
 ## 0.2.21
 
 - Add an exact replacement-binding hard gate. A repaired clip must point to the

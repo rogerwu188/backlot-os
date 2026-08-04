@@ -78,7 +78,8 @@ for production_gate in \
   action_prompt_pipeline_cli.py \
   action_spatial_feasibility_gate.py \
   generation_prompt_optimizer.py \
-  bgm_authenticity_gate.py; do
+  bgm_authenticity_gate.py \
+  local_lora_memory_sync.py; do
   if [[ -f "$repo_root/components/pipeline-tools/$production_gate" ]]; then
     echo "PASS production-gate:$production_gate"
   else
@@ -86,5 +87,11 @@ for production_gate in \
     failed=1
   fi
 done
+
+if [[ -f "$install_root/config/lora-auto-sync.enabled" ]]; then
+  echo "PASS lora-memory-auto-sync:enabled"
+else
+  echo "NOT_CONFIGURED lora-memory-auto-sync:run-current-installer-to-enable"
+fi
 
 exit "$failed"

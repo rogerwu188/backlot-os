@@ -40,7 +40,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
 - **AgentCut 0.9.19** — timeline validation, compilation, rendering, shot recipes, exact replacement binding, dialogue/subtitle alignment, audio, and fail-closed release contracts.
 - **Factory Runtime 2.0.20** — file-native queues, workers, dispatcher, supervisor, idempotency, receipts, rollback, and shared-message protocol.
-- **Pipeline Tools** — production gates and orchestration utilities proven in the original production line.
+- **Pipeline Tools** — production gates, parallel orchestration, and privacy-filtered cross-machine prompt-memory convergence proven in the original production line.
 - **Legacy compatibility prompts** — the original Qingshan agent prompts are retained as migration references, not as the BacklotOS product identity.
 
 ## Quick install
@@ -52,20 +52,20 @@ Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 Download the immutable public package without cloning repository history:
 
 ```bash
-curl -L -o backlotos-v0.2.21.tar.gz \
-  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.21/backlotos-v0.2.21.tar.gz
+curl -L -o backlotos-v0.2.22.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.22/backlotos-v0.2.22.tar.gz
 expected_sha=$(curl -fsSL \
-  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.21 | \
-  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.21.tar.gz"))')
-actual_sha=$(shasum -a 256 backlotos-v0.2.21.tar.gz | awk '{print $1}')
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.22 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.22.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.22.tar.gz | awk '{print $1}')
 test "$actual_sha" = "$expected_sha"
-tar -xzf backlotos-v0.2.21.tar.gz
-cd backlotos-v0.2.21
+tar -xzf backlotos-v0.2.22.tar.gz
+cd backlotos-v0.2.22
 ./scripts/install.sh
 ./scripts/doctor.sh
 ```
 
-The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.21` provenance even though release archives intentionally contain no `.git` directory.
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.22` provenance even though release archives intentionally contain no `.git` directory.
 
 ### Git checkout (contributors)
 
@@ -77,6 +77,14 @@ cd backlot-os
 ```
 
 The installer creates an isolated runtime and does not copy production media or credentials. Configure optional integrations in a local `.env`; never commit that file.
+
+Every installation enables portable prompt-memory synchronization. Admitted
+failed-prompt/rewrite/pass samples are stripped of local paths and credentials,
+persisted through offline periods, and uploaded to GitHub automatically when
+that machine has repository write credentials. Upload failures remain queued
+and visible in a local receipt; they are retried before later Seedance prompt
+compilation. This shares the LoRA-ready training corpus and deterministic rule
+adapter, not private episode media or unverified binary model weights.
 
 On StoryClaw, the host-managed GPT runtime is used by the Agents and no separate
 `OPENAI_API_KEY` is required. `doctor.sh` detects that environment and reports

@@ -33,8 +33,7 @@ def require(value, message: str):
 
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
     """Load admitted LoRA-ready examples whose guards apply before paid generation."""
-    if os.environ.get("BACKLOTOS_LORA_AUTO_SYNC") == "1":
-        auto_sync(path)
+    auto_sync(path)
     if not path.is_file():
         return [], None
     rows = []

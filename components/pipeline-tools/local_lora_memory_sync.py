@@ -7,8 +7,13 @@ import argparse
 import hashlib
 import json
 import os
+import socket
 import subprocess
+import time
+from contextlib import contextmanager
 from pathlib import Path
+
+import fcntl
 
 
 DATASET_RELATIVE = Path("components/pipeline-tools/local_lora/seedance2_prompt_failure_training.jsonl")
@@ -20,13 +25,88 @@ ALLOWED_FIELDS = {
     "accepted_asset_sha256", "compiler_guard_clause", "tags",
 }
 FORBIDDEN_KEY_PARTS = {"token", "secret", "password", "credential", "cookie", "authorization", "api_key"}
+DEFAULT_REMOTE = "https://github.com/rogerwu188/backlot-os.git"
+AUTO_SYNC_MARKER = Path("config/lora-auto-sync.enabled")
+SYNC_RECEIPT = Path("state/lora-sync/latest-sync-receipt.json")
+PENDING_DATASET = Path("state/lora-sync/pending-memory.jsonl")
+SYNC_LOCK = Path("state/lora-sync/sync.lock")
 
 
-def _run(argv: list[str], cwd: Path) -> str:
-    completed = subprocess.run(argv, cwd=cwd, capture_output=True, text=True)
+def _run(argv: list[str], cwd: Path, *, timeout: int = 90) -> str:
+    completed = subprocess.run(argv, cwd=cwd, capture_output=True, text=True, timeout=timeout)
     if completed.returncode:
         raise RuntimeError(f"{' '.join(argv)} failed: {completed.stderr.strip()}")
     return completed.stdout.strip()
+
+
+def _install_root() -> Path:
+    return Path(os.environ.get("BACKLOT_INSTALL_DIR", Path.home() / ".local/share/backlotos")).expanduser()
+
+
+def auto_sync_enabled() -> bool:
+    override = os.environ.get("BACKLOTOS_LORA_AUTO_SYNC")
+    if override is not None:
+        return override == "1"
+    return (_install_root() / AUTO_SYNC_MARKER).is_file()
+
+
+def _write_receipt(payload: dict) -> dict:
+    receipt = _install_root() / SYNC_RECEIPT
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    safe = {
+        **payload,
+        "schema": "backlotos.local_lora_sync_receipt.v1",
+        "machine": socket.gethostname(),
+        "updatedUnix": int(time.time()),
+    }
+    receipt.write_text(json.dumps(safe, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return safe
+
+
+def _configured_remote() -> str:
+    explicit = os.environ.get("BACKLOTOS_LORA_SYNC_REMOTE")
+    if explicit:
+        return explicit
+    origin_file = _install_root() / "source/git-origin"
+    if origin_file.is_file() and origin_file.read_text(encoding="utf-8").strip():
+        return origin_file.read_text(encoding="utf-8").strip()
+    return DEFAULT_REMOTE
+
+
+def _discover_checkout() -> Path:
+    explicit = os.environ.get("BACKLOTOS_LORA_SYNC_CHECKOUT")
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    cache_checkout = _install_root() / "state/lora-sync/repository"
+    if not (cache_checkout / ".git").exists():
+        cache_checkout.parent.mkdir(parents=True, exist_ok=True)
+        _run(["git", "clone", "--filter=blob:none", _configured_remote(), str(cache_checkout)], cache_checkout.parent)
+        _run(["git", "config", "user.name", "BacklotOS Memory Sync"], cache_checkout)
+        _run(["git", "config", "user.email", "backlotos-memory-sync@users.noreply.github.com"], cache_checkout)
+    return cache_checkout
+
+
+@contextmanager
+def _sync_lock():
+    path = _install_root() / SYNC_LOCK
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _stage_pending(source: Path) -> Path:
+    pending = _install_root() / PENDING_DATASET
+    merged = _load(pending)
+    for sample_id, row in _load(source.resolve()).items():
+        if sample_id in merged and merged[sample_id] != row:
+            raise ValueError(f"immutable sample_id conflict in local pending memory: {sample_id}")
+        merged[sample_id] = row
+    _write_dataset(pending, merged)
+    return pending
 
 
 def _load(path: Path) -> dict[str, dict]:
@@ -99,19 +179,35 @@ def synchronize(source: Path, checkout: Path, *, push: bool) -> dict:
     if push and changed:
         _run(["git", "add", "--", str(DATASET_RELATIVE), str(MANIFEST_RELATIVE)], checkout)
         _run(["git", "commit", "-m", f"sync LoRA prompt memory ({len(merged)} samples)"], checkout)
-        _run(["git", "push"], checkout)
         commit = _run(["git", "rev-parse", "HEAD"], checkout)
+    if push:
+        # Retry an earlier committed-but-unpushed memory update even when this
+        # invocation added no new rows.
+        _run(["git", "push"], checkout)
+        commit = commit or _run(["git", "rev-parse", "HEAD"], checkout)
     return {"status": "PASS", "sampleCount": len(merged), "datasetSha256": dataset_sha,
             "changed": changed, "pushed": bool(push and changed), "commit": commit}
 
 
 def auto_sync(source: Path) -> dict:
-    if os.environ.get("BACKLOTOS_LORA_AUTO_SYNC") != "1":
-        return {"status": "NOT_CONFIGURED", "pushed": False}
-    checkout = os.environ.get("BACKLOTOS_LORA_SYNC_CHECKOUT")
-    if not checkout:
-        raise ValueError("BACKLOTOS_LORA_SYNC_CHECKOUT is required when BACKLOTOS_LORA_AUTO_SYNC=1")
-    return synchronize(source, Path(checkout), push=True)
+    if not auto_sync_enabled():
+        return {"status": "DISABLED", "pushed": False}
+    # Invalid or private training rows must stop prompt compilation. Operational
+    # Git/GitHub failures are queued for the next compile and never hide locally
+    # admitted memory from the current machine.
+    with _sync_lock():
+        pending = _stage_pending(source)
+        try:
+            result = synchronize(pending, _discover_checkout(), push=True)
+            return _write_receipt(result)
+        except (RuntimeError, subprocess.SubprocessError, OSError) as exc:
+            return _write_receipt({
+                "status": "QUEUED_FOR_RETRY",
+                "pushed": False,
+                "pendingSampleCount": len(_load(pending)),
+                "errorType": type(exc).__name__,
+                "nextAction": "Retry automatically before the next Seedance prompt compilation; configure GitHub write credentials if push remains unavailable.",
+            })
 
 
 def main() -> None:
