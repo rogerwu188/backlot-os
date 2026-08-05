@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.33
+
+- Replace the blanket dialogue-glyph prohibition with three typed policies:
+  audio-only isolation, exact diegetic text, and exact provider captions.
+- Allow readable account pages, labels, letters, brush-writing close-ups, and
+  provider captions when their exact text and source SHA are bound before
+  generation and OCR plus human review are mandatory.
+- Reject pseudo-writing, misspellings, unbound text, and duplicate provider plus
+  AgentCut subtitle layers instead of rejecting every readable glyph.
+
 ## 0.2.32
 
 - Require every Seedance dialogue reference segment to be 2-15 seconds; short
