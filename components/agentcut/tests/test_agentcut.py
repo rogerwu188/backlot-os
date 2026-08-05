@@ -10,7 +10,12 @@ from unittest.mock import Mock, patch
 
 from agentcut import AgentCutEngine, AgentCutError, RenderProgress, RenderResult, ValidationError
 from agentcut.agent import AgentServer
-from agentcut.validation import MediaValidator, validate_release_project_contract, validate_replacement_bindings
+from agentcut.validation import (
+    MediaValidator,
+    validate_release_project_contract,
+    validate_replacement_bindings,
+    validate_track_clip_overlaps,
+)
 from agentcut.transform import content_hash
 from agentcut.isolation import isolation_confidence
 from agentcut.audio_backend import audio_save_health, require_audio_save_backend
@@ -615,6 +620,58 @@ class AgentCutTests(unittest.TestCase):
         self.assertIn("REPLACEMENT_BINDING_COVERAGE_INCOMPLETE", {issue.code for issue in issues})
         self.assertIn("REPLACEMENT_BINDING_TARGET_MISSING", {issue.code for issue in issues})
         self.assertEqual(coverage["expected"], 2)
+
+    def test_replacement_binding_gate_scans_audio_and_nested_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            replacement = Path(directory) / "fixed.mp4"
+            replacement.write_bytes(b"admitted replacement")
+            replacement_sha = hashlib.sha256(replacement.read_bytes()).hexdigest()
+            stale_audio = Path(directory) / "native.wav"
+            stale_audio.write_bytes(b"superseded native source")
+            stale_sha = hashlib.sha256(stale_audio.read_bytes()).hexdigest()
+            data = project()
+            video = data["timeline"]["videoTracks"][0]["clips"][0]
+            video.update({"id": "U03-S1-A", "source": str(replacement), "metadata": {"source_sha256": replacement_sha}})
+            audio = data["timeline"]["audioTracks"][0]["clips"][0]
+            audio.update({
+                "id": "U03-S1-NATIVE-AUDIO", "source": str(stale_audio),
+                "metadata": {
+                    "source_sha256": stale_sha,
+                    "provenance": {"v18_original_source": "/old/V18_SMOOTH_ROAM.mp4"},
+                },
+            })
+            data["metadata"] = {"replacementBindingPolicy": {
+                "enabled": True, "expectedTargetCount": 1,
+                "targets": [{"clipId": "U03-S1-A", "replacementSourceSha256": replacement_sha}],
+                "forbiddenSourceSha256": [stale_sha], "forbiddenPathTokens": ["smooth_roam"],
+            }}
+            issues, coverage = validate_replacement_bindings(AgentCutEngine().load(data))
+            stale = [issue for issue in issues if issue.code == "SUPERSEDED_SOURCE_STILL_BOUND"]
+            self.assertEqual(len(stale), 1)
+            self.assertEqual(stale[0].track_kind, "audio")
+            self.assertIn("metadata.provenance.v18_original_source", {
+                hit["path"] for hit in stale[0].metadata["forbiddenMetadataHits"]
+            })
+            self.assertEqual(coverage["forbiddenMetadataHitCount"], 1)
+            self.assertEqual(coverage["status"], "FAIL")
+
+    def test_same_track_overlap_fails_but_cross_track_composite_passes(self):
+        data = project()
+        data["timeline"]["videoTracks"][0]["clips"] = [
+            {"id": "A", "source": "a.mp4", "start": 0, "duration": 3},
+            {"id": "B", "source": "b.mp4", "start": 2.5, "duration": 2},
+        ]
+        issues, coverage = validate_track_clip_overlaps(AgentCutEngine().load(data))
+        self.assertEqual({issue.code for issue in issues}, {"TIMELINE_SAME_TRACK_OVERLAP"})
+        self.assertEqual(coverage["sameTrackOverlapCount"], 1)
+
+        data["timeline"]["videoTracks"] = [
+            {"id": "Base", "clips": [data["timeline"]["videoTracks"][0]["clips"][0]]},
+            {"id": "Overlay", "clips": [data["timeline"]["videoTracks"][0]["clips"][1]]},
+        ]
+        issues, coverage = validate_track_clip_overlaps(AgentCutEngine().load(data))
+        self.assertEqual(issues, [])
+        self.assertEqual(coverage["status"], "PASS")
 
     def test_release_repair_cannot_omit_replacement_binding_policy(self):
         data = project()

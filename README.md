@@ -38,7 +38,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 - **Story Agent 0.2.1** — Claude >=4.8 policy, replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
 - **Producer/Supervisor Agent 0.2.0** — project planning, idempotent dispatch, Giggle image/video provider, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
-- **AgentCut 0.9.19** — timeline validation, compilation, rendering, shot recipes, exact replacement binding, dialogue/subtitle alignment, audio, and fail-closed release contracts.
+- **AgentCut 0.9.20** — timeline validation, compilation, rendering, shot recipes, recursive video/audio replacement binding, same-track overlap rejection, dialogue/subtitle alignment, audio, and fail-closed release contracts.
 - **Factory Runtime 2.0.20** — file-native queues, workers, dispatcher, supervisor, idempotency, receipts, rollback, and shared-message protocol.
 - **Pipeline Tools** — production gates, parallel orchestration, and privacy-filtered cross-machine prompt-memory convergence proven in the original production line.
 - **Legacy compatibility prompts** — the original Qingshan agent prompts are retained as migration references, not as the BacklotOS product identity.
@@ -52,20 +52,20 @@ Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 Download the immutable public package without cloning repository history:
 
 ```bash
-curl -L -o backlotos-v0.2.23.tar.gz \
-  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.23/backlotos-v0.2.23.tar.gz
+curl -L -o backlotos-v0.2.24.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.24/backlotos-v0.2.24.tar.gz
 expected_sha=$(curl -fsSL \
-  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.23 | \
-  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.23.tar.gz"))')
-actual_sha=$(shasum -a 256 backlotos-v0.2.23.tar.gz | awk '{print $1}')
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.24 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.24.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.24.tar.gz | awk '{print $1}')
 test "$actual_sha" = "$expected_sha"
-tar -xzf backlotos-v0.2.23.tar.gz
-cd backlotos-v0.2.23
+tar -xzf backlotos-v0.2.24.tar.gz
+cd backlotos-v0.2.24
 ./scripts/install.sh
 ./scripts/doctor.sh
 ```
 
-The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.23` provenance even though release archives intentionally contain no `.git` directory.
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.24` provenance even though release archives intentionally contain no `.git` directory.
 
 ### Git checkout (contributors)
 

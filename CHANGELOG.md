@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.24
+
+- Extend the replacement-binding release gate across live video, audio, and
+  recursively nested clip metadata so repaired projects cannot retain a
+  superseded source path or SHA outside the visible source field.
+- Reject accidental overlaps between enabled clips on the same timeline track
+  while preserving intentional composites and mixes on separate tracks.
+- Release AgentCut 0.9.20 with regression coverage and a migration guide for
+  deterministic repair binding and timeline-overlap cleanup.
+
 ## 0.2.23
 
 - Replace workstation-to-GitHub prompt-memory pushes with a collector-first
