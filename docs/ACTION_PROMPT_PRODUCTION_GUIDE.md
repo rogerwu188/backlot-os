@@ -265,6 +265,41 @@ unused provider tail must be marked `DISCARD_UNAUTHORED_TAIL`. The same gate run
 in the prompt compiler and the concurrent episode supervisor, so a malformed
 task cannot reach a paid provider submission or later assembly.
 
+### Motivated combat-camera vocabulary
+
+Combat prompts select camera language by dramatic function. They do not copy a
+menu of moves into every prompt. The compiler accepts these technique IDs:
+
+| Technique ID | Use |
+| --- | --- |
+| `tracking_follow` | Follow displacement, pursuit, or obstacle crossing. |
+| `arc_orientation` | Read the fighters' positions with one bounded arc. |
+| `crash_push` | Emphasize one decisive approach or contact. |
+| `crash_pull` | Reveal the physical result after contact. |
+| `low_angle_dolly` | Read footwork, takeoff, or grounded pressure. |
+| `overhead_crane` | Read a group, route, enclosure, or terrain. |
+| `micro_slow_follow` | Inspect one decisive contact for at most 0.6 seconds. |
+| `impact_shake` | Add at most 0.35 seconds of shake at real contact. |
+| `whip_pan_cut` | Match action direction across a storyboard cut. |
+| `detail_triple_cut` | Show setup, contact, and result as three details. |
+| `crane_rise` | Move from a result detail to the changed whole space. |
+| `obstacle_pass` | Preserve continuity through a real door, post, crowd, or obstacle. |
+| `shot_reverse_exchange` | Make an attack/counter exchange and eyeline axis explicit. |
+| `bounded_rotation` | Read one exchange around a fixed contact anchor. |
+| `locked_impact` | Let choreography and force play inside a stable composition. |
+
+Every `combat_choreography_contract` must include a
+`camera_language_plan`. Each segment binds exact time, action-beat index,
+narrative motivation, subject anchor, and axis relation. Unplanned time is a
+locked camera. Storyboards may use up to five motivated segments to assemble
+short shots. A 15-second long take permits at most two dynamic camera segments,
+with at least one second of stable observation between them. The declared
+camera-plan mode must match the actual provider generation mode.
+Edit-only techniques (`whip_pan_cut`, `detail_triple_cut`, and
+`shot_reverse_exchange`) require storyboard generation. Slow motion without a
+decisive contact, sustained shake, adjacent dynamic motion, decorative orbit,
+and continuous push/pull/roam fail before paid submission.
+
 ## Selective BGM flow
 
 Every release episode must choose one source policy:

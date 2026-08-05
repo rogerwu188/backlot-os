@@ -118,6 +118,14 @@ each exact-tail chain advances one ready head at a time, while all independent
 shots and other chains submit together. Remote polling runs in parallel, and
 completed outputs are downloaded and QA-checked in bounded parallel workers.
 
+Combat camera language is selected by action purpose, not sampled as visual
+decoration. Storyboards may combine up to five motivated short-shot techniques;
+a 15-second continuous action take allows at most two dynamic camera segments
+with a stable reading interval between them. Every segment binds an action beat,
+time range, subject anchor, axis relation, and narrative purpose. Unplanned time
+defaults to a locked camera, so tracking, arcs, pushes, pulls, cranes, shake, and
+slow motion cannot accumulate into continuous drift.
+
 When several short clips cannot preserve one continuous physical event, use
 `multi_keyframe_long_take` instead of adding more edit seams. This mode compiles
 one 15-second Seedance 2 Pro Omni generation from 3-9 ordered, SHA-bound

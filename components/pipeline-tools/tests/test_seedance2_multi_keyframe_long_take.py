@@ -104,6 +104,21 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
                 {"start_seconds": 9, "end_seconds": 12, "initiator": "lead", "target": "witness", "action": "shoulder capture", "contact_point": "right shoulder and wrist", "force_direction": "down toward the table", "footwork": "right step behind the heel", "target_reaction": "knees bend and chest lowers", "end_state": "intruder is chest-down at table edge"},
                 {"start_seconds": 12, "end_seconds": 15, "initiator": "lead", "target": "witness", "action": "two-point restraint", "contact_point": "right wrist and upper back", "force_direction": "down", "footwork": "stable staggered stance", "target_reaction": "stops struggling without changing identity", "end_state": "lead controls intruder"},
             ],
+            "camera_language_plan": {
+                "generation_mode": "multi_keyframe_long_take",
+                "segments": [
+                    {
+                        "technique_id": "tracking_follow", "start_seconds": 0, "end_seconds": 2,
+                        "action_beat_index": 1, "narrative_motivation": "keep the entry and first interception readable",
+                        "subject_anchor": "shared forearm contact", "axis_relation": "camera stays on room side of the action axis",
+                    },
+                    {
+                        "technique_id": "locked_impact", "start_seconds": 9, "end_seconds": 12,
+                        "action_beat_index": 4, "narrative_motivation": "show the shoulder capture without camera compensation",
+                        "subject_anchor": "witness right shoulder", "axis_relation": "same room-side axis",
+                    },
+                ],
+            },
             "winner": "lead", "restrained_actor": "witness",
             "terminal_identity_hold": "lead remains standing and pins witness chest-down; their faces and wardrobes remain distinct",
         }
@@ -231,7 +246,50 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             self.assertIn("逐拍动作因果", prompt)
             self.assertIn("被制服者=witness", prompt)
             self.assertIn("@视频1只参考动作节拍", prompt)
+            self.assertIn("动作镜头语言配方", prompt)
+            self.assertEqual(manifest["combat_choreography_contract"]["camera_language_plan"]["selection_gate"], "PASS_MOTIVATED_ONLY")
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
+
+    def test_combat_rejects_continuous_perpetual_camera_motion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["camera_language_plan"]["segments"] = [
+                {"technique_id": "tracking_follow", "start_seconds": 0, "end_seconds": 3, "action_beat_index": 1, "narrative_motivation": "follow entry", "subject_anchor": "lead", "axis_relation": "room side"},
+                {"technique_id": "arc_orientation", "start_seconds": 3, "end_seconds": 5, "action_beat_index": 2, "narrative_motivation": "show positions", "subject_anchor": "shared wrists", "axis_relation": "room side"},
+                {"technique_id": "low_angle_dolly", "start_seconds": 6, "end_seconds": 8, "action_beat_index": 3, "narrative_motivation": "show feet", "subject_anchor": "feet", "axis_relation": "room side"},
+            ]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "at most two dynamic camera techniques"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_slow_motion_without_decisive_contact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["camera_language_plan"]["segments"] = [{
+                "technique_id": "micro_slow_follow", "start_seconds": 2.2, "end_seconds": 2.7,
+                "action_beat_index": 1, "narrative_motivation": "decorate the punch",
+                "subject_anchor": "fist", "axis_relation": "room side",
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "contact_is_decisive"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_camera_mode_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["camera_language_plan"]["generation_mode"] = "storyboard"
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "must match the generation spec mode"):
+                compile_prompt(spec)
 
     def test_combat_rejects_shared_identity_reference(self):
         with tempfile.TemporaryDirectory() as directory:

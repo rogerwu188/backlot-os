@@ -39,6 +39,105 @@ EXPRESSIVE_DIALOGUE_FIELDS = (
     "emphasis_words", "volume_arc", "breath_pattern", "delivery_transition", "body_sync",
 )
 
+# Action-camera vocabulary is selected by dramatic function, never sampled as
+# decorative motion. Short accents stay short so the action remains readable.
+ACTION_CAMERA_TECHNIQUES = {
+    "tracking_follow": ("空间跟随", "持续位移、追逐或绕障", "moving", 3.0),
+    "arc_orientation": ("弧线定向", "交代双方站位与空间关系", "moving", 2.0),
+    "crash_push": ("急速推进", "唯一一次逼近决定性接触", "accent", 0.8),
+    "crash_pull": ("急速拉开", "接触后揭示受力结果与环境", "accent", 0.8),
+    "low_angle_dolly": ("低机位移动", "强调步法、腾跃起点或压迫感", "moving", 2.0),
+    "overhead_crane": ("高位俯拍", "交代多人包围、路线或地形", "moving", 2.0),
+    "micro_slow_follow": ("短促慢速强调", "仅强调唯一决定性接触", "accent", 0.6),
+    "impact_shake": ("冲击震动", "仅在真实接触瞬间表现冲量", "accent", 0.35),
+    "whip_pan_cut": ("甩镜切换", "动作方向匹配的镜间交接", "edit", 0.4),
+    "detail_triple_cut": ("三段特写", "起势、接触、结果三个信息点", "edit", 2.4),
+    "crane_rise": ("升降揭示", "从局部结果升起交代全局", "moving", 2.0),
+    "obstacle_pass": ("穿绕遮挡", "沿真实门柱、人群或障碍维持空间连续", "moving", 2.5),
+    "shot_reverse_exchange": ("正反交替", "明确攻守交换与视线轴", "edit", 2.5),
+    "bounded_rotation": ("有限旋转", "围绕固定接触点读取一次攻防转换", "moving", 1.5),
+    "locked_impact": ("定格机位", "让动作和受力在稳定构图内自行发生", "stable", 3.0),
+}
+ACTION_CAMERA_EDIT_ONLY = {"whip_pan_cut", "detail_triple_cut", "shot_reverse_exchange"}
+ACTION_CAMERA_DYNAMIC_FAMILIES = {"moving", "accent"}
+
+
+def compile_combat_camera_language(
+    contract: dict, beats: list[dict], duration: float, actual_mode: str
+) -> tuple[str, dict]:
+    """Compile motivated action-camera choices without recreating perpetual sway."""
+    plan = require(contract.get("camera_language_plan"), "combat camera_language_plan is required")
+    mode = require(plan.get("generation_mode"), "combat camera_language_plan.generation_mode is required")
+    if mode not in MODES:
+        raise ValueError(f"unsupported combat camera generation_mode: {mode}")
+    if mode != actual_mode:
+        raise ValueError("combat camera generation_mode must match the generation spec mode")
+    segments = require(plan.get("segments"), "combat camera_language_plan.segments are required")
+    if not isinstance(segments, list) or not 1 <= len(segments) <= 5:
+        raise ValueError("combat camera language requires 1 to 5 motivated segments")
+
+    compiled, moving = [], []
+    prior_end = 0.0
+    for index, row in enumerate(segments, start=1):
+        technique = require(row.get("technique_id"), f"combat camera segment {index} technique_id is required")
+        if technique not in ACTION_CAMERA_TECHNIQUES:
+            raise ValueError(f"unsupported combat camera technique: {technique}")
+        label, use_case, family, max_seconds = ACTION_CAMERA_TECHNIQUES[technique]
+        start = float(require(row.get("start_seconds"), f"combat camera segment {index} start_seconds is required"))
+        end = float(require(row.get("end_seconds"), f"combat camera segment {index} end_seconds is required"))
+        if start < prior_end or end <= start or end > duration + 0.01:
+            raise ValueError(f"combat camera segment {index} has invalid or overlapping time range")
+        if end - start > max_seconds + 0.01:
+            raise ValueError(f"combat camera technique {technique} exceeds {max_seconds:g}s limit")
+        if technique in ACTION_CAMERA_EDIT_ONLY and mode != "storyboard":
+            raise ValueError(f"combat camera technique {technique} requires storyboard mode")
+        if technique == "micro_slow_follow" and row.get("contact_is_decisive") is not True:
+            raise ValueError("micro_slow_follow requires contact_is_decisive=true")
+        beat_index = int(require(row.get("action_beat_index"), f"combat camera segment {index} action_beat_index is required"))
+        if not 1 <= beat_index <= len(beats):
+            raise ValueError(f"combat camera segment {index} action_beat_index is out of range")
+        motivation = require(row.get("narrative_motivation"), f"combat camera segment {index} narrative_motivation is required")
+        anchor = require(row.get("subject_anchor"), f"combat camera segment {index} subject_anchor is required")
+        axis = require(row.get("axis_relation"), f"combat camera segment {index} axis_relation is required")
+        if family in ACTION_CAMERA_DYNAMIC_FAMILIES:
+            moving.append((start, end, family, technique))
+        compiled.append({
+            "technique_id": technique, "label": label, "family": family,
+            "start_seconds": start, "end_seconds": end, "action_beat_index": beat_index,
+            "narrative_motivation": motivation, "subject_anchor": anchor,
+            "axis_relation": axis, "allowed_use": use_case,
+        })
+        prior_end = end
+
+    is_long_take = mode in {"continuous_long_take", "multi_keyframe_long_take"}
+    if is_long_take and len(moving) > 2:
+        raise ValueError("combat long take permits at most two dynamic camera techniques")
+    for previous, current in zip(compiled, compiled[1:]):
+        if previous["technique_id"] == current["technique_id"]:
+            raise ValueError("adjacent combat camera segments cannot repeat one technique")
+    for previous, current in zip(moving, moving[1:]):
+        if is_long_take and current[0] - previous[1] < 1.0:
+            raise ValueError("dynamic combat camera techniques require at least 1 second of stable observation between them")
+        if is_long_take and previous[2] == current[2]:
+            raise ValueError("adjacent dynamic combat camera techniques cannot repeat one motion family")
+
+    rows = [
+        f"{row['start_seconds']:g}-{row['end_seconds']:g}秒用{row['label']}，只为{row['narrative_motivation']}；"
+        f"绑定动作拍{row['action_beat_index']}，主体锚点{row['subject_anchor']}，轴线{row['axis_relation']}"
+        for row in compiled
+    ]
+    prompt = (
+        "\n【动作镜头语言配方】" + "；".join(rows) + "。未声明时段一律稳定机位。"
+        "运镜必须服务动作因果和空间读取，不得把跟拍、环绕、推拉、升降、旋转或震动当作持续装饰；"
+        "禁止连续摇摆、smooth roam、无动机slow push、重复环绕、用镜头运动掩盖动作缺失。"
+    )
+    return prompt, {
+        "version": "1.0.0", "generation_mode": mode, "segments": compiled,
+        "dynamic_segment_count": len(moving),
+        "stable_observation_between_dynamic_seconds": 1.0 if is_long_take else 0.0,
+        "unplanned_time_policy": "LOCKED_CAMERA", "selection_gate": "PASS_MOTIVATED_ONLY",
+    }
+
 
 def _verified_asset(asset: dict, label: str) -> tuple[Path, str]:
     path = Path(require(asset.get("path"), f"{label} path is required"))
@@ -199,6 +298,10 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
     if abs(cursor - float(spec["duration_seconds"])) > 0.01:
         raise ValueError("combat beats must cover the full generation duration")
 
+    camera_prompt, camera_contract = compile_combat_camera_language(
+        contract, beats, float(spec["duration_seconds"]), spec["mode"]
+    )
+
     winner = require(contract.get("winner"), "combat winner is required")
     restrained = require(contract.get("restrained_actor"), "combat restrained_actor is required")
     if winner not in names or restrained not in names or winner == restrained:
@@ -208,7 +311,8 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "\n【打斗身份硬锁】" + "；".join(participant_rows) + "。"
         "@视频1只参考动作节拍、真实重心转移和受力反馈，不继承人物、服装、场景、胜负或运镜。"
         "\n【逐拍动作因果】" + "；".join(beat_rows) + "。"
-        f"\n【胜负终态硬锁】胜者={winner}；被制服者={restrained}；终局画面={terminal}。"
+        + camera_prompt
+        + f"\n【胜负终态硬锁】胜者={winner}；被制服者={restrained}；终局画面={terminal}。"
         "禁止互换身份、禁止攻守倒置、禁止让胜者被按住、禁止橡皮肢体、假摔、无接触挥舞和重复招式。"
     )
     return prompt, {
@@ -219,6 +323,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "winner": winner,
         "restrained_actor": restrained,
         "terminal_identity_hold": terminal,
+        "camera_language_plan": camera_contract,
     }
 
 
@@ -662,6 +767,13 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
     entities = require(spec.get("entities"), "entities are required")
     shots = require(spec.get("shots"), "shots are required")
     header = entity_header(entities, spec.get("setting"))
+    combat_prompt, combat_contract = "", None
+    character_registry = None
+    if spec.get("combat_choreography_contract"):
+        actor_roster = require(spec.get("actor_roster"), "combat actor_roster is required")
+        character_prompt, character_registry = compile_episode_character_registry(spec, actor_roster)
+        combat_prompt, combat_contract = compile_combat_choreography_contract(spec, actor_roster)
+        header += character_prompt
     tail = require(spec.get("style_and_negative"), "style_and_negative is required")
     visual_contract = spec.get("visual_benchmark_contract")
     if visual_contract:
@@ -701,7 +813,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         route = "/api/v1/generation/image-to-video"
         contract = "single_unbroken_shot_first_last_frames"
 
-    prompt = f"{header}\n\n{body}{expressive_voice_prompt}\n\n{tail.strip()}\n"
+    prompt = f"{header}\n\n{body}{combat_prompt}{expressive_voice_prompt}\n\n{tail.strip()}\n"
     post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     manifest = {
         "schema": "qingshan.seedance2_prompt_compilation.v2" if visual_contract else "qingshan.seedance2_prompt_compilation.v1",
@@ -715,6 +827,9 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "dialogue_mode": dialogue_mode,
         "dialogue_mode_gate": "PASS",
         "expressive_voice_contract": expressive_voice_contract,
+        "episode_character_registry": character_registry,
+        "combat_choreography_contract": combat_contract,
+        "combat_camera_language_gate": "PASS_MOTIVATED_ONLY" if combat_contract else "NOT_APPLICABLE",
     }
     if version:
         manifest["visual_benchmark_contract_version"] = version
