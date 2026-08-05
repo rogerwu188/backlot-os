@@ -1,15 +1,18 @@
 {
   "dataset": "seedance2_prompt_failure_training.jsonl",
-  "dataset_sha256": "d3da31dcdbca7c4b5a114df94fb6dd0d83143056c6d288b4ab6206cc191fb833",
+  "dataset_sha256": "ad9b5ea56b5b69d30395f23f2278e5eb2d49126c7cf2c211de1546a22e24a84b",
   "deployment": "The dataset ships with BacklotOS and is loaded relative to seedance2_prompt_compiler.py.",
   "format": "LoRA-ready JSONL plus deterministic compiler retrieval",
   "hard_rules": [
     "Conflicting reference geometry is removed; prose-only negative isolation is insufficient.",
     "A unique story prop has one named owner; every non-owner receives a distinct visible empty-hand action.",
-    "Every adjacent keyframe pair declares a physically reachable camera side, position, facing and continuous path before paid generation."
+    "Every adjacent keyframe pair declares a physically reachable camera side, position, facing and continuous path before paid generation.",
+    "Generated text surfaces stay blank and exact glyphs are added only as real-font AgentCut layers.",
+    "Exact dialogue is decoupled from visual prompts so the provider cannot burn native captions into source video.",
+    "Three-beat action long takes require at least three ordered state-authority frames with actor, contact and body-relative effect-scale locks."
   ],
-  "runtime_behavior": "Every multi_keyframe_long_take compilation loads admitted samples and injects their guard clauses before paid generation.",
-  "sample_count": 3,
+  "runtime_behavior": "Compilation loads admitted samples and pending defensive rewrites applicable to the requested image or video mode; pending records cannot claim a successful accepted asset.",
+  "sample_count": 6,
   "schema": "backlotos.seedance_prompt_memory_manifest.v1",
   "sync_policy": "PRIVACY_FILTERED_CONTENT_ADDRESSED_GITHUB_CONVERGENCE",
   "training_status": "RULE_ADAPTER_ACTIVE_WEIGHT_TRAINING_NOT_CLAIMED"

@@ -133,6 +133,12 @@ precompiles admitted failure lessons into every long-take prompt and records the
 dataset SHA and sample IDs, so another workstation reproduces the same learned
 guardrails without private media. Long takes pass at 60 points unless identity,
 safety, era, OCR, or media-integrity hard failures override the score.
+Image-generation failures use the same memory path. Generated papers, drawer
+labels, documents, and signs are blank material plates; exact text is added by
+AgentCut with a real font. A newly observed failure may enter the shared corpus
+as `ACTIVE_REWRITE_PENDING_POSITIVE` so every node can reject the known-bad
+pattern, but it becomes `ADMITTED` only after the rewritten image or video and
+its applicable QA receipt are SHA-bound and pass.
 Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
 provider or workstation needs lower concurrency.
 Every atomic action also carries an authored assembly window. The release
