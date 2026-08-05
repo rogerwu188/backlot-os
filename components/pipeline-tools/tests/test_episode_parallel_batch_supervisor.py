@@ -1138,6 +1138,95 @@ class EpisodeParallelBatchSupervisorActivityTest(unittest.TestCase):
 
         self.assertEqual(failures, [])
 
+    def test_audio_driven_dialogue_blocks_short_audio_and_visual_prompt_glyph_leak(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "anchor.png"
+            audio = root / "D1.wav"
+            prompt = root / "prompt.txt"
+            write_test_png(image)
+            audio.write_bytes(b"exact line")
+            prompt.write_text("人物说：别动。", encoding="utf-8")
+            failures = validate_entity_reference_task({
+                "generation_mode": "performance_generation",
+                "batch_id": "E38-U01-V6",
+                "unit_id": "U01",
+                "still_sequence_only_allowed": True,
+                "planned_reference_image_count": 1,
+                "state_reference_minimum": 1,
+                "reference_images": [str(image)],
+                "reference_image_sequence": [{"state_id": "A1", "path": str(image)}],
+                "reference_audios": [str(audio)],
+                "native_dialogue_required": True,
+                "dialogue_visual_text_isolation_required": True,
+                "seedance_audio_reference_duration_gate_required": True,
+                "prompt_file": str(prompt),
+                "dialogue": [{"dia_id": "D1", "speaker": "刺客", "spoken_text": "别动。"}],
+                "dialogue_audio_assets": [{
+                    "dia_id": "D1", "path": str(audio),
+                    "sha256": hashlib.sha256(audio.read_bytes()).hexdigest(),
+                    "duration_seconds": 1.2,
+                    "purpose": "EXACT_TARGET_DIALOGUE_REFERENCE",
+                }],
+                "performance_spec": {
+                    "prop_ownership": {"knife": "刺客右手"},
+                    "motion_beats": [{
+                        "subject": "刺客", "action": "抬刀", "contact_point": "刀柄",
+                        "direction": "向前", "end_state": "停刀", "intent": "警告",
+                        "visible_causality": "抬刀迫使对手后退", "expression": "警觉",
+                        "viewer_read": "刺客发出警告",
+                    }],
+                },
+                "keyframe_interpolation_gate": {"status": "PASS", "checked_adjacent_pairs": 0},
+            })
+
+        checks = {row["check"] for row in failures}
+        self.assertIn("dialogue_visual_text_isolation", checks)
+        self.assertIn("seedance_reference_audio_segment_duration", checks)
+
+    def test_expressive_voice_contract_requires_psychology_and_prosody(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "anchor.png"
+            audio = root / "D1.wav"
+            write_test_png(image)
+            audio.write_bytes(b"exact line")
+            failures = validate_entity_reference_task({
+                "generation_mode": "performance_generation",
+                "batch_id": "E38-U01-V6",
+                "unit_id": "U01",
+                "still_sequence_only_allowed": True,
+                "planned_reference_image_count": 1,
+                "state_reference_minimum": 1,
+                "reference_images": [str(image)],
+                "reference_image_sequence": [{"state_id": "A1", "path": str(image)}],
+                "reference_audios": [str(audio)],
+                "native_dialogue_required": True,
+                "expressive_voice_prompt_required": True,
+                "dialogue": [{"dia_id": "D1", "speaker": "刺客", "spoken_text": "别动。"}],
+                "dialogue_audio_assets": [{
+                    "dia_id": "D1", "path": str(audio),
+                    "sha256": hashlib.sha256(audio.read_bytes()).hexdigest(),
+                    "duration_seconds": 2.2,
+                    "purpose": "EXACT_TARGET_DIALOGUE_REFERENCE",
+                    "expressive_delivery_contract": {"emotion": "警觉"},
+                }],
+                "performance_spec": {
+                    "prop_ownership": {"knife": "刺客右手"},
+                    "motion_beats": [{
+                        "subject": "刺客", "action": "抬刀", "contact_point": "刀柄",
+                        "direction": "向前", "end_state": "停刀", "intent": "警告",
+                        "visible_causality": "抬刀迫使对手后退", "expression": "警觉",
+                        "viewer_read": "刺客发出警告",
+                    }],
+                },
+                "keyframe_interpolation_gate": {"status": "PASS", "checked_adjacent_pairs": 0},
+            })
+
+        expressive = next(row for row in failures if row["check"] == "expressive_voice_prompt_contract")
+        self.assertIn("psychological_state", expressive["missing"])
+        self.assertIn("delivery_transition", expressive["missing"])
+
     def test_performance_generation_blocks_unplanned_anchor_count(self):
         failures = validate_entity_reference_task({
             "generation_mode": "performance_generation",

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.32
+
+- Require every Seedance dialogue reference segment to be 2-15 seconds; short
+  verified speech may only be padded with trailing silence, never regenerated
+  unchanged merely to satisfy transport limits.
+- Add a visual-prompt dialogue isolation gate: exact spoken glyphs are carried
+  by ordered audio assets and may not appear in the visual generation prompt,
+  preventing model-burned captions from leaking into clean sources.
+- Preserve intentional readable props and writing shots when they are bound to
+  an approved text plate or deterministic AgentCut text layer; only invented,
+  misspelled, or unbound model text is rejected.
+- Require each generated spoken line to bind a typed expressive delivery
+  contract covering psychology, emotion intensity, pace, pauses, emphasis,
+  volume, breath, delivery transition, and synchronized body performance.
+
 ## 0.2.31
 
 - Compile every spoken line from a typed psychology-and-prosody profile: inner

@@ -967,6 +967,19 @@ def validate_entity_reference_task(task: dict) -> list[dict]:
     if task.get("native_dialogue_required") is True:
         dialogue = list(task.get("dialogue") or [])
         dialogue_assets = list(task.get("dialogue_audio_assets") or [])
+        if task.get("dialogue_visual_text_isolation_required") is True:
+            prompt_path = abs_path(str(task.get("prompt_file") or task.get("prompt_path") or ""))
+            prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.is_file() else ""
+            if not prompt_text:
+                failures.append({"check": "dialogue_visual_text_isolation", "error": "prompt_missing"})
+            for row in dialogue:
+                spoken_text = str(row.get("spoken_text") or "").strip()
+                if spoken_text and spoken_text in prompt_text:
+                    failures.append({
+                        "check": "dialogue_visual_text_isolation",
+                        "dia_id": row.get("dia_id"),
+                        "error": "exact_dialogue_glyphs_present_in_visual_prompt",
+                    })
         exact_audio_total = sum(
             float(asset.get("duration_seconds") or 0)
             for asset in dialogue_assets
@@ -979,6 +992,33 @@ def validate_entity_reference_task(task: dict) -> list[dict]:
                 "actual_seconds": round(exact_audio_total, 6),
                 "error": "split_at_natural_dialogue_boundary_before_submission",
             })
+        if task.get("seedance_audio_reference_duration_gate_required") is True:
+            for asset in dialogue_assets:
+                duration_seconds = float(asset.get("duration_seconds") or 0)
+                if duration_seconds < 2.0 or duration_seconds > 15.0:
+                    failures.append({
+                        "check": "seedance_reference_audio_segment_duration",
+                        "dia_id": asset.get("dia_id"),
+                        "minimum_seconds": 2.0,
+                        "maximum_seconds": 15.0,
+                        "actual_seconds": duration_seconds,
+                        "error": "pad_with_trailing_silence_or_split_before_submission",
+                    })
+        if task.get("expressive_voice_prompt_required") is True:
+            required_delivery_fields = {
+                "psychological_state", "emotion", "emotion_intensity", "pace",
+                "pause_map", "emphasis_words", "volume_arc", "breath_pattern",
+                "delivery_transition",
+            }
+            for asset in dialogue_assets:
+                delivery = asset.get("expressive_delivery_contract") or {}
+                missing = sorted(field for field in required_delivery_fields if delivery.get(field) in (None, "", []))
+                if missing:
+                    failures.append({
+                        "check": "expressive_voice_prompt_contract",
+                        "dia_id": asset.get("dia_id"),
+                        "missing": missing,
+                    })
         required_ids = [str(row.get("dia_id") or "") for row in dialogue]
         bound_ids = [str(row.get("dia_id") or "") for row in dialogue_assets]
         model_native_ids = [str(value) for value in task.get("model_native_text_only_dialogue_ids") or []]
