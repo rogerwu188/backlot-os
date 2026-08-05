@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.31
+
+- Require writer-completed, source-grounded character briefs and SHA-frozen visual/voice assets for the full actor roster before multi-keyframe video compilation.
+- Extend the Story Agent episode schema and generation prompt so E39+ scripts must define asset-ready, era-grounded temporary characters before any downstream generation.
+- Block temporary random characters, unapproved historical or same-episode face/wardrobe/voice similarity, and within-shot identity or wardrobe drift.
+- Replace prose-only fight direction with a fail-closed timed choreography
+  contract: every exchange names the initiator, target, contact point, force
+  direction, footwork, reaction, and terminal state.
+- Require distinct SHA-bound identity references, wardrobe silhouettes, face
+  geometry, and first-second displacement for every combat participant.
+- Scope action-reference video inheritance to timing and body mechanics only,
+  and hard-lock the winner, restrained actor, and terminal identity hold.
+- Treat combat identity/outcome inversion and visible-actor freezing as hard
+  long-take failures even when the aggregate score is at least 60.
+- Release AgentCut 0.9.22 with release gates that reject blur/defocus repair
+  sources and unapproved opaque subtitle boxes.
+
 ## 0.2.30
 
 - Add a typed dialogue-mode compiler gate: visible native speech, deliberate

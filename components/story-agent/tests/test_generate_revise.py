@@ -46,6 +46,13 @@ def test_generation_rejects_malformed_nested_contract(good):
     with pytest.raises(Exception,match="failed episode contract"):
         sa.generate({"episode_id":"GEN-BAD"})
 
+def test_generation_rejects_missing_temporary_character_brief(good):
+    malformed=copy.deepcopy(good)
+    malformed["character_asset_briefs"]=[]
+    sa=StoryAgent(_mock_adapter(malformed))
+    with pytest.raises(Exception,match="failed episode contract"):
+        sa.generate({"episode_id":"GEN-BAD"})
+
 def test_failed_only_rejects_deleted_sibling(good):
     malformed=copy.deepcopy(good)
     malformed["scenes"][0]["shots"].pop(0)

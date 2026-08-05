@@ -11,6 +11,11 @@
   "prev_episode": {"episode_id": "GEN-00", "last_weather": "rain-night"},
   "new_info": ["ni1", "ni2", "ni3", "ni4", "ni5", "ni6"],
   "mainline_beats": ["b1", "b2"],
+  "character_asset_briefs": [
+    {"character_id":"Hero","source_locator":"source paragraph 1","era":"test dynasty","region":"north","age":"20","gender_presentation":"male","social_role":"investigator","wardrobe":"light fitted hemp robe, pale grey, narrow sleeves, worn boots","face":"oval face, straight brows","hair":"high tied hair with plain wood pin","body":"lean, medium height, left brow mark","voice":"young low tenor, measured pace, northern-neutral accent","design_distinction_from":["Rival: lighter palette, slimmer silhouette, straighter brows","Ally: lower voice and no head scarf"],"narrative_similarity_exception":null,"writer_completed_before_asset_generation":true},
+    {"character_id":"Rival","source_locator":"source paragraph 2","era":"test dynasty","region":"west","age":"35","gender_presentation":"male","social_role":"guard","wardrobe":"rust sleeveless leather vest over ochre shirt, broad belt, heavy boots","face":"long jaw, broken nose, weathered skin","hair":"brown wrapped head cloth, no topknot","body":"broad shoulders, tall, scarred right hand","voice":"rough baritone, clipped pace, western accent","design_distinction_from":["Hero: rust palette, broad silhouette, broken nose","Ally: older, lower voice, head cloth"],"narrative_similarity_exception":null,"writer_completed_before_asset_generation":true},
+    {"character_id":"Ally","source_locator":"source paragraph 3","era":"test dynasty","region":"south","age":"22","gender_presentation":"female","social_role":"scout","wardrobe":"dark green cross-collar cloth jacket, split skirt trousers, soft shoes","face":"round face, wide eyes, warm brown skin","hair":"low braided coil with green cord","body":"short, compact, quick posture","voice":"clear alto, quick pace, southern-neutral accent","design_distinction_from":["Hero: green palette, round face, braided coil","Rival: compact body and clear alto"],"narrative_similarity_exception":null,"writer_completed_before_asset_generation":true}
+  ],
   "scenes": [{
     "scene_id": "1-1", "location": "market", "time": "dawn", "weather": "clear-cold", "visual_zone": "crowd",
     "shots": [

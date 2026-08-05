@@ -13,6 +13,7 @@ from agentcut.agent import AgentServer
 from agentcut.validation import (
     MediaValidator,
     validate_release_project_contract,
+    validate_release_visual_integrity,
     validate_replacement_bindings,
     validate_track_clip_overlaps,
 )
@@ -579,6 +580,22 @@ class AgentCutTests(unittest.TestCase):
         issues, coverage = validate_release_project_contract(parsed)
         self.assertEqual(issues, [])
         self.assertEqual(coverage["status"], "PASS")
+
+    def test_release_visual_integrity_blocks_defocus_source(self):
+        data = subtitled_project()
+        data["releaseProject"] = True
+        data["timeline"]["videoTracks"][0]["clips"][0]["source"] = "U05-PAPER-DEFOCUS-V5.mp4"
+        issues, coverage = validate_release_visual_integrity(AgentCutEngine().load(data))
+        self.assertIn("RELEASE_BLUR_REPAIR_FORBIDDEN", {item.code for item in issues})
+        self.assertEqual(coverage["blurRepairSourceCount"], 1)
+
+    def test_release_visual_integrity_blocks_unapproved_caption_box(self):
+        data = subtitled_project()
+        data["releaseProject"] = True
+        data["timeline"]["subtitleTracks"][0]["clips"][0]["style"] = {"box": True}
+        issues, coverage = validate_release_visual_integrity(AgentCutEngine().load(data))
+        self.assertIn("RELEASE_SUBTITLE_BOX_UNAPPROVED", {item.code for item in issues})
+        self.assertEqual(coverage["boxedCaptionCount"], 1)
 
     def test_compile_fails_before_render_when_release_contract_is_incomplete(self):
         data = project()
