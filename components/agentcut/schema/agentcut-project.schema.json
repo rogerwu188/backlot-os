@@ -277,6 +277,10 @@
         "color": {"type": "string", "default": "#FFFFFF"},
         "outline": {"type": "integer", "minimum": 0, "default": 3},
         "outlineColor": {"type": "string", "default": "#000000"},
+        "box": {"type": "boolean", "default": false},
+        "boxColor": {"type": "string", "default": "#000000"},
+        "boxOpacity": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.72},
+        "boxBorder": {"type": "integer", "minimum": 0, "default": 14},
         "alignment": {"enum": ["top-left", "top-center", "top-right", "middle-left", "center", "middle-right", "bottom-left", "bottom-center", "bottom-right"]},
         "margins": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "object", "properties": {"left": {"type": "integer", "minimum": 0}, "right": {"type": "integer", "minimum": 0}, "top": {"type": "integer", "minimum": 0}, "bottom": {"type": "integer", "minimum": 0}}}]},
         "wrap": {"type": "integer", "minimum": 1, "default": 18}
@@ -296,6 +300,9 @@
         "font": {"type": "string", "minLength": 1}, "size": {"type": "integer", "minimum": 1},
         "color": {"type": "string"}, "outline": {"type": "integer", "minimum": 0},
         "outlineColor": {"type": "string"},
+        "box": {"type": "boolean"}, "boxColor": {"type": "string"},
+        "boxOpacity": {"type": "number", "minimum": 0, "maximum": 1},
+        "boxBorder": {"type": "integer", "minimum": 0},
         "alignment": {"enum": ["top-left", "top-center", "top-right", "middle-left", "center", "middle-right", "bottom-left", "bottom-center", "bottom-right"]},
         "margins": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "object"}]},
         "wrap": {"type": "integer", "minimum": 1}

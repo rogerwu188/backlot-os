@@ -145,6 +145,35 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertTrue(manifest["text_layer_post_only"])
         self.assertEqual(manifest["post_only_glyph_count"], 1)
 
+    def test_dialogue_mode_rejects_silent_visual_contract_with_on_camera_speech(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard",
+            "dialogue_mode": "ON_CAMERA_NATIVE_LIP_SYNC",
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "陈迹全程不开口检查账册", "expression_arc": "迟疑到警觉", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": {"speaker": "陈迹", "text": "不是巧合。"}, "cut_reason": "视线接"},
+            ],
+        })
+        with self.assertRaisesRegex(ValueError, "DIALOGUE_MODE_CONSISTENCY"):
+            compile_prompt(spec)
+
+    def test_closed_mouth_voice_over_stays_out_of_visual_prompt(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard",
+            "dialogue_mode": "CLOSED_MOUTH_VOICE_OVER",
+            "voice_over_manifest": [{"speaker": "陈迹", "text": "不是巧合。", "audio_source": "voice.wav"}],
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "陈迹闭口检查账册", "expression_arc": "迟疑到警觉", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹闭口抬眼", "expression_arc": "警觉到确认", "cut_reason": "视线接"},
+            ],
+        })
+        prompt, manifest = compile_prompt(spec)
+        self.assertNotIn("不是巧合", prompt)
+        self.assertEqual(manifest["dialogue_mode"], "CLOSED_MOUTH_VOICE_OVER")
+        self.assertEqual(manifest["dialogue_mode_gate"], "PASS")
+
     def test_pending_defensive_rewrite_is_precompiled_without_claiming_acceptance(self):
         with tempfile.TemporaryDirectory() as directory:
             memory = Path(directory) / "memory.jsonl"

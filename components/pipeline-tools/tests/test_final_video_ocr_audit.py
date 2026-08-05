@@ -2,6 +2,7 @@ import unittest
 
 from tools.final_video_ocr_audit import (
     choose_media_duration,
+    is_geometric_text_candidate,
     resolve_audit_status,
     resolve_sampling_policy,
 )
@@ -44,6 +45,14 @@ class FinalVideoOcrAuditTests(unittest.TestCase):
             resolve_audit_status(critical_latin_chars=0, critical_failures=1),
             "FAIL",
         )
+
+    def test_text_sized_region_is_a_candidate(self):
+        box = [[100, 300], [300, 300], [300, 340], [100, 340]]
+        self.assertTrue(is_geometric_text_candidate(box, 1080))
+
+    def test_face_sized_region_is_not_a_candidate(self):
+        box = [[100, 200], [500, 200], [500, 500], [100, 500]]
+        self.assertFalse(is_geometric_text_candidate(box, 1080))
 
 
 if __name__ == "__main__":

@@ -93,6 +93,15 @@ class AgentCutTests(unittest.TestCase):
     E28_V4_PROJECT = Path("/Users/rogerwu/qingshan_short_drama/configs/e28_agentcut_v4_midsection_recut_20260721.json")
     E28_CL2X517_PROJECT = Path("/Users/rogerwu/qingshan_short_drama/configs/e28_agentcut_v1_cl2x517_u09_hold_20260721.json")
 
+    def test_caption_box_style_compiles(self):
+        data = subtitled_project()
+        data["timeline"]["subtitleTracks"][0]["style"].update({
+            "box": True, "boxColor": "#101010", "boxOpacity": 0.8, "boxBorder": 18,
+        })
+        compiled = AgentCutEngine().compile(data)
+        graph = compiled.argv[compiled.argv.index("-filter_complex") + 1]
+        self.assertIn("box=1:boxcolor=0x101010@0.8:boxborderw=18", graph)
+
     @staticmethod
     def _admission_project(shot_id, cadence_path, *, reference_mode="generated_video", admission="PASS"):
         report = json.loads(Path(cadence_path).read_text(encoding="utf-8"))
@@ -287,6 +296,16 @@ class AgentCutTests(unittest.TestCase):
 
     @unittest.skipUnless(E28_CL2X517_PROJECT.is_file(), "E28 CL2X-517 production project unavailable")
     def test_e28_cl2x517_real_project_preserves_raw_failures_and_resolves_hold_gap(self):
+        project_data = json.loads(self.E28_CL2X517_PROJECT.read_text(encoding="utf-8"))
+        sources = [
+            Path(clip["source"])
+            for tracks_key in ("videoTracks", "audioTracks")
+            for track in project_data.get("timeline", {}).get(tracks_key, [])
+            for clip in track.get("clips", [])
+            if clip.get("source")
+        ]
+        if any(not source.is_file() for source in sources):
+            self.skipTest("E28 CL2X-517 production media unavailable")
         report = AgentCutEngine().validate(self.E28_CL2X517_PROJECT, strict_media=True)
         self.assertTrue(report.valid, [issue.to_dict() for issue in report.issues])
         source = report.coverage["sourceAdmission"]

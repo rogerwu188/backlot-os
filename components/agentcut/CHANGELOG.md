@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.21
+
+- Add opt-in subtitle background boxes with configurable color, opacity, and
+  padding so canonical captions can safely cover model-burned text without an
+  external post-processing pass.
+- Preserve the background style in validation, compile summaries, per-caption
+  overrides, and the public project schema.
+
 ## 0.9.20
 
 - Scan every enabled video and audio clip for forbidden superseded source SHA

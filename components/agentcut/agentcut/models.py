@@ -192,6 +192,10 @@ class CaptionStyle:
     color: str = "#FFFFFF"
     outline: int = 3
     outline_color: str = "#000000"
+    box: bool = False
+    box_color: str = "#000000"
+    box_opacity: float = 0.72
+    box_border: int = 14
     alignment: str = "bottom-center"
     margins: dict[str, int] = field(default_factory=lambda: {"left": 60, "right": 60, "top": 80, "bottom": 120})
     wrap: int = 18
@@ -207,9 +211,16 @@ class CaptionStyle:
         size = raw.get("size", 48)
         outline = raw.get("outline", 3)
         wrap = raw.get("wrap", 18)
-        for name, item, minimum in (("size", size, 1), ("outline", outline, 0), ("wrap", wrap, 1)):
+        box = raw.get("box", False)
+        box_opacity = raw.get("boxOpacity", 0.72)
+        box_border = raw.get("boxBorder", 14)
+        for name, item, minimum in (("size", size, 1), ("outline", outline, 0), ("wrap", wrap, 1), ("boxBorder", box_border, 0)):
             if not isinstance(item, int) or isinstance(item, bool) or item < minimum:
                 raise ValidationError(f"{path}.{name} must be an integer >= {minimum}")
+        if not isinstance(box, bool):
+            raise ValidationError(f"{path}.box must be a boolean")
+        if not isinstance(box_opacity, (int, float)) or isinstance(box_opacity, bool) or not 0 <= box_opacity <= 1:
+            raise ValidationError(f"{path}.boxOpacity must be a number in [0, 1]")
         alignment = raw.get("alignment", "bottom-center")
         allowed = {"top-left", "top-center", "top-right", "middle-left", "center", "middle-right", "bottom-left", "bottom-center", "bottom-right"}
         if alignment not in allowed:
@@ -227,10 +238,11 @@ class CaptionStyle:
             margins[name] = item
         color = raw.get("color", "#FFFFFF")
         outline_color = raw.get("outlineColor", "#000000")
-        for name, item in (("color", color), ("outlineColor", outline_color)):
+        box_color = raw.get("boxColor", "#000000")
+        for name, item in (("color", color), ("outlineColor", outline_color), ("boxColor", box_color)):
             if not isinstance(item, str) or not item:
                 raise ValidationError(f"{path}.{name} must be a non-empty FFmpeg color")
-        return cls(font.strip(), size, color, outline, outline_color, alignment, margins, wrap)
+        return cls(font.strip(), size, color, outline, outline_color, box, box_color, float(box_opacity), box_border, alignment, margins, wrap)
 
 
 @dataclass(frozen=True)
@@ -260,7 +272,7 @@ class CaptionClip:
         if clip_id is not None and (not isinstance(clip_id, str) or not clip_id):
             raise ValidationError(f"{path}.id must be a non-empty string")
         style_raw = dict(value.get("style") or {})
-        for key in ("font", "size", "color", "outline", "outlineColor", "alignment", "margins", "wrap"):
+        for key in ("font", "size", "color", "outline", "outlineColor", "box", "boxColor", "boxOpacity", "boxBorder", "alignment", "margins", "wrap"):
             if key in value:
                 style_raw[key] = value[key]
         return cls(
