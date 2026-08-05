@@ -1,32 +1,32 @@
 {
   "schema": "backlotos.test-report/1.0",
   "package": "backlotos-producer-supervisor-agent",
-  "version": "0.2.0",
-  "generated_at": "2026-08-02T23:24:47.772327Z",
-  "test_count": 89,
-  "passed": 89,
+  "version": "0.2.1",
+  "generated_at": "2026-08-05T21:26:39.446074Z",
+  "test_count": 94,
+  "passed": 94,
   "failed": 0,
   "errors": 0,
   "skipped": 0,
-  "duration_sec": 1.047,
+  "duration_sec": 0.904,
   "status": "PASS",
   "cases": [
     {
       "name": "test_cost_summary_not_reported_when_no_events",
       "classname": "tests.test_cost_summary",
-      "time_sec": 0.002,
+      "time_sec": 0.008,
       "status": "passed"
     },
     {
       "name": "test_cost_summary_net_aggregation",
       "classname": "tests.test_cost_summary",
-      "time_sec": 0.002,
+      "time_sec": 0.001,
       "status": "passed"
     },
     {
       "name": "test_cost_summary_detects_duplicate_provider_task_id",
       "classname": "tests.test_cost_summary",
-      "time_sec": 0.001,
+      "time_sec": 0.002,
       "status": "passed"
     },
     {
@@ -56,7 +56,7 @@
     {
       "name": "test_dispatch_many_content_failure_is_not_top_level_success",
       "classname": "tests.test_dispatch_idempotency_and_concurrency",
-      "time_sec": 0.001,
+      "time_sec": 0.002,
       "status": "passed"
     },
     {
@@ -374,13 +374,43 @@
     {
       "name": "test_http_health_and_task_roundtrip",
       "classname": "tests.test_ndjson_and_http",
-      "time_sec": 0.874,
+      "time_sec": 0.644,
+      "status": "passed"
+    },
+    {
+      "name": "test_parallel_qa_really_runs_gates_concurrently_and_keeps_input_order",
+      "classname": "tests.test_parallel_qa",
+      "time_sec": 0.048,
+      "status": "passed"
+    },
+    {
+      "name": "test_parallel_qa_failure_does_not_cancel_siblings",
+      "classname": "tests.test_parallel_qa",
+      "time_sec": 0.001,
+      "status": "passed"
+    },
+    {
+      "name": "test_parallel_qa_optional_failure_is_advisory",
+      "classname": "tests.test_parallel_qa",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_parallel_qa_rejects_duplicate_ids",
+      "classname": "tests.test_parallel_qa",
+      "time_sec": 0.0,
+      "status": "passed"
+    },
+    {
+      "name": "test_parallel_qa_writes_atomic_receipt",
+      "classname": "tests.test_parallel_qa",
+      "time_sec": 0.001,
       "status": "passed"
     },
     {
       "name": "test_pipeline_gate_health_finds_repository_tools",
       "classname": "tests.test_pipeline_gates",
-      "time_sec": 0.011,
+      "time_sec": 0.018,
       "status": "passed"
     },
     {
@@ -392,13 +422,13 @@
     {
       "name": "test_media_generation_requires_giggle_key",
       "classname": "tests.test_pipeline_gates",
-      "time_sec": 0.001,
+      "time_sec": 0.0,
       "status": "passed"
     },
     {
       "name": "test_media_generation_ready_with_giggle_key",
       "classname": "tests.test_pipeline_gates",
-      "time_sec": 0.001,
+      "time_sec": 0.0,
       "status": "passed"
     },
     {
@@ -410,55 +440,55 @@
     {
       "name": "test_resume_after_interrupted_run",
       "classname": "tests.test_resume_and_retry",
-      "time_sec": 0.005,
+      "time_sec": 0.002,
       "status": "passed"
     },
     {
       "name": "test_resume_all_complete_returns_none_next",
       "classname": "tests.test_resume_and_retry",
-      "time_sec": 0.006,
+      "time_sec": 0.003,
       "status": "passed"
     },
     {
       "name": "test_retry_failed_only_touches_failed_jobs",
       "classname": "tests.test_resume_and_retry",
-      "time_sec": 0.002,
+      "time_sec": 0.004,
       "status": "passed"
     },
     {
       "name": "test_status_reconciles_producer_jobs_over_launcher_snapshot",
       "classname": "tests.test_resume_and_retry",
-      "time_sec": 0.004,
+      "time_sec": 0.002,
       "status": "passed"
     },
     {
       "name": "test_no_secrets_in_package",
       "classname": "tests.test_security_and_content_scan",
-      "time_sec": 0.011,
+      "time_sec": 0.027,
       "status": "passed"
     },
     {
       "name": "test_no_qingshan_specific_content",
       "classname": "tests.test_security_and_content_scan",
-      "time_sec": 0.007,
+      "time_sec": 0.006,
       "status": "passed"
     },
     {
       "name": "test_supervise_flags_stale_evidence_by_version",
       "classname": "tests.test_supervise_and_review_decision",
-      "time_sec": 0.001,
+      "time_sec": 0.0,
       "status": "passed"
     },
     {
       "name": "test_supervise_flags_stale_by_timestamp",
       "classname": "tests.test_supervise_and_review_decision",
-      "time_sec": 0.001,
+      "time_sec": 0.0,
       "status": "passed"
     },
     {
       "name": "test_supervise_sha_mismatch_detected",
       "classname": "tests.test_supervise_and_review_decision",
-      "time_sec": 0.002,
+      "time_sec": 0.001,
       "status": "passed"
     },
     {
@@ -512,7 +542,7 @@
     {
       "name": "test_validate_good_intake",
       "classname": "tests.test_validate_and_plan",
-      "time_sec": 0.001,
+      "time_sec": 0.0,
       "status": "passed"
     },
     {
@@ -524,7 +554,7 @@
     {
       "name": "test_validate_rejects_ambiguous_or_non_http_source",
       "classname": "tests.test_validate_and_plan",
-      "time_sec": 0.001,
+      "time_sec": 0.0,
       "status": "passed"
     },
     {

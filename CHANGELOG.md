@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.34
+
+- Add executable parallel QA fan-out to the Pipeline adapter with isolated
+  failures, deterministic result ordering, optional atomic receipts, and a
+  final aggregate barrier.
+- Require visual, dialogue, OCR, identity, action-space, cadence, and credit
+  checks to run concurrently once media is available, while preserving serial
+  ordering only for genuinely dependent generation chains.
+- Add concurrency, failure-isolation, advisory, validation, and receipt tests.
+
 ## 0.2.33
 
 - Replace the blanket dialogue-glyph prohibition with three typed policies:
@@ -289,7 +299,6 @@
   validate, or render without complete burned subtitles, expected dialogue IDs,
   the Nalu Motion branded outro, and a required full-cut visual review gate.
 - Add a SHA-bound release-branding pipeline gate for final-media preflight.
-
 ## 0.2.2
 
 - Add a bundled StoryClaw Chat Completions image-analysis adapter with GPT‑5.5
