@@ -33,6 +33,11 @@ def choose_media_duration(container_duration: float | None, frame_duration: floa
     return max(candidates, default=0.0)
 
 
+def resolve_audit_status(*, critical_latin_chars: int, critical_failures: int) -> str:
+    """The lexicon is optional; detected audience-readable text is not."""
+    return "PASS" if not critical_latin_chars and not critical_failures else "FAIL"
+
+
 def probe_container_duration(video: Path) -> float | None:
     try:
         result = subprocess.run(
@@ -209,6 +214,11 @@ def main() -> int:
     )
     numeric_hits, numeric_warnings = continuous_runs(numeric_samples, args.interval)
     critical_failures += len(unlisted_hits) + len(numeric_hits)
+    status = resolve_audit_status(
+        critical_latin_chars=critical_latin_chars,
+        critical_failures=critical_failures,
+    )
+    lexicon_policy_status = "CONFIGURED" if lexicon_policy_configured else "ADVISORY_NOT_CONFIGURED"
     payload = {
         "schema": "qingshan.final_video_ocr_audit.v4",
         "policy_version": "qingshan.ocr.strict-multi-han.v4",
@@ -230,6 +240,7 @@ def main() -> int:
         "allow_text": args.allow_text,
         "forbid_text": args.forbid_text,
         "lexicon_policy_configured": lexicon_policy_configured,
+        "lexicon_policy_status": lexicon_policy_status,
         "recognitions": recognitions,
         "latin_chars": latin_chars,
         "critical_latin_chars": critical_latin_chars,
@@ -240,7 +251,7 @@ def main() -> int:
         "isolated_numeric_warnings": numeric_warnings,
         "uncommon_chinese_check": "STRICT_MULTI_HAN_OR_CONTINUITY_GATE",
         "critical_text_failures": critical_failures,
-        "status": "PASS" if lexicon_policy_configured and not critical_latin_chars and not critical_failures else "FAIL",
+        "status": status,
     }
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

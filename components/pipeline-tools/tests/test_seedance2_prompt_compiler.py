@@ -1,6 +1,9 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
-from tools.seedance2_prompt_compiler import compile_prompt
+from tools.seedance2_prompt_compiler import compile_prompt, load_local_lora_memory
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
@@ -112,6 +115,48 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         })
         with self.assertRaisesRegex(ValueError, "shot 1 shot_scale"):
             compile_prompt(spec)
+
+    def test_text_layer_post_only_rejects_literal_label_echo(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard",
+            "text_layer_post_only": True,
+            "post_only_glyphs": ["安神药屉"],
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "打开安神药屉", "expression_arc": "警觉到确认", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "检查空白纸张", "expression_arc": "确认到凝重", "cut_reason": "视线接"},
+            ],
+        })
+        with self.assertRaisesRegex(ValueError, "PROMPT_LITERAL_GLYPH_SCAN"):
+            compile_prompt(spec)
+
+    def test_text_layer_post_only_accepts_opaque_prop_id(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard",
+            "text_layer_post_only": True,
+            "post_only_glyphs": ["安神药屉"],
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "打开DRAWER_TARGET_A", "expression_arc": "警觉到确认", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "检查空白纸张", "expression_arc": "确认到凝重", "cut_reason": "视线接"},
+            ],
+        })
+        _prompt, manifest = compile_prompt(spec)
+        self.assertTrue(manifest["text_layer_post_only"])
+        self.assertEqual(manifest["post_only_glyph_count"], 1)
+
+    def test_pending_defensive_rewrite_is_precompiled_without_claiming_acceptance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            memory = Path(directory) / "memory.jsonl"
+            memory.write_text(json.dumps({
+                "sample_id": "LORA-PENDING-001",
+                "status": "ACTIVE_REWRITE_PENDING_POSITIVE",
+                "applicable_modes": ["storyboard"],
+                "compiler_guard_clause": "strip exact label glyphs",
+            }) + "\n", encoding="utf-8")
+            rows, _sha = load_local_lora_memory("storyboard", memory)
+            self.assertEqual([row["sample_id"] for row in rows], ["LORA-PENDING-001"])
+            self.assertNotIn("accepted_asset_sha256", rows[0])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,10 @@
 import unittest
 
-from tools.final_video_ocr_audit import choose_media_duration, resolve_sampling_policy
+from tools.final_video_ocr_audit import (
+    choose_media_duration,
+    resolve_audit_status,
+    resolve_sampling_policy,
+)
 
 
 class FinalVideoOcrAuditTests(unittest.TestCase):
@@ -28,6 +32,18 @@ class FinalVideoOcrAuditTests(unittest.TestCase):
         )
         self.assertEqual((interval, exclusion), (1.0, 4.0))
         self.assertEqual(mode, "FINAL_AUDIENCE_FACING")
+
+    def test_missing_lexicon_does_not_fail_clean_source(self):
+        self.assertEqual(
+            resolve_audit_status(critical_latin_chars=0, critical_failures=0),
+            "PASS",
+        )
+
+    def test_detected_readable_text_still_fails_without_lexicon(self):
+        self.assertEqual(
+            resolve_audit_status(critical_latin_chars=0, critical_failures=1),
+            "FAIL",
+        )
 
 
 if __name__ == "__main__":
