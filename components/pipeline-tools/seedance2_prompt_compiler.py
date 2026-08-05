@@ -35,6 +35,25 @@ def require(value, message: str):
     return value
 
 
+def enforce_post_only_glyph_contract(prompt: str, spec: dict) -> list[str]:
+    """Keep exact audience-facing strings out of provider visual prompts."""
+    if spec.get("text_layer_post_only") is not True:
+        return []
+    glyphs = require(
+        spec.get("post_only_glyphs"),
+        "text_layer_post_only requires post_only_glyphs",
+    )
+    if not isinstance(glyphs, list) or any(not str(value).strip() for value in glyphs):
+        raise ValueError("post_only_glyphs must be a non-empty list of exact strings")
+    leaked = sorted({str(value).strip() for value in glyphs if str(value).strip() in prompt})
+    if leaked:
+        raise ValueError(
+            "PROMPT_LITERAL_GLYPH_SCAN failed; replace exact audience text with opaque PROP_IDs: "
+            + ",".join(leaked)
+        )
+    return [str(value).strip() for value in glyphs]
+
+
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
     """Load admitted LoRA-ready examples whose guards apply before paid generation."""
     auto_sync(path)
@@ -45,7 +64,7 @@ def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) ->
         if not line.strip():
             continue
         row = json.loads(line)
-        if row.get("status") != "ADMITTED" or mode not in (row.get("applicable_modes") or []):
+        if row.get("status") not in {"ADMITTED", "ACTIVE_REWRITE_PENDING_POSITIVE"} or mode not in (row.get("applicable_modes") or []):
             continue
         require(row.get("sample_id"), f"local LoRA memory line {line_number} sample_id is required")
         require(row.get("compiler_guard_clause"), f"local LoRA memory line {line_number} compiler_guard_clause is required")
@@ -288,6 +307,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         + memory_clause
         + f"\n镜头只为跟清楚动作因果而移动；禁止无动机摇摆、smooth roam、slow push、orbit、overhead reveal、慢动作、插帧、动作重演、人物瞬移、机位重置、空间跳切。禁止：{' / '.join(negative)}。\n"
     )
+    post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     return prompt, {
         "schema": "qingshan.seedance2_multi_keyframe_long_take.v1",
         "mode": "multi_keyframe_long_take", "route": "/api/v1/generation/omni-video",
@@ -306,7 +326,10 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
                   "SAME_APERTURE_LOCATION_CROSSING", "REAL_TIME_1X",
                   "NO_UNMOTIVATED_CAMERA_MOTION", "ADJACENT_CAMERA_TRAJECTORY_REACHABILITY",
                   "FULL_VISIBLE_ACTOR_MOTION_COVERAGE",
-                  "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED"],
+                  "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED",
+                  "PROMPT_LITERAL_GLYPH_SCAN" if spec.get("text_layer_post_only") else "NO_POST_ONLY_GLYPH_CONTRACT"],
+        "text_layer_post_only": bool(spec.get("text_layer_post_only")),
+        "post_only_glyph_count": len(post_only_glyphs),
     }
 
 
@@ -359,6 +382,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         contract = "single_unbroken_shot_first_last_frames"
 
     prompt = f"{header}\n\n{body}\n\n{tail.strip()}\n"
+    post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     manifest = {
         "schema": "qingshan.seedance2_prompt_compilation.v2" if visual_contract else "qingshan.seedance2_prompt_compilation.v1",
         "mode": mode,
@@ -366,6 +390,8 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "contract": contract,
         "shot_count": len(shots),
         "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+        "text_layer_post_only": bool(spec.get("text_layer_post_only")),
+        "post_only_glyph_count": len(post_only_glyphs),
     }
     if version:
         manifest["visual_benchmark_contract_version"] = version

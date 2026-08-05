@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.29
+
+- Add a prompt-literal glyph scan for text-layer-post-only shots. Exact dialogue,
+  labels, medicine names, people, places, and account strings must be replaced
+  by opaque prop IDs before visual generation and added later in AgentCut.
+- Record the E38 drawer-label echo as a pending local-LoRA defensive rewrite;
+  a zero-credit cleanup is evidence, not a claimed positive regeneration.
+- Treat an absent OCR allow/deny lexicon as advisory when no readable text is
+  detected, while preserving hard failures for Latin text and multi-Han runs.
+- Add a reusable generated-label cleanup tool for already-paid source recovery.
+
 ## 0.2.28
 
 - Add an admitted E38 video-prompt memory for held foreground poses and
