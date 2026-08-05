@@ -20,6 +20,7 @@ from .http_server import serve_http
 from .invoker import AgentInvoker
 from .pipeline_gates import health as pipeline_health
 from .pipeline_gates import run_edit_plan_integrity, run_gate
+from .parallel_qa import run_parallel_qa, write_receipt_atomic
 from .giggle import GiggleError, generate_image, generate_video, health as giggle_health, task_status
 from .runtime import Runtime
 
@@ -78,6 +79,10 @@ def pipeline_command_main(argv=None) -> int:
             result = run_gate(gate_name, payload)
         elif method == "edit-plan-integrity":
             result = run_edit_plan_integrity(params.get("rows", []), params.get("target_fps", 30.0), params.get("tolerance", 0.05))
+        elif method in {"parallelQa", "parallel-qa"}:
+            result = run_parallel_qa(params.get("tasks", []), workers=params.get("workers", 4))
+            if params.get("receipt_path"):
+                result["receipt_path"] = str(write_receipt_atomic(params["receipt_path"], result))
         elif method == "generateImage":
             result = generate_image(params)
         elif method == "generateVideo":
@@ -87,7 +92,7 @@ def pipeline_command_main(argv=None) -> int:
         elif method == "providerHealth":
             result = giggle_health()
         else:
-            result = {"ok": False, "status": "ERROR", "error": f"unknown method: {method}", "known_methods": ["health", "gate", "edit-plan-integrity", "providerHealth", "generateImage", "generateVideo", "taskStatus"]}
+            result = {"ok": False, "status": "ERROR", "error": f"unknown method: {method}", "known_methods": ["health", "gate", "parallelQa", "edit-plan-integrity", "providerHealth", "generateImage", "generateVideo", "taskStatus"]}
     except GiggleError as exc:
         result = {"ok": False, "status": "CAPABILITY_FAIL", "provider": "giggle", "error": str(exc)}
     except Exception as exc:  # noqa: BLE001
