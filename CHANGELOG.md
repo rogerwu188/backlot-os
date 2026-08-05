@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.25
+
+- Require a complete actor roster and per-keyframe motion coverage for every
+  Seedance 2 multi-keyframe long take before paid generation.
+- Reject visible actors described only with static holding language; each must
+  have continuous micro-action, event reaction, and at least two motion cues.
+- Require an explicit reason when a rostered actor leaves the frame so
+  background performers cannot silently freeze or disappear.
+- Require a separate visible-actor motion score for multi-character long takes;
+  a moving foreground can no longer conceal frozen supporting performers.
+- Align AgentCut's legacy setup entrypoint with its 0.9.20 runtime and
+  `pyproject.toml` metadata, with a regression test preventing version drift.
+
 ## 0.2.24
 
 - Extend the replacement-binding release gate across live video, audio, and

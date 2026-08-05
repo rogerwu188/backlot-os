@@ -52,20 +52,20 @@ Requirements: macOS or Linux, Python 3.10-3.12, Git, FFmpeg, and Node.js 20+.
 Download the immutable public package without cloning repository history:
 
 ```bash
-curl -L -o backlotos-v0.2.24.tar.gz \
-  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.24/backlotos-v0.2.24.tar.gz
+curl -L -o backlotos-v0.2.25.tar.gz \
+  https://github.com/rogerwu188/backlot-os/releases/download/v0.2.25/backlotos-v0.2.25.tar.gz
 expected_sha=$(curl -fsSL \
-  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.24 | \
-  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.24.tar.gz"))')
-actual_sha=$(shasum -a 256 backlotos-v0.2.24.tar.gz | awk '{print $1}')
+  https://api.github.com/repos/rogerwu188/backlot-os/releases/tags/v0.2.25 | \
+  python3 -c 'import json,sys; print(next(a["digest"].split(":",1)[1] for a in json.load(sys.stdin)["assets"] if a["name"] == "backlotos-v0.2.25.tar.gz"))')
+actual_sha=$(shasum -a 256 backlotos-v0.2.25.tar.gz | awk '{print $1}')
 test "$actual_sha" = "$expected_sha"
-tar -xzf backlotos-v0.2.24.tar.gz
-cd backlotos-v0.2.24
+tar -xzf backlotos-v0.2.25.tar.gz
+cd backlotos-v0.2.25
 ./scripts/install.sh
 ./scripts/doctor.sh
 ```
 
-The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.24` provenance even though release archives intentionally contain no `.git` directory.
+The verification step reads GitHub's published asset digest and stops before extraction on any mismatch. The archive installer records `source-archive:v0.2.25` provenance even though release archives intentionally contain no `.git` directory.
 
 ### Git checkout (contributors)
 

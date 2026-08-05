@@ -12,16 +12,33 @@ THRESHOLD = 60
 HARD_FAILURES = {"IDENTITY", "SAFETY", "ERA", "OCR", "MEDIA_INTEGRITY"}
 
 
-def adjudicate(score: float, hard_failures: list[str] | None = None) -> dict:
+def adjudicate(
+    score: float,
+    hard_failures: list[str] | None = None,
+    *,
+    visible_actor_count: int = 1,
+    visible_actor_motion_score: float | None = None,
+) -> dict:
     hard = sorted(set(hard_failures or []))
     unknown = sorted(set(hard) - HARD_FAILURES)
     if unknown:
         raise ValueError(f"unsupported hard failures: {', '.join(unknown)}")
-    passed = score >= THRESHOLD and not hard
+    if visible_actor_count < 1:
+        raise ValueError("visible_actor_count must be at least 1")
+    if visible_actor_count > 1 and visible_actor_motion_score is None:
+        raise ValueError("multi-actor long take requires visible_actor_motion_score")
+    if visible_actor_motion_score is not None and not 0 <= visible_actor_motion_score <= 100:
+        raise ValueError("visible_actor_motion_score must be between 0 and 100")
+    motion_passed = visible_actor_count == 1 or visible_actor_motion_score >= THRESHOLD
+    passed = score >= THRESHOLD and motion_passed and not hard
     return {
         "schema": "backlotos.long_take_score_gate.v1",
         "score_100": score, "minimum_score_100": THRESHOLD,
         "hard_failures": hard, "hard_failures_override_score": True,
+        "visible_actor_count": visible_actor_count,
+        "visible_actor_motion_score_100": visible_actor_motion_score,
+        "visible_actor_motion_minimum_100": THRESHOLD if visible_actor_count > 1 else None,
+        "visible_actor_motion_decision": "PASS" if motion_passed else "FAIL",
         "decision": "PASS" if passed else "FAIL",
         "paid_regeneration_allowed": not passed,
         "at_threshold_retained": score == THRESHOLD and not hard,
@@ -32,9 +49,15 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--score", type=float, required=True)
     parser.add_argument("--hard-failure", action="append", default=[])
+    parser.add_argument("--visible-actor-count", type=int, default=1)
+    parser.add_argument("--visible-actor-motion-score", type=float)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
-    result = adjudicate(args.score, args.hard_failure)
+    result = adjudicate(
+        args.score, args.hard_failure,
+        visible_actor_count=args.visible_actor_count,
+        visible_actor_motion_score=args.visible_actor_motion_score,
+    )
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
