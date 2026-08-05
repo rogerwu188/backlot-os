@@ -38,6 +38,15 @@ def resolve_audit_status(*, critical_latin_chars: int, critical_failures: int) -
     return "PASS" if not critical_latin_chars and not critical_failures else "FAIL"
 
 
+def is_geometric_text_candidate(box: list, frame_height: int, max_height_ratio: float = 0.07) -> bool:
+    """Reject oversized OCR regions that are more likely faces or scene texture than text."""
+    points = [point for point in (box or []) if len(point) >= 2]
+    if not points or frame_height <= 0:
+        return False
+    box_height = max(float(point[1]) for point in points) - min(float(point[1]) for point in points)
+    return box_height <= frame_height * max_height_ratio
+
+
 def probe_container_duration(video: Path) -> float | None:
     try:
         result = subprocess.run(
@@ -151,6 +160,7 @@ def main() -> int:
     recognitions = []
     unlisted_samples = []
     numeric_samples = []
+    latin_samples = []
     latin_chars = 0
     critical_latin_chars = 0
     isolated_latin_warnings = []
@@ -167,30 +177,44 @@ def main() -> int:
         cropped = frame[:keep_height, :]
         result, _elapsed = engine(cropped)
         sample_count += 1
-        for _box, text, confidence in result or []:
+        for box, text, confidence in result or []:
             clean = str(text).strip()
             score = float(confidence)
             if not clean or score < args.confidence:
                 continue
+            normalized_box = [
+                [round(float(point[0]), 3), round(float(point[1]), 3)]
+                for point in (box or [])
+                if len(point) >= 2
+            ]
+            box_height = (
+                max(point[1] for point in normalized_box) - min(point[1] for point in normalized_box)
+                if normalized_box else 0.0
+            )
+            geometric_text_candidate = is_geometric_text_candidate(normalized_box, cropped.shape[0])
             classification = classify_text(clean, args.allow_text, args.forbid_text)
             allowed = classification["allowed"]
             forbidden = classification["forbidden"]
             latin_count = classification["latin_chars"]
             if latin_count:
                 latin_chars += latin_count
-                critical_latin_chars += critical_latin_count(latin_count)
-                if latin_count == 1:
+                if geometric_text_candidate:
+                    latin_samples.append({"time_seconds": round(timestamp, 3), "text": clean})
+                if latin_count == 1 and geometric_text_candidate:
                     isolated_latin_warnings.append({
                         "time_seconds": round(timestamp, 3),
                         "text": clean,
                         "confidence": round(score, 6),
                     })
-            if forbidden or critical_latin_count(latin_count):
+            if forbidden and geometric_text_candidate:
                 critical_failures += 1
             recognitions.append({
                 "time_seconds": round(timestamp, 3),
                 "text": clean,
                 "confidence": round(score, 6),
+                "box": normalized_box,
+                "box_height": round(box_height, 3),
+                "geometric_text_candidate": geometric_text_candidate,
                 "allowed": allowed,
                 "forbidden": forbidden,
                 "forbidden_tokens": classification["forbidden_tokens"],
@@ -198,9 +222,9 @@ def main() -> int:
                 "unlisted_chinese": classification["unlisted_chinese"],
                 "numeric_string": classification["numeric_string"],
             })
-            if classification["unlisted_chinese"]:
+            if classification["unlisted_chinese"] and geometric_text_candidate:
                 unlisted_samples.append({"time_seconds": round(timestamp, 3), "text": clean})
-            if classification["numeric_string"]:
+            if classification["numeric_string"] and geometric_text_candidate:
                 numeric_samples.append({"time_seconds": round(timestamp, 3), "text": clean})
         timestamp += args.interval
     capture.release()
@@ -213,7 +237,13 @@ def main() -> int:
         unlisted_samples, args.interval, immediate_multi_han=True
     )
     numeric_hits, numeric_warnings = continuous_runs(numeric_samples, args.interval)
-    critical_failures += len(unlisted_hits) + len(numeric_hits)
+    latin_hits, latin_warnings = continuous_runs(latin_samples, args.interval)
+    critical_latin_chars = sum(
+        len(LATIN_RE.findall(text))
+        for hit in latin_hits
+        for text in hit["texts"]
+    )
+    critical_failures += len(unlisted_hits) + len(numeric_hits) + len(latin_hits)
     status = resolve_audit_status(
         critical_latin_chars=critical_latin_chars,
         critical_failures=critical_failures,
@@ -221,7 +251,7 @@ def main() -> int:
     lexicon_policy_status = "CONFIGURED" if lexicon_policy_configured else "ADVISORY_NOT_CONFIGURED"
     payload = {
         "schema": "qingshan.final_video_ocr_audit.v4",
-        "policy_version": "qingshan.ocr.strict-multi-han.v4",
+        "policy_version": "qingshan.ocr.geometry-persistence.v5",
         "source_final_mp4": str(video),
         "audit_mode": audit_mode,
         "audit_scope": {
@@ -244,6 +274,8 @@ def main() -> int:
         "recognitions": recognitions,
         "latin_chars": latin_chars,
         "critical_latin_chars": critical_latin_chars,
+        "persistent_latin_hits": latin_hits,
+        "isolated_or_nontext_latin_warnings": latin_warnings,
         "isolated_latin_warnings": isolated_latin_warnings,
         "unlisted_chinese_hits": unlisted_hits,
         "numeric_string_hits": numeric_hits,

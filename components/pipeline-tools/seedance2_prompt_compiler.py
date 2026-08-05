@@ -16,6 +16,7 @@ except ImportError:  # Direct script execution from components/pipeline-tools.
 
 
 MODES = {"storyboard", "continuous_long_take", "multi_keyframe_long_take"}
+DIALOGUE_MODES = {"ON_CAMERA_NATIVE_LIP_SYNC", "CLOSED_MOUTH_VOICE_OVER", "NO_DIALOGUE"}
 DEFAULT_LOCAL_LORA_MEMORY = Path(__file__).resolve().parent / "local_lora/seedance2_prompt_failure_training.jsonl"
 STATIC_ACTOR_MOTION_TERMS = (
     "静止", "完全不动", "纹丝不动", "定格", "保持姿势", "保持原位",
@@ -26,6 +27,10 @@ VISUAL_FIELDS = (
     "depth_layers", "scale_anchor", "palette", "key_light", "atmosphere",
     "environmental_motion", "material_detail", "still_prompt_contract",
     "video_motion_contract", "negative_constraints",
+)
+SILENT_PERFORMANCE_MARKERS = (
+    "全程不开口", "全程闭口", "无人开口", "不生成语音", "无口型台词",
+    "独立音频后置", "后配音", "closed-mouth", "no lip sync", "silent performance",
 )
 
 
@@ -52,6 +57,50 @@ def enforce_post_only_glyph_contract(prompt: str, spec: dict) -> list[str]:
             + ",".join(leaked)
         )
     return [str(value).strip() for value in glyphs]
+
+
+def enforce_dialogue_mode_consistency(spec: dict) -> str:
+    """Reject a silent visual contract that is later presented as lip-synced speech."""
+    shots = spec.get("shots") or []
+    dialogues = [shot["dialogue"] for shot in shots if shot.get("dialogue")]
+    voice_over = spec.get("voice_over_manifest") or []
+    declared = spec.get("dialogue_mode")
+    mode = declared or ("ON_CAMERA_NATIVE_LIP_SYNC" if dialogues else "NO_DIALOGUE")
+    if mode not in DIALOGUE_MODES:
+        raise ValueError(f"unsupported dialogue_mode: {mode}")
+
+    authored = json.dumps(spec, ensure_ascii=False).lower()
+    silent_markers = [marker for marker in SILENT_PERFORMANCE_MARKERS if marker.lower() in authored]
+    if dialogues and silent_markers:
+        raise ValueError(
+            "DIALOGUE_MODE_CONSISTENCY failed; on-camera dialogue conflicts with silent performance: "
+            + ",".join(silent_markers)
+        )
+    if mode == "ON_CAMERA_NATIVE_LIP_SYNC":
+        if not dialogues:
+            raise ValueError("ON_CAMERA_NATIVE_LIP_SYNC requires shot dialogue")
+        entities = {entity.get("name"): entity for entity in (spec.get("entities") or [])}
+        for row in dialogues:
+            speaker = require(row.get("speaker"), "dialogue speaker is required")
+            entity = entities.get(speaker)
+            if not entity or not entity.get("audio_ref"):
+                raise ValueError(
+                    f"ON_CAMERA_NATIVE_LIP_SYNC requires an audio_ref for visible speaker {speaker}"
+                )
+    elif mode == "CLOSED_MOUTH_VOICE_OVER":
+        if dialogues:
+            raise ValueError(
+                "CLOSED_MOUTH_VOICE_OVER forbids shot dialogue; move exact speech to voice_over_manifest"
+            )
+        if not isinstance(voice_over, list) or not voice_over:
+            raise ValueError("CLOSED_MOUTH_VOICE_OVER requires voice_over_manifest")
+        for index, row in enumerate(voice_over, start=1):
+            require(row.get("speaker"), f"voice_over_manifest {index} speaker is required")
+            require(row.get("text"), f"voice_over_manifest {index} text is required")
+            require(row.get("audio_source"), f"voice_over_manifest {index} audio_source is required")
+    elif dialogues or voice_over:
+        raise ValueError("NO_DIALOGUE forbids shot dialogue and voice_over_manifest")
+    return mode
 
 
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
@@ -337,8 +386,12 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
     mode = require(spec.get("mode"), "mode is required")
     if mode not in MODES:
         raise ValueError(f"unsupported mode: {mode}")
+    dialogue_mode = enforce_dialogue_mode_consistency(spec)
     if mode == "multi_keyframe_long_take":
-        return compile_multi_keyframe_long_take(spec)
+        prompt, manifest = compile_multi_keyframe_long_take(spec)
+        manifest["dialogue_mode"] = dialogue_mode
+        manifest["dialogue_mode_gate"] = "PASS"
+        return prompt, manifest
     entities = require(spec.get("entities"), "entities are required")
     shots = require(spec.get("shots"), "shots are required")
     header = entity_header(entities, spec.get("setting"))
@@ -392,6 +445,8 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
         "text_layer_post_only": bool(spec.get("text_layer_post_only")),
         "post_only_glyph_count": len(post_only_glyphs),
+        "dialogue_mode": dialogue_mode,
+        "dialogue_mode_gate": "PASS",
     }
     if version:
         manifest["visual_benchmark_contract_version"] = version

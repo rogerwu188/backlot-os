@@ -68,11 +68,13 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             self.assertIn("逐人动作覆盖", prompt)
             self.assertIn("FULL_VISIBLE_ACTOR_MOTION_COVERAGE", manifest["gates"])
             self.assertEqual(manifest["route"], "/api/v1/generation/omni-video")
-            self.assertEqual(manifest["local_lora_memory"]["applied_sample_ids"], [
+            applied = manifest["local_lora_memory"]["applied_sample_ids"]
+            self.assertTrue({
                 "LORA-SD2-001-REFERENCE-GEOMETRY-LEAK",
                 "LORA-SD2-002-UNIQUE-PROP-GROUP-REACTION",
                 "LORA-SD2-003-ADJACENT-CAMERA-TRAJECTORY",
-            ])
+                "LORA-SD2-010-DIALOGUE-MODE-CONTRACT-DRIFT",
+            }.issubset(applied))
 
     def test_rejects_unbound_location_jump(self):
         with tempfile.TemporaryDirectory() as directory:

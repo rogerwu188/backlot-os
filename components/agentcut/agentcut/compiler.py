@@ -241,16 +241,21 @@ def compile_project(project: Project, ffmpeg: str = "ffmpeg", overwrite: bool = 
             font = _escape_drawtext(clip.style.font)
             color = clip.style.color.replace("#", "0x")
             outline_color = clip.style.outline_color.replace("#", "0x")
+            box_color = clip.style.box_color.replace("#", "0x")
             end = clip.start + clip.duration
             font_option = f"fontfile='{font}'" if "/" in clip.style.font or "\\" in clip.style.font else f"font='{font}'"
             for line_index, line in enumerate(lines):
                 out = f"vsub{caption_no}_{line_index}"
                 x, y = _caption_line_position(clip, line_index, len(lines))
                 text = _escape_drawtext(line)
+                box_options = (
+                    f":box=1:boxcolor={box_color}@{clip.style.box_opacity:g}:boxborderw={clip.style.box_border}"
+                    if clip.style.box else ""
+                )
                 filters.append(
                     f"[{current_video}]drawtext=text='{text}':{font_option}:fontsize={clip.style.size}:fontcolor={color}:"
                     f"borderw={clip.style.outline}:bordercolor={outline_color}:x={x}:y={y}:"
-                    f"enable='between(t,{clip.start:g},{end:g})'[{out}]"
+                    f"enable='between(t,{clip.start:g},{end:g})'{box_options}[{out}]"
                 )
                 current_video = out
             caption_summary.append({
@@ -259,6 +264,8 @@ def compile_project(project: Project, ffmpeg: str = "ffmpeg", overwrite: bool = 
                 "timeRange": {"start": clip.start, "end": end}, "style": {
                     "font": clip.style.font, "size": clip.style.size, "color": clip.style.color,
                     "outline": clip.style.outline, "alignment": clip.style.alignment,
+                    "box": clip.style.box, "boxColor": clip.style.box_color,
+                    "boxOpacity": clip.style.box_opacity, "boxBorder": clip.style.box_border,
                     "margins": clip.style.margins, "wrap": clip.style.wrap,
                 },
             })

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.30
+
+- Add a typed dialogue-mode compiler gate: visible native speech, deliberate
+  closed-mouth voice-over, and no-dialogue units are mutually exclusive.
+- Reject prompts that combine on-camera dialogue with silent-performance or
+  post-dub language, and require a bound audio reference for visible speakers.
+- Record E38's silent-repair/old-audio binding risk as a pending local-LoRA
+  defensive rewrite; assembly metadata may no longer claim unverified lip sync.
+- Add geometry-and-persistence OCR adjudication so face-sized texture false
+  positives remain evidence without hiding persistent audience-readable text.
+- Add bounded, time-scoped generated-text cleanup for zero-credit source repair
+  before exact-SHA rebinding and final OCR validation.
+
 ## 0.2.29
 
 - Add a prompt-literal glyph scan for text-layer-post-only shots. Exact dialogue,
