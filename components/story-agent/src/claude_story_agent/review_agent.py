@@ -9,9 +9,14 @@ NORMAL_PASS = 3
 MIN_NEW_INFO = 6
 MIN_EVENTS_PER_MIN = 4.0
 DIALOGUE_MAX_CHARS = 25
-RULE_VERSION = "backlotos.story-review.v2"
-PACING_POLICY_VERSION = "backlotos.us-premium-streaming/1.0"
+RULE_VERSION = "backlotos.story-review.v3"
+PACING_POLICY_VERSION = "backlotos.us-premium-streaming/1.1"
 MAX_DIALOGUE_CHARS_PER_MIN = 260
+SPEECH_CHARS_PER_SEC = 4.0
+LINE_OVERHEAD_SEC = 0.5
+MAX_DIALOGUE_TIME_RATIO = 0.35
+MAX_ACTION_SCENE_DIALOGUE_RATIO = 0.20
+MAX_PURE_DIALOGUE_RUN_SEC = 8.0
 
 def _iid(check: str, loc: str) -> str:
     return "ISS-" + hashlib.sha1(f"{check}|{loc}".encode()).hexdigest()[:10]
@@ -211,6 +216,107 @@ class ReviewAgent:
                     "first frame = mid-action off-balance moment, info incomplete"))
                 penal(sid, 1)
 
+        # ---- source-level dialogue pacing (editing/speech-rate workarounds do not pass) ----
+        def line_seconds(text: str) -> float:
+            cjk_count = len(re.findall(r"[\u4e00-\u9fff]", text))
+            word_count = len(re.findall(r"[A-Za-z0-9']+", text))
+            return cjk_count / SPEECH_CHARS_PER_SEC + word_count / 2.5 + LINE_OVERHEAD_SEC
+
+        def normalized_text(value) -> str:
+            return re.sub(r"[^\w\u4e00-\u9fff]+", "", str(value).lower())
+
+        total_dialogue_sec = 0.0
+        worst_action_scene = {"scene_id": None, "ratio": 0.0}
+        max_dialogue_run_sec = 0.0
+        for scene in ep.scenes:
+            scene_dialogue_sec = 0.0
+            scene_duration_sec = 0.0
+            action_duration_sec = 0.0
+            dialogue_run_sec = 0.0
+            for shot in scene.get("shots", []):
+                shot_duration_sec = float(shot.get("duration_sec", 0))
+                scene_duration_sec += shot_duration_sec
+                action = shot.get("action") or {}
+                if action.get("force") or action.get("contact"):
+                    action_duration_sec += shot_duration_sec
+                visual_statements = [
+                    normalized_text(action.get("result", "")),
+                    normalized_text(shot.get("first_frame_motion_state", "")),
+                ]
+                visual_statements.extend(
+                    normalized_text(value) for value in (shot.get("new_info") or [])
+                )
+                shot_dialogue_sec = 0.0
+                for dialogue_index, dialogue in enumerate(shot.get("dialogue") or []):
+                    dialogue_text = str(dialogue.get("text", ""))
+                    shot_dialogue_sec += line_seconds(dialogue_text)
+                    normalized_dialogue = normalized_text(dialogue_text)
+                    if not dialogue.get("subtext"):
+                        for visual in visual_statements:
+                            if (
+                                normalized_dialogue
+                                and visual
+                                and len(visual) >= 6
+                                and (normalized_dialogue in visual or visual in normalized_dialogue)
+                            ):
+                                location = (
+                                    f"{ep.episode_id}/{scene.get('scene_id')}/"
+                                    f"{shot['shot_id']}#d{dialogue_index}"
+                                )
+                                issues.append(_issue(
+                                    "VISUAL_RESTATEMENT",
+                                    "blocking",
+                                    location,
+                                    "dialogue restates information the picture already shows",
+                                    "delete it or give it one new function: conflict, evidence, decision, or reversal",
+                                ))
+                                penal(shot["shot_id"], 2)
+                                break
+                scene_dialogue_sec += shot_dialogue_sec
+                if shot_dialogue_sec and not (action.get("result") or shot.get("new_info")):
+                    dialogue_run_sec += shot_dialogue_sec
+                else:
+                    dialogue_run_sec = 0.0
+                max_dialogue_run_sec = max(max_dialogue_run_sec, dialogue_run_sec)
+            total_dialogue_sec += scene_dialogue_sec
+            is_action_scene = (
+                scene_duration_sec > 0
+                and action_duration_sec / scene_duration_sec >= 0.5
+            )
+            if is_action_scene:
+                ratio = scene_dialogue_sec / scene_duration_sec
+                if ratio > worst_action_scene["ratio"]:
+                    worst_action_scene = {"scene_id": scene.get("scene_id"), "ratio": ratio}
+
+        dialogue_time_ratio = total_dialogue_sec / total if total else 0.0
+        if dialogue_time_ratio > MAX_DIALOGUE_TIME_RATIO:
+            issues.append(_issue(
+                "DIALOGUE_RATIO",
+                "blocking",
+                ep.episode_id,
+                f"audible dialogue {dialogue_time_ratio:.0%} of runtime > {MAX_DIALOGUE_TIME_RATIO:.0%}",
+                "cut restatement and exposition at script level; edit-room speedups do not pass",
+            ))
+        if (
+            worst_action_scene["scene_id"]
+            and worst_action_scene["ratio"] > MAX_ACTION_SCENE_DIALOGUE_RATIO
+        ):
+            issues.append(_issue(
+                "ACTION_SCENE_DIALOGUE_RATIO",
+                "blocking",
+                f"{ep.episode_id}/{worst_action_scene['scene_id']}",
+                f"action-scene dialogue {worst_action_scene['ratio']:.0%} > {MAX_ACTION_SCENE_DIALOGUE_RATIO:.0%}",
+                "let choreography carry the scene; retain only constraint commands and single-function lines",
+            ))
+        if max_dialogue_run_sec > MAX_PURE_DIALOGUE_RUN_SEC:
+            issues.append(_issue(
+                "DIALOGUE_RUN_TOO_LONG",
+                "blocking",
+                ep.episode_id,
+                f"pure dialogue run {max_dialogue_run_sec:.1f}s > {MAX_PURE_DIALOGUE_RUN_SEC:.0f}s with no visible progress",
+                "within two dialogue turns add a visible action, discovery, obstacle, or reversal",
+            ))
+
         # ---- scoring: 5 minus penalties, thresholded by importance ----
         failed_shots = []
         for sc, sh in ep.all_shots():
@@ -247,6 +353,13 @@ class ReviewAgent:
                 "dialogue_characters_per_minute": dialogue_per_minute,
                 "opening_hook": not any(i["check"] == "OPENING_HOOK_MISSING" for i in issues),
                 "end_hook": not any(i["check"] == "END_HOOK_MISSING" for i in issues),
+                "audible_dialogue_sec": round(total_dialogue_sec, 1),
+                "dialogue_time_ratio": round(dialogue_time_ratio, 3),
+                "dialogue_time_ratio_max": MAX_DIALOGUE_TIME_RATIO,
+                "action_scene_dialogue_ratio_worst": round(worst_action_scene["ratio"], 3),
+                "action_scene_dialogue_ratio_max": MAX_ACTION_SCENE_DIALOGUE_RATIO,
+                "max_pure_dialogue_run_sec": round(max_dialogue_run_sec, 1),
+                "max_pure_dialogue_run_max": MAX_PURE_DIALOGUE_RUN_SEC,
             },
         }
 

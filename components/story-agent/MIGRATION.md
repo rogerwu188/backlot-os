@@ -1,5 +1,15 @@
 # Migration — installing on another machine (BacklotOS)
 
+## 0.4.0
+
+- Adds runtime-only `importNovel` and exact-count `planSeries` verbs.
+- Adds append-only `continuityCheck` for known facts, adjacent weather, and hook pickup.
+- Pacing policy 1.1 adds source-level dialogue ratio, dialogue-only run,
+  action-scene dialogue, and visual-restatement gates.
+- Package metadata and runtime version are now covered by a consistency test.
+- Existing character-asset, combat, release-visual, failed-only, and rollback
+  contracts remain in force; this is an additive merge, not a replacement.
+
 ## 0.1.1 acceptance hardening
 
 - Model output now undergoes nested structural validation.
@@ -23,6 +33,7 @@ Copy `claude_story_agent/` to the target host. It is self-contained; core deps =
 ## 3. Wire the host loop
 Run the NDJSON server as a long-lived process; BacklotOS sends one JSON request per line:
 `{"verb":"generate"|"review"|"revise"|"generateMany"|"reviewMany", ...}`.
+Novel/series hosts may also send `importNovel`, `planSeries`, and `continuityCheck`.
 `>=4` workers by default for the *Many verbs.
 
 ## 4. Map the old 青山 host-session behavior

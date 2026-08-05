@@ -101,7 +101,7 @@ def test_end_hook_is_hard_gate(good):
 
 def test_pacing_policy_and_metrics_are_reported(good):
     r = rep(good)
-    assert r["pacing"]["policy_version"] == "backlotos.us-premium-streaming/1.0"
+    assert r["pacing"]["policy_version"] == "backlotos.us-premium-streaming/1.1"
     assert r["pacing"]["opening_hook"] is True
     assert r["pacing"]["end_hook"] is True
     assert r["pacing"]["advancing_shot_ratio"] == 1.0

@@ -6,6 +6,7 @@ Legend: ✅ executable-as-code (tested) · ◐ code + requires model backend · 
 | Capability | Status | Where |
 |---|---|---|
 | Episode planning & mainline advance | ◐ | `story_agent.generate` + `prompts/story_generate.md` (needs model) |
+| Runtime novel split / beat extraction / exact-count series plan | ✅⚠ | `novel_import`; deterministic lexical extraction, source text not persisted |
 | canon / identity / timeline constraints (input) | ✅ | passed in `canon`, enforced by review |
 | audience-known-info management | ✅ | `canon.audience_known`; review flags re-proof |
 | net-new-info check | ✅ | review `NEW_INFO_DENSITY` (>=6) |
@@ -23,11 +24,14 @@ Legend: ✅ executable-as-code (tested) · ◐ code + requires model backend · 
 | declared forbidden identity depictions | ✅ | `IDENTITY_CONTRADICTION` |
 | independent source fidelity | ❌ | requires source-fact evidence/model audit |
 | inferred relationship continuity | ❌ | requires relationship evidence/model audit |
+| audience-known / weather / hook continuity ledger | ✅ | `continuityCheck`; caller-owned append-only ledger |
 | time / weather / scene continuity | ✅ | `SCENE_WEATHER_MISSING`/`SCENE_TIME_MISSING`/`WEATHER_ADJACENT_REPEAT` |
 | plot advance & new-info density | ✅ | `NEW_INFO_DENSITY`/`EVENT_DENSITY` |
 | repeat explanation / bridge / composition | ✅ | `REPEAT_EXPLANATION`/`VISUAL_REPEAT` |
 | action causality / contact / result | ✅ | `ACTION_NO_RESULT`/`ACTION_NO_CONTACT` |
 | dialogue naturalness / subtext / info-dump | ✅⚠ | `DIALOGUE_TOO_LONG`/`INFO_DUMPING` (heuristic) |
+| dialogue time / pure-dialogue run / action-scene load | ✅⚠ | `DIALOGUE_RATIO`/`DIALOGUE_RUN_TOO_LONG`/`ACTION_SCENE_DIALOGUE_RATIO` |
+| picture/dialogue restatement | ✅⚠ | `VISUAL_RESTATEMENT` lexical evidence gate |
 | per-episode target duration | ✅ | `EPISODE_DURATION` |
 | per-shot 4–15s plan | ✅ | `SHOT_DURATION_RANGE` |
 | 5-point scoring | ✅ | `shot_scores` (5 − penalties) |
@@ -39,6 +43,7 @@ Legend: ✅ executable-as-code (tested) · ◐ code + requires model backend · 
 | Feature | Status |
 |---|---|
 | generate/review/revise/validate/health/status/progress | ✅ |
+| importNovel / planSeries / continuityCheck | ✅ |
 | generateMany / reviewMany | ✅ |
 | >=4 workers (floor enforced) | ✅ |
 | NDJSON persistent protocol | ✅ |

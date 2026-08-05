@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "backlotos.series_plan.v1",
+  "title": "BacklotOS series plan",
+  "type": "object",
+  "required": ["schema", "total_episodes", "episode_duration_sec", "pacing_policy", "episodes", "plan_sha256"],
+  "properties": {
+    "schema": {"const": "backlotos.series_plan.v1"},
+    "total_episodes": {"type": "integer", "minimum": 1},
+    "episode_duration_sec": {"type": "number", "exclusiveMinimum": 0},
+    "duration_tolerance_sec": {"type": "number", "minimum": 0},
+    "pacing_policy": {"const": "backlotos.us-premium-streaming/1.1"},
+    "plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["episode_slot", "source_chapters", "target_duration_sec", "obligations"],
+        "properties": {
+          "episode_slot": {"type": "integer", "minimum": 1},
+          "source_chapters": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}},
+          "target_duration_sec": {"type": "number", "exclusiveMinimum": 0},
+          "obligations": {
+            "type": "object",
+            "required": ["opening_hook", "mid_escalation", "end_hook", "no_recap", "no_filler", "every_scene_advances"],
+            "properties": {
+              "opening_hook": {"const": true},
+              "mid_escalation": {"const": true},
+              "end_hook": {"const": true},
+              "no_recap": {"const": true},
+              "no_filler": {"const": true},
+              "every_scene_advances": {"const": true}
+            }
+          }
+        }
+      }
+    }
+  }
+}

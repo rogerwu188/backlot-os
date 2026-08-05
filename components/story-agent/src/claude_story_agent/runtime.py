@@ -6,6 +6,8 @@ from .story_agent import StoryAgent
 from .review_agent import ReviewAgent
 from .model_adapter import ModelAdapter, CapabilityError
 from .versioning import VersionLedger
+from .novel_import import import_novel, split_chapters, plan_series, NovelImportError
+from .continuity import ContinuityLedger
 
 DEFAULT_WORKERS = 4
 
@@ -53,6 +55,46 @@ class Runtime:
         except CapabilityError as e:
             return {"ok": False, "verb": "revise", "status": "CAPABILITY_FAIL", "error": str(e)}
 
+    def import_novel_one(self, req) -> dict:
+        try:
+            result = import_novel(
+                req["text"], int(req["total_episodes"]), float(req["episode_duration_sec"])
+            )
+            return {"ok": True, "verb": "importNovel", **result}
+        except (KeyError, NovelImportError, ValueError, TypeError) as exc:
+            return {"ok": False, "verb": "importNovel", "error": str(exc)}
+
+    def plan_series_one(self, req) -> dict:
+        try:
+            chapters = req.get("chapters") or split_chapters(req["text"])
+            plan = plan_series(
+                chapters,
+                int(req["total_episodes"]),
+                float(req["episode_duration_sec"]),
+                float(req.get("duration_tolerance_sec", 15.0)),
+            )
+            return {"ok": True, "verb": "planSeries", "series_plan": plan}
+        except (KeyError, NovelImportError, ValueError, TypeError) as exc:
+            return {"ok": False, "verb": "planSeries", "error": str(exc)}
+
+    def continuity_check_one(self, req) -> dict:
+        try:
+            ledger = ContinuityLedger(req.get("ledger_path"))
+            episode = Episode.from_dict(req["episode"])
+            issues = ledger.check_episode(episode)
+            recorded = ledger.record(episode, req.get("end_hook", "")) if req.get("record") else None
+            blockers = [issue for issue in issues if issue["severity"] == "blocking"]
+            return {
+                "ok": True,
+                "verb": "continuityCheck",
+                "passed": not blockers,
+                "issues": issues,
+                "blocking_count": len(blockers),
+                "recorded": recorded,
+            }
+        except (KeyError, ValueError, TypeError) as exc:
+            return {"ok": False, "verb": "continuityCheck", "error": str(exc)}
+
     def status(self, _req=None) -> dict:
         with self._state_lock: active=self._active_jobs;completed=self._completed_jobs
         last=None if not self.ledger.records else {k:v for k,v in self.ledger.records[-1].items() if k!="output_snapshot"}
@@ -85,7 +127,9 @@ class Runtime:
 
     VERBS = {"health": "health", "validate": "validate", "review": "review_one",
              "generate": "generate_one", "revise": "revise_one", "status": "status",
-             "progress": "status", "generateMany": "generate_many", "reviewMany": "review_many"}
+             "progress": "status", "generateMany": "generate_many", "reviewMany": "review_many",
+             "importNovel": "import_novel_one", "planSeries": "plan_series_one",
+             "continuityCheck": "continuity_check_one"}
 
     def dispatch(self, req: dict) -> dict:
         verb = req.get("verb")

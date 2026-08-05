@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+## 0.2.35
+
+- Upgrade the Story Agent component to 0.4.0 by merging the verified Claude
+  Writer handoff into the stricter BacklotOS mainline.
+- Add runtime-only novel import, exact-count series planning, append-only
+  continuity checks, and source-level dialogue pacing gates without weakening
+  character asset, combat, release visual, failed-only, or rollback contracts.
+- Add package/runtime version consistency coverage so a wheel cannot advertise
+  one version while the imported agent reports another.
+- Add a motivated combat-camera vocabulary with fifteen typed techniques bound
+  to action beats, exact time ranges, subject anchors, axes, and narrative use.
+- Allow richer short-shot storyboard grammar while limiting a 15-second action
+  take to two dynamic camera segments separated by stable observation.
+- Reject decorative camera stacking, mode mismatches, unsupported edit grammar,
+  sustained shake, and slow motion without a decisive contact before paid
+  generation.
+
 ## 0.2.34
 
 - Add executable parallel QA fan-out to the Pipeline adapter with isolated

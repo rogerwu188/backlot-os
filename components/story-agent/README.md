@@ -1,6 +1,6 @@
 # BacklotOS Story Agent
 
-Version 0.2.0 is a portable, installable extraction of the local Claude Writer's
+Version 0.4.0 is a portable, installable extraction of the local Claude Writer's
 **script generation + script review** capabilities. Generic drama core. Review is fully deterministic (runs with
 no model). Generation requires a model via the adapter layer.
 
@@ -29,7 +29,8 @@ python -m claude_story_agent.cli serve       # one JSON request per line -> one 
 
 ## Verbs
 `generate` · `review` · `revise` · `validate` · `health` · `status`/`progress` ·
-`generateMany` · `reviewMany` · `serve` (NDJSON).
+`generateMany` · `reviewMany` · `importNovel` · `planSeries` ·
+`continuityCheck` · `serve` (NDJSON).
 
 ## Backends (adapter layer)
 `CLAUDE_STORY_MODE = anthropic | command | mock | auto`
@@ -41,12 +42,15 @@ No model available → `generate`/`revise` return **CAPABILITY_FAIL** with a non
 
 ## Default pacing contract
 
-All new scripts use `backlotos.us-premium-streaming/1.0`: immediate dramatic
+All new scripts use `backlotos.us-premium-streaming/1.1`: immediate dramatic
 entry, high event density, compressed dialogue, no recap/filler, a meaningful
 mid-episode escalation, and a consequential end hook. Deterministic review
 reports opening/end hooks, advancing-shot ratio, dialogue density, repeated
-dialogue, and non-advancing shots. Requested episode count never authorizes
-padding.
+dialogue, non-advancing shots, estimated audible-dialogue ratio, dialogue-only
+runs, action-scene dialogue load, and picture/dialogue restatement. Requested
+episode count never authorizes padding. `importNovel` accepts source text only
+at runtime, returns source SHA plus chapter/beat metadata, and never persists or
+bundles the text. `continuityCheck` can use a caller-owned append-only ledger.
 
 ## Safety
 Never writes/returns API keys; never publishes; never deletes; all runs are non-destructive

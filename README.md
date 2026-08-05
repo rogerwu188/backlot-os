@@ -35,7 +35,7 @@ project remains resumable in `WAITING_FOR_MODEL` instead of fabricating output.
 ## What is included
 
 - **Review Agent 1.2.0** — shot, asset, and final-cut review for video, audio, and images; five-point scoring; bundled OCR and StoryClaw GPT‑5.5 vision adapter; issue ledger; regression rules; NDJSON workers; AgentCut repair tasks.
-- **Story Agent 0.2.1** — Claude >=4.8 policy, replaceable Claude/command model adapter, premium-streaming pacing gates, structured episode generation, deterministic script review, failed-only revision, and append-only rollback snapshots.
+- **Story Agent 0.4.0** — Claude >=4.8 policy, replaceable Claude/command model adapter, runtime novel import, exact-count series planning, append-only continuity, premium-streaming 1.1 dialogue pacing gates, structured episode generation, deterministic script review, failed-only revision, and rollback snapshots.
 - **Producer/Supervisor Agent 0.2.0** — project planning, idempotent dispatch, Giggle image/video provider, evidence supervision, interruption recovery, failed-only retry, and per-episode/project cost aggregation.
 - **Launcher 0.2.0** — one-screen multi-chapter novel import, automatic episode planning, source-density warning, five-agent hosts, local production workbench, credit ledger, and resumable pipeline start.
 - **AgentCut 0.9.20** — timeline validation, compilation, rendering, shot recipes, recursive video/audio replacement binding, same-track overlap rejection, dialogue/subtitle alignment, audio, and fail-closed release contracts.
@@ -117,6 +117,14 @@ The supervisor uses dependency lanes rather than an episode-wide batch barrier:
 each exact-tail chain advances one ready head at a time, while all independent
 shots and other chains submit together. Remote polling runs in parallel, and
 completed outputs are downloaded and QA-checked in bounded parallel workers.
+
+Combat camera language is selected by action purpose, not sampled as visual
+decoration. Storyboards may combine up to five motivated short-shot techniques;
+a 15-second continuous action take allows at most two dynamic camera segments
+with a stable reading interval between them. Every segment binds an action beat,
+time range, subject anchor, axis relation, and narrative purpose. Unplanned time
+defaults to a locked camera, so tracking, arcs, pushes, pulls, cranes, shake, and
+slow motion cannot accumulate into continuous drift.
 
 When several short clips cannot preserve one continuous physical event, use
 `multi_keyframe_long_take` instead of adding more edit seams. This mode compiles
