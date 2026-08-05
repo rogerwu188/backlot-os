@@ -17,6 +17,10 @@ except ImportError:  # Direct script execution from components/pipeline-tools.
 
 MODES = {"storyboard", "continuous_long_take", "multi_keyframe_long_take"}
 DEFAULT_LOCAL_LORA_MEMORY = Path(__file__).resolve().parent / "local_lora/seedance2_prompt_failure_training.jsonl"
+STATIC_ACTOR_MOTION_TERMS = (
+    "静止", "完全不动", "纹丝不动", "定格", "保持姿势", "保持原位",
+    "仍在原区", "尚未启动", "留在安全区", "留在后方", "frozen", "freeze", "motionless",
+)
 VISUAL_FIELDS = (
     "duration_seconds", "shot_scale", "lens_intent", "camera_height", "camera_motion",
     "depth_layers", "scale_anchor", "palette", "key_light", "atmosphere",
@@ -116,6 +120,50 @@ def scene_lock_header(scene_lock: dict) -> str:
     )
 
 
+def compile_actor_motion_coverage(frame: dict, index: int, actor_roster: list[str]) -> tuple[str, list[dict]]:
+    """Require an explicit motion or offscreen disposition for every actor."""
+    coverage = require(frame.get("actor_motion"), f"keyframe {index} actor_motion is required")
+    if not isinstance(coverage, dict):
+        raise ValueError(f"keyframe {index} actor_motion must be an object keyed by actor")
+    expected, actual = set(actor_roster), set(coverage)
+    if actual != expected:
+        missing = ",".join(sorted(expected - actual)) or "none"
+        extra = ",".join(sorted(actual - expected)) or "none"
+        raise ValueError(f"keyframe {index} actor_motion must cover the full actor roster; missing={missing}; extra={extra}")
+    compiled, prompt_rows = [], []
+    for actor in actor_roster:
+        row = coverage[actor]
+        if not isinstance(row, dict):
+            raise ValueError(f"keyframe {index} actor_motion.{actor} must be an object")
+        visible = row.get("visible")
+        if visible is False:
+            reason = require(row.get("offscreen_reason"), f"keyframe {index} offscreen actor {actor} requires offscreen_reason")
+            compiled.append({"actor": actor, "visible": False, "offscreen_reason": reason})
+            prompt_rows.append(f"{actor}=已离开画面，原因是{reason}")
+            continue
+        if visible is not True:
+            raise ValueError(f"keyframe {index} actor_motion.{actor}.visible must be true or false")
+        micro = require(row.get("continuous_micro_action"), f"keyframe {index} visible actor {actor} requires continuous_micro_action")
+        reaction = require(row.get("event_reaction"), f"keyframe {index} visible actor {actor} requires event_reaction")
+        motion_cues = require(row.get("motion_cues"), f"keyframe {index} visible actor {actor} requires motion_cues")
+        if not isinstance(motion_cues, list) or len(motion_cues) < 2 or any(not str(cue).strip() for cue in motion_cues):
+            raise ValueError(f"keyframe {index} visible actor {actor} requires at least two positive motion_cues")
+        authored_motion = f"{micro} {reaction} {' '.join(str(cue) for cue in motion_cues)}".lower()
+        static_terms = [term for term in STATIC_ACTOR_MOTION_TERMS if term.lower() in authored_motion]
+        if static_terms:
+            raise ValueError(
+                f"keyframe {index} visible actor {actor} authors a static pose instead of continuous motion: {','.join(static_terms)}"
+            )
+        compiled.append({
+            "actor": actor, "visible": True, "continuous_micro_action": micro,
+            "event_reaction": reaction, "motion_cues": [str(cue) for cue in motion_cues],
+        })
+        prompt_rows.append(
+            f"{actor}=持续动作({micro})，事件反应({reaction})，可见动势({'、'.join(str(cue) for cue in motion_cues)})"
+        )
+    return "；".join(prompt_rows), compiled
+
+
 def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     """Compile a spatially continuous 15-second Omni shot from ordered keyframes."""
     duration = require(spec.get("duration_seconds"), "duration_seconds is required")
@@ -133,6 +181,12 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     keyframes = require(spec.get("keyframes"), "keyframes are required")
     if not 3 <= len(keyframes) <= 9:
         raise ValueError("multi_keyframe_long_take requires 3 to 9 keyframes")
+    actor_roster = require(spec.get("actor_roster"), "multi_keyframe_long_take actor_roster is required")
+    if not isinstance(actor_roster, list) or len(actor_roster) < 1 or any(not str(actor).strip() for actor in actor_roster):
+        raise ValueError("multi_keyframe_long_take actor_roster must be a non-empty list")
+    actor_roster = [str(actor).strip() for actor in actor_roster]
+    if len(set(actor_roster)) != len(actor_roster):
+        raise ValueError("multi_keyframe_long_take actor_roster contains duplicates")
     times, timeline, compiled_frames = [], [], []
     states = set()
     previous_zone = previous_state = None
@@ -155,6 +209,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         zone = require(frame.get("location_zone"), f"keyframe {index} location_zone is required")
         blocking = require(frame.get("actor_blocking"), f"keyframe {index} actor_blocking is required")
         event = require(frame.get("action_event"), f"keyframe {index} action_event is required")
+        actor_motion_prompt, actor_motion = compile_actor_motion_coverage(frame, index, actor_roster)
         reference_role = require(frame.get("reference_role"), f"keyframe {index} reference_role is required")
         camera_side = require(frame.get("camera_side"), f"keyframe {index} camera_side is required")
         camera_position = require(frame.get("camera_position"), f"keyframe {index} camera_position is required")
@@ -197,6 +252,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
                     raise ValueError(f"keyframe {index} camera aperture does not match subject aperture")
         timeline.append(
             f"{timestamp:g}秒到达@图片{index}：该图只负责{reference_role}；{event}；人物站位：{blocking}；"
+            f"逐人动作覆盖：{actor_motion_prompt}；"
             f"摄影机位于{camera_side}，位置{camera_position}，朝向{camera_facing}；"
             f"必须继承{preserve}；不得从该图继承{'、'.join(reject_inheritance)}；"
             f"动作状态从{previous_state or '镜头起始'}连续推进到{state}。"
@@ -206,6 +262,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
             "image_path": str(image_path), "image_sha256": actual_sha,
             "state_token": state, "location_zone": zone,
             "reference_role": reference_role,
+            "actor_motion": actor_motion,
             "camera_side": camera_side, "camera_position": camera_position,
             "camera_facing": camera_facing, "preserve_from_previous": preserve,
             "do_not_inherit": reject_inheritance, "transition_from_previous": transition,
@@ -237,6 +294,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         "contract": "15s_ordered_multi_keyframe_spatial_continuity", "duration_seconds": 15,
         "model": spec["model"], "resolution": spec["resolution"], "real_time_1x": True,
         "camera_motion_policy": camera_policy, "keyframes": compiled_frames,
+        "actor_roster": actor_roster,
         "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
         "local_lora_memory": {
             "path": str(memory_path), "sha256": memory_sha,
@@ -247,6 +305,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
                   "NO_REPEATED_ACTION_STATE", "NO_TELEPORT_OR_ACTION_RESET",
                   "SAME_APERTURE_LOCATION_CROSSING", "REAL_TIME_1X",
                   "NO_UNMOTIVATED_CAMERA_MOTION", "ADJACENT_CAMERA_TRAJECTORY_REACHABILITY",
+                  "FULL_VISIBLE_ACTOR_MOTION_COVERAGE",
                   "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED"],
     }
 
