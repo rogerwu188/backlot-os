@@ -7,7 +7,8 @@ from .model_adapter import ModelAdapter
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="claude-story-agent")
     ap.add_argument("verb", choices=["health","validate","review","generate","revise",
-                                     "status","progress","generateMany","reviewMany","serve"])
+                                     "status","progress","generateMany","reviewMany",
+                                     "importNovel","planSeries","continuityCheck","serve"])
     ap.add_argument("--in", dest="infile", help="request JSON file (default stdin)")
     ap.add_argument("--mode", help="model mode: anthropic|command|mock|auto")
     ap.add_argument("--command", help="external CLAUDE_STORY_COMMAND")

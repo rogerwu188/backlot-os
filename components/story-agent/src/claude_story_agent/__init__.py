@@ -3,4 +3,4 @@
 Generic drama production core.
 Generation requires a model via the adapter layer; review is deterministic.
 """
-__version__ = "0.3.0"
+__version__ = "0.4.0"
