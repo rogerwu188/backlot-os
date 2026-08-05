@@ -32,6 +32,26 @@ class LongTakeScoreGateTest(unittest.TestCase):
         result = adjudicate(60, visible_actor_count=4, visible_actor_motion_score=60)
         self.assertEqual(result["decision"], "PASS")
 
+    def test_combat_identity_outcome_can_fail_an_otherwise_passing_take(self):
+        result = adjudicate(
+            82,
+            visible_actor_count=4,
+            visible_actor_motion_score=75,
+            combat_identity_outcome_score=40,
+        )
+        self.assertEqual(result["combat_identity_outcome_decision"], "FAIL")
+        self.assertEqual(result["decision"], "FAIL")
+
+    def test_combat_identity_outcome_hard_failure_overrides_score(self):
+        result = adjudicate(
+            90,
+            ["COMBAT_IDENTITY_OUTCOME"],
+            visible_actor_count=4,
+            visible_actor_motion_score=90,
+            combat_identity_outcome_score=90,
+        )
+        self.assertEqual(result["decision"], "FAIL")
+
 
 if __name__ == "__main__":
     unittest.main()

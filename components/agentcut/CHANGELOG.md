@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.22
+
+- Reject release-bound video sources whose paths or metadata identify
+  blur/defocus cleanup used to hide generated text or narrative evidence.
+- Reject opaque subtitle boxes in release projects unless the episode's
+  explicit visual-integrity policy authorizes that style.
+- Report both failures in release validation coverage before render or upload.
+
 ## 0.9.21
 
 - Add opt-in subtitle background boxes with configurable color, opacity, and

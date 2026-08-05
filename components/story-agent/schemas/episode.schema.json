@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "backlotos.episode.v1",
   "type": "object",
-  "required": ["episode_id", "scenes"],
+  "required": ["episode_id", "character_asset_briefs", "scenes"],
   "properties": {
     "episode_id": {"type": "string"},
     "version": {"type": "string"},
@@ -12,6 +12,20 @@
     "prev_episode": {"type": "object"},
     "new_info": {"type": "array"},
     "mainline_beats": {"type": "array"},
+    "character_asset_briefs": {"type": "array", "minItems": 1, "items": {
+      "type": "object",
+      "required": ["character_id", "source_locator", "era", "region", "age", "gender_presentation", "social_role", "wardrobe", "face", "hair", "body", "voice", "design_distinction_from", "writer_completed_before_asset_generation"],
+      "properties": {
+        "character_id": {"type": "string"}, "source_locator": {"type": "string"},
+        "era": {"type": "string"}, "region": {"type": "string"}, "age": {"type": "string"},
+        "gender_presentation": {"type": "string"}, "social_role": {"type": "string"},
+        "wardrobe": {"type": "string"}, "face": {"type": "string"}, "hair": {"type": "string"},
+        "body": {"type": "string"}, "voice": {"type": "string"},
+        "design_distinction_from": {"type": "array", "minItems": 1},
+        "narrative_similarity_exception": {"type": ["string", "null"]},
+        "writer_completed_before_asset_generation": {"const": true}
+      }
+    }},
     "scenes": {"type": "array", "items": {
       "type": "object",
       "required": ["scene_id", "location", "time", "weather", "shots"],

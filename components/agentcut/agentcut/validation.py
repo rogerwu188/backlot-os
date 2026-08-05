@@ -277,6 +277,58 @@ def validate_subtitles(project: Project) -> tuple[list[ValidationIssue], dict[st
     return issues, coverage
 
 
+def validate_release_visual_integrity(project: Project) -> tuple[list[ValidationIssue], dict[str, Any]]:
+    """Block blur-based repair and unapproved subtitle boxes in release projects."""
+    required = bool(project.release_project or project.release_gate.get("required", False))
+    if not required:
+        return [], {"required": False}
+    policy = project.metadata.get("releaseVisualIntegrityPolicy") or {}
+    forbidden_tokens = [str(value).lower() for value in policy.get(
+        "forbiddenSourcePathTokens", ["defocus", "blurred", "bounded-blur", "paper-defocus"]
+    )]
+    issues: list[ValidationIssue] = []
+    affected_sources: list[str] = []
+    for track_index, track in enumerate(project.video_tracks):
+        if not track.enabled:
+            continue
+        for clip_index, clip in enumerate(track.clips):
+            source = str(clip.source)
+            hits = sorted({token for token in forbidden_tokens if token and token in source.lower()})
+            repair_kind = str((clip.metadata or {}).get("visual_repair_kind") or "").upper()
+            if hits or repair_kind in {"DEFOCUS", "BLUR", "GAUSSIAN_BLUR"}:
+                affected_sources.append(source)
+                issues.append(ValidationIssue(
+                    "RELEASE_BLUR_REPAIR_FORBIDDEN", "error",
+                    "release video cannot hide generated text by blurring evidence, people, hands, faces, or narrative props; regenerate a clean source or use an opaque authored prop layer",
+                    track_id=track.id, track_kind="video", track_index=track_index,
+                    clip_index=clip_index, clip_id=clip.id, source=source,
+                    metadata={"matchedTokens": hits, "visualRepairKind": repair_kind or None},
+                    time_range=_range(clip.start, clip.start + clip.duration),
+                ))
+    boxed_captions: list[str] = []
+    box_allowed = policy.get("subtitleBoxAllowed") is True
+    for track_index, track in enumerate(project.subtitle_tracks):
+        if not track.enabled:
+            continue
+        for clip_index, clip in enumerate(track.clips):
+            if clip.style.box and not box_allowed:
+                boxed_captions.append(clip.id)
+                issues.append(ValidationIssue(
+                    "RELEASE_SUBTITLE_BOX_UNAPPROVED", "error",
+                    "release subtitles must preserve the approved font-and-outline style; an opaque box requires an explicit episode creative brief",
+                    track_id=track.id, track_kind="subtitle", track_index=track_index,
+                    clip_index=clip_index, clip_id=clip.id,
+                    time_range=_range(clip.start, clip.start + clip.duration),
+                ))
+    return issues, {
+        "required": True,
+        "forbiddenSourcePathTokens": forbidden_tokens,
+        "blurRepairSourceCount": len(set(affected_sources)),
+        "boxedCaptionCount": len(boxed_captions),
+        "subtitleBoxAllowed": box_allowed,
+    }
+
+
 def validate_release_project_contract(project: Project) -> tuple[list[ValidationIssue], dict[str, Any]]:
     """Require complete subtitle, outro, and visual-review declarations for releases."""
     required = bool(project.release_project)
@@ -1375,6 +1427,7 @@ class MediaValidator:
         replacement_issues, replacement_coverage = validate_replacement_bindings(project)
         overlap_issues, overlap_coverage = validate_track_clip_overlaps(project)
         subtitle_issues, subtitle_coverage = validate_subtitles(project)
+        visual_integrity_issues, visual_integrity_coverage = validate_release_visual_integrity(project)
         narrative_issues, narrative_coverage = validate_narrative(project)
         cut_reason_issues, cut_reason_coverage = validate_cut_reason_contract(project)
         outro_issues, outro_coverage = validate_outro(project, self.ffprobe.replace("ffprobe", "ffmpeg"))
@@ -1385,7 +1438,7 @@ class MediaValidator:
         hold_issues, hold_coverage = validate_hold_slots(project)
         recipe_issues, recipe_coverage = validate_shot_recipes(project)
         issues: list[ValidationIssue] = [
-            *release_contract_issues, *replacement_issues, *overlap_issues, *subtitle_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
+            *release_contract_issues, *replacement_issues, *overlap_issues, *subtitle_issues, *visual_integrity_issues, *narrative_issues, *cut_reason_issues, *outro_issues,
             *cleanup_issues, *audio_issues, *source_issues, *release_issues, *hold_issues, *recipe_issues,
         ]
         media: dict[str, dict[str, Any]] = {}
@@ -1471,6 +1524,7 @@ class MediaValidator:
             "finalVideoRanges": [_range(a, b) for a, b in _merge(final_intervals)],
             "finalVideoGaps": [_range(a, b) for a, b in final_gaps],
             "subtitles": subtitle_coverage,
+            "releaseVisualIntegrity": visual_integrity_coverage,
             "narrative": narrative_coverage,
             "cutReason": cut_reason_coverage,
             "outro": outro_coverage,

@@ -16,6 +16,25 @@ def validate_episode_structure(d: Any) -> None:
     if not isinstance(d, dict):
         raise SchemaError("episode must be an object")
     _required_text(d.get("episode_id"), "episode_id")
+    briefs=d.get("character_asset_briefs")
+    if not isinstance(briefs, list) or not briefs:
+        raise SchemaError("character_asset_briefs must be a non-empty array")
+    brief_ids=set()
+    required_brief_fields=("character_id","source_locator","era","region","age","gender_presentation","social_role","wardrobe","face","hair","body","voice")
+    for bi, brief in enumerate(briefs):
+        if not isinstance(brief, dict):
+            raise SchemaError(f"character_asset_briefs[{bi}] must be an object")
+        for key in required_brief_fields:
+            _required_text(brief.get(key), f"character_asset_briefs[{bi}].{key}")
+        character_id=brief["character_id"]
+        if character_id in brief_ids:
+            raise SchemaError(f"duplicate character asset brief: {character_id}")
+        brief_ids.add(character_id)
+        distinctions=brief.get("design_distinction_from")
+        if not isinstance(distinctions, list) or not distinctions or any(not str(value).strip() for value in distinctions):
+            raise SchemaError(f"character_asset_briefs[{bi}].design_distinction_from must be a non-empty array")
+        if brief.get("writer_completed_before_asset_generation") is not True:
+            raise SchemaError(f"character_asset_briefs[{bi}] must be completed before asset generation")
     scenes=d.get("scenes")
     if not isinstance(scenes, list) or not scenes:
         raise SchemaError("scenes must be a non-empty array")
@@ -106,6 +125,7 @@ class Episode:
     scenes: list = field(default_factory=list)
     new_info: list = field(default_factory=list)  # episode-level net-new info items
     mainline_beats: list = field(default_factory=list)
+    character_asset_briefs: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -120,6 +140,7 @@ class Episode:
             canon=d.get("canon", {}), prev_episode=d.get("prev_episode", {}),
             scenes=d.get("scenes", []), new_info=d.get("new_info", []),
             mainline_beats=d.get("mainline_beats", []),
+            character_asset_briefs=d.get("character_asset_briefs", []),
         )
 
     def total_duration(self) -> float:

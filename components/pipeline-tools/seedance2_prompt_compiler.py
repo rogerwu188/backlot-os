@@ -33,6 +33,194 @@ SILENT_PERFORMANCE_MARKERS = (
     "独立音频后置", "后配音", "closed-mouth", "no lip sync", "silent performance",
 )
 
+CHARACTER_SIMILARITY_LIMITS = {"face": 0.72, "wardrobe": 0.65, "voice": 0.80}
+EXPRESSIVE_DIALOGUE_FIELDS = (
+    "psychological_state", "emotion", "emotion_intensity", "pace", "pause_map",
+    "emphasis_words", "volume_arc", "breath_pattern", "delivery_transition", "body_sync",
+)
+
+
+def _verified_asset(asset: dict, label: str) -> tuple[Path, str]:
+    path = Path(require(asset.get("path"), f"{label} path is required"))
+    expected_sha = require(asset.get("sha256"), f"{label} sha256 is required")
+    if not path.is_file():
+        raise ValueError(f"{label} does not exist: {path}")
+    actual_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual_sha != expected_sha:
+        raise ValueError(f"{label} SHA mismatch")
+    return path, actual_sha
+
+
+def compile_episode_character_registry(spec: dict, actor_roster: list[str]) -> tuple[str, dict]:
+    """Freeze source-grounded, unique character assets before video compilation."""
+    registry = require(spec.get("episode_character_registry"), "episode_character_registry is required before video generation")
+    if registry.get("frozen_before_video_generation") is not True:
+        raise ValueError("episode character registry must be frozen before video generation")
+    library_path, library_sha = _verified_asset(
+        require(registry.get("historical_library_manifest"), "historical_library_manifest is required"),
+        "historical character library manifest",
+    )
+    rows = require(registry.get("characters"), "episode character registry characters are required")
+    if not isinstance(rows, list):
+        raise ValueError("episode character registry characters must be a list")
+    by_actor = {str(row.get("actor", "")).strip(): row for row in rows}
+    if set(by_actor) != set(actor_roster) or len(by_actor) != len(rows):
+        raise ValueError("episode character registry must exactly cover actor_roster without duplicates")
+
+    compiled, visual_shas, voice_shas = [], set(), set()
+    for actor in actor_roster:
+        row = by_actor[actor]
+        source = require(row.get("canonical_character_brief"), f"character {actor} canonical_character_brief is required")
+        for field in ("source_locator", "era", "age", "social_role", "wardrobe", "face", "hair", "voice"):
+            require(source.get(field), f"character {actor} canonical brief {field} is required")
+        if source.get("writer_completed_before_asset_generation") is not True:
+            raise ValueError(f"character {actor} brief must be completed by the writer before asset generation")
+        visual_path, visual_sha = _verified_asset(
+            require(row.get("visual_reference"), f"character {actor} visual_reference is required"),
+            f"character {actor} visual reference",
+        )
+        voice_path, voice_sha = _verified_asset(
+            require(row.get("voice_reference"), f"character {actor} voice_reference is required"),
+            f"character {actor} voice reference",
+        )
+        if visual_sha in visual_shas or voice_sha in voice_shas:
+            raise ValueError("episode characters must use distinct visual and voice references")
+        visual_shas.add(visual_sha)
+        voice_shas.add(voice_sha)
+        audit = require(row.get("historical_uniqueness_audit"), f"character {actor} historical_uniqueness_audit is required")
+        if audit.get("status") != "PASS":
+            raise ValueError(f"character {actor} historical uniqueness audit must PASS")
+        exception = audit.get("narrative_similarity_exception")
+        for dimension, limit in CHARACTER_SIMILARITY_LIMITS.items():
+            score = float(require(audit.get(f"{dimension}_similarity"), f"character {actor} {dimension}_similarity is required"))
+            if score > limit and not exception:
+                raise ValueError(f"character {actor} is too similar to historical library in {dimension}")
+        compiled.append(
+            f"{actor}=原文定位{source['source_locator']}；年代{source['era']}；年龄{source['age']}；身份{source['social_role']}；"
+            f"视觉参考{visual_path}；服装{source['wardrobe']}；脸型{source['face']}；发型{source['hair']}；声音{source['voice']}；"
+            "镜头全程不得换装、换脸、换发型或借用其他角色声音"
+        )
+
+    pairs = registry.get("pairwise_uniqueness_audit")
+    if not isinstance(pairs, list):
+        raise ValueError("pairwise_uniqueness_audit must be a list")
+    expected_pairs = {tuple(sorted((a, b))) for index, a in enumerate(actor_roster) for b in actor_roster[index + 1:]}
+    actual_pairs = set()
+    for row in pairs:
+        pair = tuple(sorted((require(row.get("actor_a"), "pair actor_a is required"), require(row.get("actor_b"), "pair actor_b is required"))))
+        actual_pairs.add(pair)
+        for dimension, limit in CHARACTER_SIMILARITY_LIMITS.items():
+            if float(require(row.get(f"{dimension}_similarity"), f"pair {pair} {dimension}_similarity is required")) > limit:
+                raise ValueError(f"episode characters {pair} are too similar in {dimension}")
+    if actual_pairs != expected_pairs or len(actual_pairs) != len(pairs):
+        raise ValueError("pairwise_uniqueness_audit must cover every actor pair exactly once")
+
+    prompt = "\n【本集角色资产冻结】" + "；".join(compiled) + "。禁止临时随机生成人物，禁止同一角色黑衣变灰衣。"
+    return prompt, {
+        "historical_library_manifest": {"path": str(library_path), "sha256": library_sha},
+        "character_visual_shas": sorted(visual_shas),
+        "character_voice_shas": sorted(voice_shas),
+        "pairwise_audit_count": len(pairs),
+        "frozen_before_video_generation": True,
+    }
+
+
+def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) -> tuple[str, dict | None]:
+    """Compile combat as timed physical exchanges with identity and outcome locks."""
+    contract = spec.get("combat_choreography_contract")
+    if not contract:
+        return "", None
+    participants = require(contract.get("participants"), "combat participants are required")
+    if not isinstance(participants, list) or len(participants) < 2:
+        raise ValueError("combat requires at least two participants")
+    names, reference_shas, participant_rows = [], set(), []
+    for index, row in enumerate(participants, start=1):
+        name = require(row.get("actor"), f"combat participant {index} actor is required")
+        if name not in actor_roster:
+            raise ValueError(f"combat participant is absent from actor_roster: {name}")
+        names.append(name)
+        require(row.get("role"), f"combat participant {name} role is required")
+        reference = require(
+            row.get("independent_identity_reference"),
+            f"combat participant {name} requires independent_identity_reference",
+        )
+        reference_path = Path(require(reference.get("path"), f"combat participant {name} identity path is required"))
+        reference_sha = require(reference.get("sha256"), f"combat participant {name} identity sha256 is required")
+        if not reference_path.is_file():
+            raise ValueError(f"combat participant {name} identity reference does not exist: {reference_path}")
+        actual_sha = hashlib.sha256(reference_path.read_bytes()).hexdigest()
+        if actual_sha != reference_sha:
+            raise ValueError(f"combat participant {name} identity reference SHA mismatch")
+        if actual_sha in reference_shas:
+            raise ValueError("combat participants must use distinct identity references")
+        reference_shas.add(actual_sha)
+        wardrobe = require(row.get("wardrobe_silhouette"), f"combat participant {name} wardrobe_silhouette is required")
+        face = require(row.get("face_geometry"), f"combat participant {name} face_geometry is required")
+        first_second = require(row.get("first_second_displacement"), f"combat participant {name} first_second_displacement is required")
+        participant_rows.append(
+            f"{name}={row['role']}，身份参考{reference_path}，服装轮廓{wardrobe}，脸型{face}，开场1秒位移{first_second}"
+        )
+    if len(set(names)) != len(names):
+        raise ValueError("combat participants contain duplicates")
+
+    reference_video = require(contract.get("action_reference_video"), "combat action_reference_video is required")
+    require(reference_video.get("url"), "combat action_reference_video.url is required")
+    if reference_video.get("reference_scope") != "CHOREOGRAPHY_TIMING_AND_BODY_MECHANICS_ONLY":
+        raise ValueError("combat action reference scope must exclude identity, wardrobe and outcome")
+
+    beats = require(contract.get("beats"), "combat beats are required")
+    if not isinstance(beats, list) or not 3 <= len(beats) <= 6:
+        raise ValueError("combat requires 3 to 6 timed beats")
+    cursor, signatures, beat_rows = 0.0, set(), []
+    required_fields = (
+        "initiator", "target", "action", "contact_point", "force_direction",
+        "footwork", "target_reaction", "end_state",
+    )
+    for index, beat in enumerate(beats, start=1):
+        start = float(require(beat.get("start_seconds"), f"combat beat {index} start_seconds is required"))
+        end = float(require(beat.get("end_seconds"), f"combat beat {index} end_seconds is required"))
+        if abs(start - cursor) > 0.01 or end <= start or end - start > 3.0:
+            raise ValueError(f"combat beat {index} must be contiguous and no longer than 3 seconds")
+        values = {field: require(beat.get(field), f"combat beat {index} {field} is required") for field in required_fields}
+        if values["initiator"] not in names or values["target"] not in names:
+            raise ValueError(f"combat beat {index} initiator and target must be participants")
+        if values["initiator"] == values["target"]:
+            raise ValueError(f"combat beat {index} initiator and target must differ")
+        signature = (values["initiator"], values["target"], values["action"], values["contact_point"])
+        if signature in signatures:
+            raise ValueError(f"combat beat {index} repeats an earlier exchange")
+        signatures.add(signature)
+        beat_rows.append(
+            f"{start:g}-{end:g}秒：{values['initiator']}以{values['footwork']}完成{values['action']}，"
+            f"接触{values['target']}的{values['contact_point']}，力量朝{values['force_direction']}；"
+            f"{values['target']}因受力{values['target_reaction']}；终态{values['end_state']}"
+        )
+        cursor = end
+    if abs(cursor - float(spec["duration_seconds"])) > 0.01:
+        raise ValueError("combat beats must cover the full generation duration")
+
+    winner = require(contract.get("winner"), "combat winner is required")
+    restrained = require(contract.get("restrained_actor"), "combat restrained_actor is required")
+    if winner not in names or restrained not in names or winner == restrained:
+        raise ValueError("combat winner and restrained_actor must be distinct participants")
+    terminal = require(contract.get("terminal_identity_hold"), "combat terminal_identity_hold is required")
+    prompt = (
+        "\n【打斗身份硬锁】" + "；".join(participant_rows) + "。"
+        "@视频1只参考动作节拍、真实重心转移和受力反馈，不继承人物、服装、场景、胜负或运镜。"
+        "\n【逐拍动作因果】" + "；".join(beat_rows) + "。"
+        f"\n【胜负终态硬锁】胜者={winner}；被制服者={restrained}；终局画面={terminal}。"
+        "禁止互换身份、禁止攻守倒置、禁止让胜者被按住、禁止橡皮肢体、假摔、无接触挥舞和重复招式。"
+    )
+    return prompt, {
+        "participants": names,
+        "identity_reference_shas": sorted(reference_shas),
+        "action_reference_video": reference_video,
+        "beats": beats,
+        "winner": winner,
+        "restrained_actor": restrained,
+        "terminal_identity_hold": terminal,
+    }
+
 
 def require(value, message: str):
     if value is None or value == "" or value == []:
@@ -103,6 +291,66 @@ def enforce_dialogue_mode_consistency(spec: dict) -> str:
     return mode
 
 
+def compile_expressive_voice_contract(spec: dict, mode: str) -> tuple[str, dict | None]:
+    """Compile line-level psychology and prosody before native speech generation."""
+    if mode == "NO_DIALOGUE":
+        return "", None
+    dialogues = [shot["dialogue"] for shot in (spec.get("shots") or []) if shot.get("dialogue")]
+    rows = dialogues if mode == "ON_CAMERA_NATIVE_LIP_SYNC" else (spec.get("voice_over_manifest") or [])
+    profiles, speaker_signatures = [], {}
+    for index, row in enumerate(rows, start=1):
+        speaker = require(row.get("speaker"), f"dialogue line {index} speaker is required")
+        text = require(row.get("text"), f"dialogue line {index} text is required")
+        values = {
+            field: require(row.get(field), f"dialogue line {index} {field} is required by expressive voice contract")
+            for field in EXPRESSIVE_DIALOGUE_FIELDS
+        }
+        intensity = int(values["emotion_intensity"])
+        if not 1 <= intensity <= 5:
+            raise ValueError(f"dialogue line {index} emotion_intensity must be between 1 and 5")
+        emphasis = values["emphasis_words"]
+        if not isinstance(emphasis, list) or not emphasis or any(not str(word).strip() for word in emphasis):
+            raise ValueError(f"dialogue line {index} emphasis_words must be a non-empty list")
+        missing_words = [str(word) for word in emphasis if str(word) not in text]
+        if missing_words:
+            raise ValueError(f"dialogue line {index} emphasis_words are absent from text: {','.join(missing_words)}")
+        signature = (
+            values["psychological_state"], values["emotion"], intensity, values["pace"],
+            values["pause_map"], len(emphasis), values["volume_arc"],
+            values["breath_pattern"], values["delivery_transition"],
+        )
+        speaker_signatures.setdefault(speaker, []).append(signature)
+        profiles.append({
+            "line_index": index, "speaker": speaker,
+            "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            **values, "emotion_intensity": intensity,
+        })
+    if spec.get("allow_deliberately_monotone_performance") is not True:
+        for speaker, signatures in speaker_signatures.items():
+            if len(signatures) > 1 and len(set(signatures)) == 1:
+                raise ValueError(
+                    f"EXPRESSIVE_VOICE_VARIATION failed; {speaker} repeats one emotion/prosody signature across every line"
+                )
+    prompt_rows = [
+        f"第{row['line_index']}句{row['speaker']}：心理{row['psychological_state']}；情绪{row['emotion']}"
+        f"(强度{row['emotion_intensity']}/5)；语速{row['pace']}；停连{row['pause_map']}；"
+        f"重音{'、'.join(row['emphasis_words'])}；音量{row['volume_arc']}；气息{row['breath_pattern']}；"
+        f"句内转变{row['delivery_transition']}；身体同步{row['body_sync']}"
+        for row in profiles
+    ]
+    prompt = (
+        "\n【逐句心理与语音表演硬锁】保持每个角色既定声纹，不改变年龄、音色和口音；"
+        + "；".join(prompt_rows)
+        + "。语气必须由当句心理和事件变化驱动，禁止新闻播报腔、全句同强度、全场同语速、机械匀速、无重音、无停连。"
+    )
+    return prompt, {
+        "profiles": profiles,
+        "speaker_profile_counts": {speaker: len(rows) for speaker, rows in speaker_signatures.items()},
+        "variation_gate": "PASS",
+        "voice_identity_preserved": True,
+    }
+
+
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
     """Load admitted LoRA-ready examples whose guards apply before paid generation."""
     auto_sync(path)
@@ -148,7 +396,13 @@ def compile_shot(shot: dict, index: int) -> str:
     if dialogue:
         speaker = require(dialogue.get("speaker"), f"shot {index} dialogue speaker is required")
         text = require(dialogue.get("text"), f"shot {index} dialogue text is required")
-        line += f" {speaker}清楚说：{{{text}}} 只有{speaker}口型运动。"
+        line += (
+            f" {speaker}清楚说：{{{text}}} 只有{speaker}口型运动；"
+            f"心理{dialogue['psychological_state']}，情绪{dialogue['emotion']}强度{dialogue['emotion_intensity']}/5，"
+            f"语速{dialogue['pace']}，停连{dialogue['pause_map']}，重音{'、'.join(dialogue['emphasis_words'])}，"
+            f"音量{dialogue['volume_arc']}，气息{dialogue['breath_pattern']}，"
+            f"句内转变{dialogue['delivery_transition']}，身体同步{dialogue['body_sync']}。"
+        )
     if shot.get("sound"):
         line += f" <{shot['sound']}>"
     line += f" 切因：{cut_reason}。"
@@ -255,6 +509,8 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     actor_roster = [str(actor).strip() for actor in actor_roster]
     if len(set(actor_roster)) != len(actor_roster):
         raise ValueError("multi_keyframe_long_take actor_roster contains duplicates")
+    character_prompt, character_registry = compile_episode_character_registry(spec, actor_roster)
+    combat_prompt, combat_contract = compile_combat_choreography_contract(spec, actor_roster)
     times, timeline, compiled_frames = [], [], []
     states = set()
     previous_zone = previous_state = None
@@ -354,6 +610,8 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
         f"15秒一镜到底，Seedance 2.0 Pro，原生1080p，实时1倍速。{subject_lock}\n"
         f"动作轴：{action_axis}。空间连续硬锁：{spatial_lock}。\n" + "\n".join(timeline)
         + memory_clause
+        + character_prompt
+        + combat_prompt
         + f"\n镜头只为跟清楚动作因果而移动；禁止无动机摇摆、smooth roam、slow push、orbit、overhead reveal、慢动作、插帧、动作重演、人物瞬移、机位重置、空间跳切。禁止：{' / '.join(negative)}。\n"
     )
     post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
@@ -375,10 +633,14 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
                   "SAME_APERTURE_LOCATION_CROSSING", "REAL_TIME_1X",
                   "NO_UNMOTIVATED_CAMERA_MOTION", "ADJACENT_CAMERA_TRAJECTORY_REACHABILITY",
                   "FULL_VISIBLE_ACTOR_MOTION_COVERAGE",
+                  "EPISODE_CHARACTER_ASSETS_FROZEN_AND_UNIQUE",
+                  "COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME" if combat_contract else "NO_COMBAT_CONTRACT",
                   "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED",
                   "PROMPT_LITERAL_GLYPH_SCAN" if spec.get("text_layer_post_only") else "NO_POST_ONLY_GLYPH_CONTRACT"],
         "text_layer_post_only": bool(spec.get("text_layer_post_only")),
         "post_only_glyph_count": len(post_only_glyphs),
+        "episode_character_registry": character_registry,
+        "combat_choreography_contract": combat_contract,
     }
 
 
@@ -387,10 +649,15 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
     if mode not in MODES:
         raise ValueError(f"unsupported mode: {mode}")
     dialogue_mode = enforce_dialogue_mode_consistency(spec)
+    expressive_voice_prompt, expressive_voice_contract = compile_expressive_voice_contract(spec, dialogue_mode)
     if mode == "multi_keyframe_long_take":
         prompt, manifest = compile_multi_keyframe_long_take(spec)
         manifest["dialogue_mode"] = dialogue_mode
         manifest["dialogue_mode_gate"] = "PASS"
+        manifest["expressive_voice_contract"] = expressive_voice_contract
+        manifest["gates"].append("EXPRESSIVE_VOICE_PSYCHOLOGY_AND_PROSODY")
+        prompt += expressive_voice_prompt
+        manifest["prompt_sha256"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         return prompt, manifest
     entities = require(spec.get("entities"), "entities are required")
     shots = require(spec.get("shots"), "shots are required")
@@ -434,7 +701,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         route = "/api/v1/generation/image-to-video"
         contract = "single_unbroken_shot_first_last_frames"
 
-    prompt = f"{header}\n\n{body}\n\n{tail.strip()}\n"
+    prompt = f"{header}\n\n{body}{expressive_voice_prompt}\n\n{tail.strip()}\n"
     post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     manifest = {
         "schema": "qingshan.seedance2_prompt_compilation.v2" if visual_contract else "qingshan.seedance2_prompt_compilation.v1",
@@ -447,6 +714,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "post_only_glyph_count": len(post_only_glyphs),
         "dialogue_mode": dialogue_mode,
         "dialogue_mode_gate": "PASS",
+        "expressive_voice_contract": expressive_voice_contract,
     }
     if version:
         manifest["visual_benchmark_contract_version"] = version

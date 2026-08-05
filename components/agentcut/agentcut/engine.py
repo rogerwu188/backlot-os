@@ -20,7 +20,7 @@ from .models import Project
 from .runtime import resolve_binary
 from .release_gate import validate_release_output
 from .final_visual import FinalVisualPolicy, FinalVisualValidator
-from .validation import MediaValidator, ValidationReport, validate_audio_safety, validate_cleanup_regions, validate_cut_reason_contract, validate_hold_slots, validate_narrative, validate_outro, validate_release_gate, validate_release_project_contract, validate_replacement_bindings, validate_shot_recipes, validate_source_admission, validate_subtitles
+from .validation import MediaValidator, ValidationReport, validate_audio_safety, validate_cleanup_regions, validate_cut_reason_contract, validate_hold_slots, validate_narrative, validate_outro, validate_release_gate, validate_release_project_contract, validate_release_visual_integrity, validate_replacement_bindings, validate_shot_recipes, validate_source_admission, validate_subtitles
 from .shot_recipes import list_short_drama_recipes, map_shot_recipe_repairs
 from .transform import TransformResult, load_json_value, rollback_project, transform_project, write_json_atomic, content_hash
 
@@ -116,6 +116,8 @@ class AgentCutEngine:
         release_contract_issues, release_contract_coverage = validate_release_project_contract(project)
         replacement_issues, replacement_coverage = validate_replacement_bindings(project)
         issues, subtitle_coverage = validate_subtitles(project)
+        visual_integrity_issues, visual_integrity_coverage = validate_release_visual_integrity(project)
+        issues.extend(visual_integrity_issues)
         issues.extend(release_contract_issues)
         issues.extend(replacement_issues)
         narrative_issues, narrative_coverage = validate_narrative(project)
@@ -140,7 +142,7 @@ class AgentCutEngine:
             not any(x.severity == "error" for x in issues), project.duration,
             len(project.video_tracks), len(project.audio_tracks), len(project.subtitle_tracks),
             tuple(issues), {}, {"releaseProjectContract": release_contract_coverage, "replacementBindings": replacement_coverage,
-                               "subtitles": subtitle_coverage, "narrative": narrative_coverage, "cutReason": cut_reason_coverage, "outro": outro_coverage,
+                               "subtitles": subtitle_coverage, "releaseVisualIntegrity": visual_integrity_coverage, "narrative": narrative_coverage, "cutReason": cut_reason_coverage, "outro": outro_coverage,
                                "cleanup": cleanup_coverage, "audioSafety": audio_coverage,
                                "sourceAdmission": source_coverage, "releaseGate": release_coverage,
                                "holdSlots": hold_coverage, "shotRecipes": recipe_coverage},

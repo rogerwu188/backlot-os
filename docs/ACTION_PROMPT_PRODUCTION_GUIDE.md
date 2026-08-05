@@ -4,6 +4,20 @@ BacklotOS treats prompt construction as a production gate. QA verifies results;
 it is not the first place where action logic, camera intent, or music presence
 should be discovered.
 
+## Expressive native dialogue
+
+On-camera or voice-over dialogue is compiled before paid generation. Every line
+must declare `psychological_state`, `emotion`, `emotion_intensity` (1-5), `pace`,
+`pause_map`, `emphasis_words`, `volume_arc`, `breath_pattern`,
+`delivery_transition`, and `body_sync`. The compiler verifies that emphasis words
+occur in the exact canonical line, preserves the character's frozen voice
+reference, and rejects repeated identical delivery signatures across all lines
+unless the script explicitly requires a deliberately monotone performance.
+
+These fields are sent with the exact dialogue into native lip-sync video prompts;
+they are not deferred to editing. Human listening remains required after
+generation for emotional credibility, pronunciation, timing, and lip sync.
+
 ## Replacement binding is an assembly hard gate
 
 Generating a repaired asset does not complete a repair. The final timeline must
@@ -165,6 +179,33 @@ Use `components/pipeline-tools/action_prompt_pipeline_cli.py` with the bundled
 example manifest. It writes optimized prompt files, a compiled manifest, and a
 single pre-submit report covering optimization, spatial feasibility, sequence
 continuity, direction, and actor ownership.
+
+## Combat identity and outcome
+
+Before any video prompt is compiled, the writer must complete a canonical character brief for every visible or speaking role, including one-scene opponents and background performers. The brief names the source location, era, age, social role, clothing materials and colors, face, hair, and voice. Missing details go back to writing; image generation must not invent a generic temporary character.
+
+Freeze one SHA-verified visual and voice reference per character after historical-library and same-episode pairwise similarity audits pass. Unless the script explicitly requires look-alikes, excessive face, wardrobe, or voice similarity blocks production. The frozen identity remains constant through every keyframe and video frame; wardrobe-color drift such as black clothing becoming grey is a hard failure.
+
+For combat, prose such as "they exchange blows" is never a sufficient action
+plan. Add `combat_choreography_contract` with 3-6 contiguous beats, each no
+longer than three seconds. Every beat binds initiator, target, named technique,
+contact point, force direction, footwork, target reaction, and end state. Every
+participant requires a different SHA-bound identity reference, a visibly
+different wardrobe silhouette and face geometry, plus a measurable first-second
+displacement.
+
+An action-reference video is mandatory and may contribute only choreography
+timing and body mechanics; it cannot contribute identity, wardrobe, scene,
+camera, or outcome. The contract separately names the winner and restrained
+actor. Identity inversion, a frozen visible actor, or the wrong actor being
+restrained is a hard failure regardless of the aggregate 60-point score.
+
+Release repair must preserve audience readability. Blur, defocus, or depth-of-
+field degradation is not an OCR repair for evidence, documents, faces, hands,
+or people. Regenerate a clean textless source or use an opaque authored prop
+surface and add intentional glyphs in AgentCut. Release subtitles retain the
+approved font-and-outline style; an opaque subtitle box requires an explicit
+episode creative brief and cannot cover model-generated text.
 
 ## Dependency-lane concurrency
 

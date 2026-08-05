@@ -7,6 +7,19 @@ from tools.seedance2_prompt_compiler import compile_prompt, load_local_lora_memo
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
+    def dialogue(self, speaker="陈迹", text="谁提的？", **overrides):
+        row = {
+            "speaker": speaker, "text": text,
+            "psychological_state": "疑点突然对上但仍压住结论",
+            "emotion": "克制警觉", "emotion_intensity": 3,
+            "pace": "前慢后紧", "pause_map": "主语后短停，结尾收紧",
+            "emphasis_words": [text.rstrip("？。！")[-2:]],
+            "volume_arc": "低声起、末字略降", "breath_pattern": "浅吸后整句呼出",
+            "delivery_transition": "试探转确认", "body_sync": "抬眼时开口，末字手指停住",
+        }
+        row.update(overrides)
+        return row
+
     def base(self):
         return {
             "entities": [
@@ -23,7 +36,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
             "mode": "storyboard",
             "shots": [
                 {"framing": "远景", "camera": "推近", "action": "陈迹入画", "expression_arc": "平静到警觉", "cut_reason": "动作接"},
-                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": {"speaker": "陈迹", "text": "谁提的？"}, "sound": "算盘停", "cut_reason": "视线接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": self.dialogue(), "sound": "算盘停", "cut_reason": "视线接"},
             ],
         })
         prompt, manifest = compile_prompt(spec)
@@ -152,7 +165,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
             "dialogue_mode": "ON_CAMERA_NATIVE_LIP_SYNC",
             "shots": [
                 {"framing": "中景", "camera": "固定", "action": "陈迹全程不开口检查账册", "expression_arc": "迟疑到警觉", "cut_reason": "动作接"},
-                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": {"speaker": "陈迹", "text": "不是巧合。"}, "cut_reason": "视线接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": self.dialogue(text="不是巧合。", emphasis_words=["巧合"]), "cut_reason": "视线接"},
             ],
         })
         with self.assertRaisesRegex(ValueError, "DIALOGUE_MODE_CONSISTENCY"):
@@ -163,7 +176,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         spec.update({
             "mode": "storyboard",
             "dialogue_mode": "CLOSED_MOUTH_VOICE_OVER",
-            "voice_over_manifest": [{"speaker": "陈迹", "text": "不是巧合。", "audio_source": "voice.wav"}],
+            "voice_over_manifest": [dict(self.dialogue(text="不是巧合。", emphasis_words=["巧合"]), audio_source="voice.wav")],
             "shots": [
                 {"framing": "中景", "camera": "固定", "action": "陈迹闭口检查账册", "expression_arc": "迟疑到警觉", "cut_reason": "动作接"},
                 {"framing": "近景", "camera": "固定", "action": "陈迹闭口抬眼", "expression_arc": "警觉到确认", "cut_reason": "视线接"},
@@ -173,6 +186,45 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertNotIn("不是巧合", prompt)
         self.assertEqual(manifest["dialogue_mode"], "CLOSED_MOUTH_VOICE_OVER")
         self.assertEqual(manifest["dialogue_mode_gate"], "PASS")
+
+    def test_dialogue_requires_line_level_psychology_and_prosody(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "dialogue_mode": "ON_CAMERA_NATIVE_LIP_SYNC",
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "陈迹翻账", "expression_arc": "平静到警觉", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": {"speaker": "陈迹", "text": "不是巧合。"}, "cut_reason": "视线接"},
+            ],
+        })
+        with self.assertRaisesRegex(ValueError, "psychological_state"):
+            compile_prompt(spec)
+
+    def test_repeated_identical_prosody_signature_is_rejected(self):
+        line = self.dialogue(text="不是巧合。", emphasis_words=["巧合"])
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "dialogue_mode": "ON_CAMERA_NATIVE_LIP_SYNC",
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "陈迹翻账", "expression_arc": "平静到警觉", "dialogue": line, "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到确认", "dialogue": dict(line, text="并非偶然。", emphasis_words=["偶然"]), "cut_reason": "视线接"},
+            ],
+        })
+        with self.assertRaisesRegex(ValueError, "EXPRESSIVE_VOICE_VARIATION"):
+            compile_prompt(spec)
+
+    def test_changed_psychology_and_prosody_are_compiled(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "dialogue_mode": "ON_CAMERA_NATIVE_LIP_SYNC",
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "陈迹翻账", "expression_arc": "平静到警觉", "dialogue": self.dialogue(text="不是巧合。", emphasis_words=["巧合"]), "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹抬眼", "expression_arc": "警觉到决定", "dialogue": self.dialogue(text="去药房。", psychological_state="已确认内鬼路径并立即决断", emotion="低压决断", emotion_intensity=4, pace="短促", pause_map="无前停，句末截断", emphasis_words=["药房"], volume_arc="低声但更实", breath_pattern="短吸短呼", delivery_transition="确认转命令", body_sync="起身同时开口，句末迈步"), "cut_reason": "动作接"},
+            ],
+        })
+        prompt, manifest = compile_prompt(spec)
+        self.assertIn("逐句心理与语音表演硬锁", prompt)
+        self.assertIn("低压决断", prompt)
+        self.assertEqual(manifest["expressive_voice_contract"]["variation_gate"], "PASS")
 
     def test_pending_defensive_rewrite_is_precompiled_without_claiming_acceptance(self):
         with tempfile.TemporaryDirectory() as directory:
