@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.28
+
+- Add an admitted E38 video-prompt memory for held foreground poses and
+  looping or frozen supporting actors in multi-character action shots.
+- Require a visible-actor motion ledger with per-actor paths, interactions,
+  terminal positions, and sub-second displacement checks before submission.
+- Reject gesture loops, expression-only motion, background freezes, and
+  repeated-frame duration filling at prompt compilation time.
+
 ## 0.2.27
 
 - Add an admitted E38 image-prompt memory showing that re-injecting a full

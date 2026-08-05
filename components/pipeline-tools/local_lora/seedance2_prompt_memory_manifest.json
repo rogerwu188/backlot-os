@@ -1,6 +1,6 @@
 {
   "dataset": "seedance2_prompt_failure_training.jsonl",
-  "dataset_sha256": "bcab30fe8347370edb414ef0744dc7446516e046fdbb82ca0cb17f1ee2df60f3",
+  "dataset_sha256": "76270bd6d8e678f9424ad223b560e4e2d6b750a1af45d514df96678e580f8dac",
   "deployment": "The dataset ships with BacklotOS and is loaded relative to seedance2_prompt_compiler.py.",
   "format": "LoRA-ready JSONL plus deterministic compiler retrieval",
   "hard_rules": [
@@ -10,10 +10,11 @@
     "Generated text surfaces stay blank and exact glyphs are added only as real-font AgentCut layers.",
     "Exact dialogue is decoupled from visual prompts so the provider cannot burn native captions into source video.",
     "Three-beat action long takes require at least three ordered state-authority frames with actor, contact and body-relative effect-scale locks.",
-    "After an accepted predecessor locks the full roster, the next state image uses it as the sole state authority and declares an exact actor count before any changed action."
+    "After an accepted predecessor locks the full roster, the next state image uses it as the sole state authority and declares an exact actor count before any changed action.",
+    "Multi-character video prompts require a visible-actor motion ledger with per-actor paths, interactions, terminal positions and sub-second displacement checks; held poses, gesture loops and frozen backgrounds are rejected."
   ],
   "runtime_behavior": "Compilation loads admitted samples and pending defensive rewrites applicable to the requested image or video mode; pending records cannot claim a successful accepted asset.",
-  "sample_count": 7,
+  "sample_count": 8,
   "schema": "backlotos.seedance_prompt_memory_manifest.v1",
   "sync_policy": "PRIVACY_FILTERED_CONTENT_ADDRESSED_GITHUB_CONVERGENCE",
   "training_status": "RULE_ADAPTER_ACTIVE_WEIGHT_TRAINING_NOT_CLAIMED"
