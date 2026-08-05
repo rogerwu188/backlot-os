@@ -18,6 +18,19 @@ These fields are sent with the exact dialogue into native lip-sync video prompts
 they are not deferred to editing. Human listening remains required after
 generation for emotional credibility, pronunciation, timing, and lip sync.
 
+### Audio-driven dialogue transport
+
+Each exact Seedance dialogue reference must be between 2 and 15 seconds. A
+verified shorter line is padded with trailing digital silence and re-registered;
+its voice performance is not regenerated. The visual prompt refers to ordered
+audio slots and never repeats the spoken line as visible prompt text, which
+prevents the provider from turning dialogue into burned captions.
+
+This isolation rule does not ban readable story props or writing close-ups.
+Intentional account entries, letters, labels, and brush writing may appear when
+their exact content is bound to an approved text plate or added by AgentCut.
+Only invented pseudo-writing, misspellings, and unbound model text are rejected.
+
 ## Replacement binding is an assembly hard gate
 
 Generating a repaired asset does not complete a repair. The final timeline must
