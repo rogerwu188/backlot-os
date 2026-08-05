@@ -2,6 +2,10 @@
 
 ## 0.2.31
 
+- Compile every spoken line from a typed psychology-and-prosody profile: inner
+  state, emotion intensity, pace, pauses, emphasis, volume, breath, delivery
+  transition, and synchronized body action. Preserve voice identity while
+  rejecting an entire character performance with one repeated delivery signature.
 - Require writer-completed, source-grounded character briefs and SHA-frozen visual/voice assets for the full actor roster before multi-keyframe video compilation.
 - Extend the Story Agent episode schema and generation prompt so E39+ scripts must define asset-ready, era-grounded temporary characters before any downstream generation.
 - Block temporary random characters, unapproved historical or same-episode face/wardrobe/voice similarity, and within-shot identity or wardrobe drift.

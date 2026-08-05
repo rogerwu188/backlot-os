@@ -34,6 +34,10 @@ SILENT_PERFORMANCE_MARKERS = (
 )
 
 CHARACTER_SIMILARITY_LIMITS = {"face": 0.72, "wardrobe": 0.65, "voice": 0.80}
+EXPRESSIVE_DIALOGUE_FIELDS = (
+    "psychological_state", "emotion", "emotion_intensity", "pace", "pause_map",
+    "emphasis_words", "volume_arc", "breath_pattern", "delivery_transition", "body_sync",
+)
 
 
 def _verified_asset(asset: dict, label: str) -> tuple[Path, str]:
@@ -287,6 +291,66 @@ def enforce_dialogue_mode_consistency(spec: dict) -> str:
     return mode
 
 
+def compile_expressive_voice_contract(spec: dict, mode: str) -> tuple[str, dict | None]:
+    """Compile line-level psychology and prosody before native speech generation."""
+    if mode == "NO_DIALOGUE":
+        return "", None
+    dialogues = [shot["dialogue"] for shot in (spec.get("shots") or []) if shot.get("dialogue")]
+    rows = dialogues if mode == "ON_CAMERA_NATIVE_LIP_SYNC" else (spec.get("voice_over_manifest") or [])
+    profiles, speaker_signatures = [], {}
+    for index, row in enumerate(rows, start=1):
+        speaker = require(row.get("speaker"), f"dialogue line {index} speaker is required")
+        text = require(row.get("text"), f"dialogue line {index} text is required")
+        values = {
+            field: require(row.get(field), f"dialogue line {index} {field} is required by expressive voice contract")
+            for field in EXPRESSIVE_DIALOGUE_FIELDS
+        }
+        intensity = int(values["emotion_intensity"])
+        if not 1 <= intensity <= 5:
+            raise ValueError(f"dialogue line {index} emotion_intensity must be between 1 and 5")
+        emphasis = values["emphasis_words"]
+        if not isinstance(emphasis, list) or not emphasis or any(not str(word).strip() for word in emphasis):
+            raise ValueError(f"dialogue line {index} emphasis_words must be a non-empty list")
+        missing_words = [str(word) for word in emphasis if str(word) not in text]
+        if missing_words:
+            raise ValueError(f"dialogue line {index} emphasis_words are absent from text: {','.join(missing_words)}")
+        signature = (
+            values["psychological_state"], values["emotion"], intensity, values["pace"],
+            values["pause_map"], len(emphasis), values["volume_arc"],
+            values["breath_pattern"], values["delivery_transition"],
+        )
+        speaker_signatures.setdefault(speaker, []).append(signature)
+        profiles.append({
+            "line_index": index, "speaker": speaker,
+            "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            **values, "emotion_intensity": intensity,
+        })
+    if spec.get("allow_deliberately_monotone_performance") is not True:
+        for speaker, signatures in speaker_signatures.items():
+            if len(signatures) > 1 and len(set(signatures)) == 1:
+                raise ValueError(
+                    f"EXPRESSIVE_VOICE_VARIATION failed; {speaker} repeats one emotion/prosody signature across every line"
+                )
+    prompt_rows = [
+        f"第{row['line_index']}句{row['speaker']}：心理{row['psychological_state']}；情绪{row['emotion']}"
+        f"(强度{row['emotion_intensity']}/5)；语速{row['pace']}；停连{row['pause_map']}；"
+        f"重音{'、'.join(row['emphasis_words'])}；音量{row['volume_arc']}；气息{row['breath_pattern']}；"
+        f"句内转变{row['delivery_transition']}；身体同步{row['body_sync']}"
+        for row in profiles
+    ]
+    prompt = (
+        "\n【逐句心理与语音表演硬锁】保持每个角色既定声纹，不改变年龄、音色和口音；"
+        + "；".join(prompt_rows)
+        + "。语气必须由当句心理和事件变化驱动，禁止新闻播报腔、全句同强度、全场同语速、机械匀速、无重音、无停连。"
+    )
+    return prompt, {
+        "profiles": profiles,
+        "speaker_profile_counts": {speaker: len(rows) for speaker, rows in speaker_signatures.items()},
+        "variation_gate": "PASS",
+        "voice_identity_preserved": True,
+    }
+
+
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
     """Load admitted LoRA-ready examples whose guards apply before paid generation."""
     auto_sync(path)
@@ -332,7 +396,13 @@ def compile_shot(shot: dict, index: int) -> str:
     if dialogue:
         speaker = require(dialogue.get("speaker"), f"shot {index} dialogue speaker is required")
         text = require(dialogue.get("text"), f"shot {index} dialogue text is required")
-        line += f" {speaker}清楚说：{{{text}}} 只有{speaker}口型运动。"
+        line += (
+            f" {speaker}清楚说：{{{text}}} 只有{speaker}口型运动；"
+            f"心理{dialogue['psychological_state']}，情绪{dialogue['emotion']}强度{dialogue['emotion_intensity']}/5，"
+            f"语速{dialogue['pace']}，停连{dialogue['pause_map']}，重音{'、'.join(dialogue['emphasis_words'])}，"
+            f"音量{dialogue['volume_arc']}，气息{dialogue['breath_pattern']}，"
+            f"句内转变{dialogue['delivery_transition']}，身体同步{dialogue['body_sync']}。"
+        )
     if shot.get("sound"):
         line += f" <{shot['sound']}>"
     line += f" 切因：{cut_reason}。"
@@ -579,10 +649,15 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
     if mode not in MODES:
         raise ValueError(f"unsupported mode: {mode}")
     dialogue_mode = enforce_dialogue_mode_consistency(spec)
+    expressive_voice_prompt, expressive_voice_contract = compile_expressive_voice_contract(spec, dialogue_mode)
     if mode == "multi_keyframe_long_take":
         prompt, manifest = compile_multi_keyframe_long_take(spec)
         manifest["dialogue_mode"] = dialogue_mode
         manifest["dialogue_mode_gate"] = "PASS"
+        manifest["expressive_voice_contract"] = expressive_voice_contract
+        manifest["gates"].append("EXPRESSIVE_VOICE_PSYCHOLOGY_AND_PROSODY")
+        prompt += expressive_voice_prompt
+        manifest["prompt_sha256"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         return prompt, manifest
     entities = require(spec.get("entities"), "entities are required")
     shots = require(spec.get("shots"), "shots are required")
@@ -626,7 +701,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         route = "/api/v1/generation/image-to-video"
         contract = "single_unbroken_shot_first_last_frames"
 
-    prompt = f"{header}\n\n{body}\n\n{tail.strip()}\n"
+    prompt = f"{header}\n\n{body}{expressive_voice_prompt}\n\n{tail.strip()}\n"
     post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     manifest = {
         "schema": "qingshan.seedance2_prompt_compilation.v2" if visual_contract else "qingshan.seedance2_prompt_compilation.v1",
@@ -639,6 +714,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "post_only_glyph_count": len(post_only_glyphs),
         "dialogue_mode": dialogue_mode,
         "dialogue_mode_gate": "PASS",
+        "expressive_voice_contract": expressive_voice_contract,
     }
     if version:
         manifest["visual_benchmark_contract_version"] = version

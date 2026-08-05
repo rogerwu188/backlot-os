@@ -4,6 +4,20 @@ BacklotOS treats prompt construction as a production gate. QA verifies results;
 it is not the first place where action logic, camera intent, or music presence
 should be discovered.
 
+## Expressive native dialogue
+
+On-camera or voice-over dialogue is compiled before paid generation. Every line
+must declare `psychological_state`, `emotion`, `emotion_intensity` (1-5), `pace`,
+`pause_map`, `emphasis_words`, `volume_arc`, `breath_pattern`,
+`delivery_transition`, and `body_sync`. The compiler verifies that emphasis words
+occur in the exact canonical line, preserves the character's frozen voice
+reference, and rejects repeated identical delivery signatures across all lines
+unless the script explicitly requires a deliberately monotone performance.
+
+These fields are sent with the exact dialogue into native lip-sync video prompts;
+they are not deferred to editing. Human listening remains required after
+generation for emotional credibility, pronunciation, timing, and lip sync.
+
 ## Replacement binding is an assembly hard gate
 
 Generating a repaired asset does not complete a repair. The final timeline must
