@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.27
+
+- Add an admitted E38 image-prompt memory showing that re-injecting a full
+  identity-reference set after an accepted predecessor can duplicate actors.
+- Require the accepted predecessor to become the sole state authority for the
+  next action image, with exact roster, wardrobe-count, and unique role locks.
+
 ## 0.2.26
 
 - Add portable E38 prompt-failure memories for generated prop pseudo-text,
