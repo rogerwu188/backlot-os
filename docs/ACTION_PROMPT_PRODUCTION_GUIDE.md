@@ -79,6 +79,14 @@ The public dataset contains only redacted evidence identifiers and SHA-256
 bindings, so it can be deployed on another workstation without private episode
 media while retaining the exact failed-to-accepted learning relation.
 
+Image-prompt failures are harvested as first-class training records too. Never
+ask an image or video model to render plot-critical glyphs: use blank, textless
+paper and label surfaces, then bind real-font text during AgentCut assembly.
+Records without a passing repair remain `ACTIVE_REWRITE_PENDING_POSITIVE`.
+They may inject a defensive compiler clause immediately, but must not carry an
+accepted asset SHA or be reported as `ADMITTED` until the replacement passes
+its declared OCR, identity, physical-scale, or continuity gate.
+
 Every installed workstation automatically synchronizes admitted LoRA-ready
 memory through the repository with `local_lora_memory_sync.py`. The
 synchronizer allowlists the

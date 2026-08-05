@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.26
+
+- Add portable E38 prompt-failure memories for generated prop pseudo-text,
+  model-burned dialogue captions, and oversized action effects caused by
+  missing ordered state-authority keyframes.
+- Keep new failure/rewrite records explicitly pending until a positive repair
+  passes OCR or action-scale QA; pending lessons may block known-bad prompt
+  patterns but cannot claim a learned successful result.
+- Require generated documents and labels to use blank material plates with
+  real-font text added in AgentCut, and decouple exact dialogue text from the
+  visual generation prompt.
+
 ## 0.2.25
 
 - Require a complete actor roster and per-keyframe motion coverage for every
