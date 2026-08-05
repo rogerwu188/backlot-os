@@ -22,14 +22,25 @@ generation for emotional credibility, pronunciation, timing, and lip sync.
 
 Each exact Seedance dialogue reference must be between 2 and 15 seconds. A
 verified shorter line is padded with trailing digital silence and re-registered;
-its voice performance is not regenerated. The visual prompt refers to ordered
-audio slots and never repeats the spoken line as visible prompt text, which
-prevents the provider from turning dialogue into burned captions.
+its voice performance is not regenerated. The default visual prompt refers to
+ordered audio slots without repeating the spoken line as visible prompt text.
+This is the recommended clean-source mode, not a universal ban on words in the
+generated picture.
 
-This isolation rule does not ban readable story props or writing close-ups.
-Intentional account entries, letters, labels, and brush writing may appear when
-their exact content is bound to an approved text plate or added by AgentCut.
-Only invented pseudo-writing, misspellings, and unbound model text are rejected.
+Choose one typed visual-text policy per dialogue shot:
+
+- `AUDIO_ONLY_ISOLATION`: keep dialogue glyphs out of the provider prompt and
+  add release subtitles in AgentCut.
+- `EXACT_DIEGETIC_TEXT_ALLOWED`: permit story-motivated account entries,
+  letters, labels, or brush writing when the exact text and source SHA are
+  bound before generation.
+- `EXACT_PROVIDER_CAPTION_ALLOWED`: permit provider-rendered dialogue captions
+  when every line is exact, the visual style is approved, OCR and human review
+  are mandatory, and AgentCut is forbidden from adding a duplicate subtitle.
+
+Only invented pseudo-writing, misspellings, unbound text, and duplicate subtitle
+layers are rejected. Provider-rendered text remains a higher-risk choice, not
+an automatic failure.
 
 ## Replacement binding is an assembly hard gate
 
@@ -106,9 +117,12 @@ The public dataset contains only redacted evidence identifiers and SHA-256
 bindings, so it can be deployed on another workstation without private episode
 media while retaining the exact failed-to-accepted learning relation.
 
-Image-prompt failures are harvested as first-class training records too. Never
-ask an image or video model to render plot-critical glyphs: use blank, textless
-paper and label surfaces, then bind real-font text during AgentCut assembly.
+Image-prompt failures are harvested as first-class training records too. For
+plot-critical glyphs, deterministic AgentCut text remains the preferred path.
+Provider-native text is also allowed under `EXACT_DIEGETIC_TEXT_ALLOWED` or
+`EXACT_PROVIDER_CAPTION_ALLOWED`; it must bind the exact source text before
+generation and pass OCR plus human review afterward. Blank surfaces are a
+fallback, not a mandatory replacement for readable story information.
 Records without a passing repair remain `ACTIVE_REWRITE_PENDING_POSITIVE`.
 They may inject a defensive compiler clause immediately, but must not carry an
 accepted asset SHA or be reported as `ADMITTED` until the replacement passes

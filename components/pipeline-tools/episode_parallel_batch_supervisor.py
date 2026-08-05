@@ -967,7 +967,21 @@ def validate_entity_reference_task(task: dict) -> list[dict]:
     if task.get("native_dialogue_required") is True:
         dialogue = list(task.get("dialogue") or [])
         dialogue_assets = list(task.get("dialogue_audio_assets") or [])
-        if task.get("dialogue_visual_text_isolation_required") is True:
+        visual_text_policy = str(task.get("dialogue_visual_text_policy") or "").strip().upper()
+        if not visual_text_policy and task.get("dialogue_visual_text_isolation_required") is True:
+            visual_text_policy = "AUDIO_ONLY_ISOLATION"
+        allowed_visual_text_policies = {
+            "AUDIO_ONLY_ISOLATION",
+            "EXACT_DIEGETIC_TEXT_ALLOWED",
+            "EXACT_PROVIDER_CAPTION_ALLOWED",
+        }
+        if visual_text_policy and visual_text_policy not in allowed_visual_text_policies:
+            failures.append({
+                "check": "dialogue_visual_text_policy",
+                "actual": visual_text_policy,
+                "allowed": sorted(allowed_visual_text_policies),
+            })
+        if visual_text_policy == "AUDIO_ONLY_ISOLATION":
             prompt_path = abs_path(str(task.get("prompt_file") or task.get("prompt_path") or ""))
             prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.is_file() else ""
             if not prompt_text:
@@ -979,6 +993,38 @@ def validate_entity_reference_task(task: dict) -> list[dict]:
                         "check": "dialogue_visual_text_isolation",
                         "dia_id": row.get("dia_id"),
                         "error": "exact_dialogue_glyphs_present_in_visual_prompt",
+                    })
+        elif visual_text_policy in {"EXACT_DIEGETIC_TEXT_ALLOWED", "EXACT_PROVIDER_CAPTION_ALLOWED"}:
+            contract = task.get("dialogue_visual_text_contract") or {}
+            exact_texts = [str(value).strip() for value in contract.get("exact_texts") or [] if str(value).strip()]
+            required_contract = {"source_binding_sha256", "style_brief", "final_subtitle_strategy"}
+            missing_contract = sorted(
+                field for field in required_contract if not str(contract.get(field) or "").strip()
+            )
+            if missing_contract:
+                failures.append({"check": "dialogue_visual_text_contract", "missing": missing_contract})
+            if contract.get("ocr_review_required") is not True or contract.get("human_review_required") is not True:
+                failures.append({
+                    "check": "dialogue_visual_text_review",
+                    "error": "ocr_and_human_review_must_both_be_required",
+                })
+            if contract.get("duplicate_agentcut_subtitles_forbidden") is not True:
+                failures.append({
+                    "check": "dialogue_visual_text_subtitle_collision",
+                    "error": "duplicate_agentcut_subtitles_must_be_forbidden",
+                })
+            if not exact_texts:
+                failures.append({"check": "dialogue_visual_text_contract", "error": "exact_texts_required"})
+            if visual_text_policy == "EXACT_PROVIDER_CAPTION_ALLOWED":
+                missing_dialogue = [
+                    row.get("dia_id")
+                    for row in dialogue
+                    if str(row.get("spoken_text") or "").strip() not in exact_texts
+                ]
+                if missing_dialogue:
+                    failures.append({
+                        "check": "dialogue_visual_text_exact_caption_coverage",
+                        "missing_dialogue_ids": missing_dialogue,
                     })
         exact_audio_total = sum(
             float(asset.get("duration_seconds") or 0)
