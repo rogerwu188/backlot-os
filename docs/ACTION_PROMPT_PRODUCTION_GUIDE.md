@@ -258,6 +258,23 @@ declare a motivated fixed-composition hard cut, reaction cut, or evidence insert
 continuous camera movement cannot substitute for shot design. Action shots
 default to normal real-time speed and one readable contact.
 
+Writing `real-time 1x` or `no slow motion` is not sufficient: the timestamps
+must also describe physically credible performance speed. Every action-like
+prompt is classified from both structured fields and prompt text, so omitting
+`action_unit=true` cannot bypass the tempo gate. Add
+`performance_tempo_contract.atomic_action_windows` with the start, end, and
+named physical action for every landing, approach, lunge, strike, interception,
+recoil, or restraint.
+
+Combat is authored faster than ordinary movement for screen impact without
+speeding up playback. A fight or chase must show measurable body displacement
+or attack intent within 0.5 seconds, each atomic attack/defence beat must
+complete within 1.2 seconds, and idle gaps between beats may not exceed 0.25
+seconds. Prefer 3-6 contiguous causal beats with readable contact and reaction.
+Do not allocate two seconds to a simple landing or four seconds to walking a
+few steps: those timestamps instruct the provider to synthesize slow
+performance even when the negative prompt says `no slow motion`.
+
 Every action unit also declares `assembly_window_contract`. Its trim end may not
 exceed `primary_action_complete_by_seconds + result_hold_seconds + 0.25`, the
 window may not exceed 2.5 seconds, `preserve_native_speed` must be true, and an

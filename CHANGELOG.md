@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.2.36
+
+- Fail action-like prompts that omit `action_unit` and would previously bypass
+  the performance-tempo gate. Require explicit atomic action windows, first
+  fight/chase displacement by 0.5 seconds, combat beats no longer than 1.2
+  seconds, and no unmotivated gap longer than 0.25 seconds before provider
+  spend.
+
 ## 0.2.35
 
 - Upgrade the Story Agent component to 0.4.0 by merging the verified Claude
