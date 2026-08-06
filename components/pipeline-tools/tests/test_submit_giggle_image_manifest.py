@@ -1,9 +1,19 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.submit_giggle_image_manifest import submit_all, validate_anchor_count_gate_requirement
+from tools.submit_giggle_image_manifest import (
+    DuplicateSubmissionBlocked,
+    atomic_json,
+    classify_ambiguous_failures,
+    prior_submission_result,
+    submission_fingerprint,
+    submit_all,
+    transaction_path,
+    validate_anchor_count_gate_requirement,
+)
 
 
 class SubmitGiggleImageManifestTest(unittest.TestCase):
@@ -37,13 +47,13 @@ class SubmitGiggleImageManifestTest(unittest.TestCase):
         ]
         validate_anchor_count_gate_requirement(manifest, gates)
 
-    def test_client_system_exit_is_an_isolated_zero_credit_failure(self):
+    def test_client_system_exit_is_isolated_pending_ledger_reconciliation(self):
         tasks = [
             {"task_key": "OK", "beat_id": "B1"},
             {"task_key": "TIMEOUT", "beat_id": "B2"},
         ]
 
-        def fake_submit(task, receipt_dir):
+        def fake_submit(task, receipt_dir, transaction_dir):
             if task["task_key"] == "TIMEOUT":
                 raise SystemExit("network timeout")
             return {"task_key": "OK", "task_id": "task-1", "status": "submitted"}
@@ -51,12 +61,90 @@ class SubmitGiggleImageManifestTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir, patch(
             "tools.submit_giggle_image_manifest.submit_one", side_effect=fake_submit
         ):
-            results, failures = submit_all(tasks, Path(temp_dir), concurrency=2)
+            root = Path(temp_dir)
+            results, failures = submit_all(tasks, root / "receipts", root / "transactions", concurrency=2)
 
         self.assertEqual([row["task_key"] for row in results], ["OK"])
         self.assertEqual(failures[0]["task_key"], "TIMEOUT")
-        self.assertEqual(failures[0]["credit"], 0)
-        self.assertEqual(failures[0]["credit_status"], "FAILED_ZERO")
+        self.assertIsNone(failures[0]["credit"])
+        self.assertEqual(failures[0]["credit_status"], "PENDING_LEDGER_RECONCILIATION")
+
+    @staticmethod
+    def transaction_task(task_key="E99-U01-A1-STILL-V1"):
+        return {
+            "task_key": task_key,
+            "prompt_sha256": "a" * 64,
+            "reference_bindings": [{"sha256": "b" * 64}],
+            "model": "gpt-image-2-pro",
+            "aspect_ratio": "9:16",
+            "resolution": "2K",
+        }
+
+    def test_bound_task_id_is_reused_without_resubmit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            item = self.transaction_task()
+            path = transaction_path(root, item)
+            atomic_json(path, {
+                "submission_fingerprint": submission_fingerprint(item),
+                "state": "SUBMITTED_TASK_ID_BOUND",
+                "task_id": "task-123",
+                "receipt": "receipt.json",
+            })
+            result = prior_submission_result(item, root)
+            self.assertEqual(result["task_id"], "task-123")
+            self.assertTrue(result["recovered_from_transaction"])
+
+    def test_charged_missing_task_id_blocks_duplicate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            item = self.transaction_task()
+            path = transaction_path(root, item)
+            atomic_json(path, {
+                "submission_fingerprint": submission_fingerprint(item),
+                "state": "CHARGED_TASK_ID_MISSING",
+            })
+            with self.assertRaises(DuplicateSubmissionBlocked):
+                prior_submission_result(item, root)
+
+    def test_zero_charge_timeout_becomes_retryable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            item = self.transaction_task()
+            path = transaction_path(root, item)
+            atomic_json(path, {
+                "submission_fingerprint": submission_fingerprint(item),
+                "state": "RESPONSE_LOST_PENDING_LEDGER_RECONCILIATION",
+            })
+            failures = [{"task_key": item["task_key"], "transaction": str(path), "credit": None}]
+            classify_ambiguous_failures(
+                failures,
+                known_submitted=3,
+                matched_ledger_rows=3,
+                transaction_dir=root,
+            )
+            self.assertEqual(failures[0]["credit_status"], "FAILED_ZERO_VERIFIED")
+            self.assertEqual(json.loads(path.read_text())["state"], "NOT_CHARGED_RETRYABLE")
+
+    def test_multiple_ambiguous_charges_quarantine_every_timeout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            failures = []
+            for index in range(2):
+                item = self.transaction_task(f"E99-U0{index + 1}-A1-STILL-V1")
+                path = transaction_path(root, item)
+                atomic_json(path, {
+                    "submission_fingerprint": submission_fingerprint(item),
+                    "state": "RESPONSE_LOST_PENDING_LEDGER_RECONCILIATION",
+                })
+                failures.append({"task_key": item["task_key"], "transaction": str(path), "credit": None})
+            classify_ambiguous_failures(
+                failures,
+                known_submitted=4,
+                matched_ledger_rows=5,
+                transaction_dir=root,
+            )
+            self.assertTrue(all(row["credit_status"] == "CHARGE_STATE_UNRESOLVED_BATCH" for row in failures))
 
 
 if __name__ == "__main__":

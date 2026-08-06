@@ -28,6 +28,7 @@ except ModuleNotFoundError:  # Imported as tools.giggle_api_client.
 BASE_URL = os.environ.get("GIGGLE_API_BASE", "https://giggle.pro")
 RETRY_DELAY_SECONDS = float(os.environ.get("GIGGLE_API_RETRY_DELAY", "2"))
 HTTP_TIMEOUT_SECONDS = float(os.environ.get("GIGGLE_API_HTTP_TIMEOUT_SECONDS", "30"))
+GENERATION_POST_TIMEOUT_SECONDS = float(os.environ.get("GIGGLE_GENERATION_POST_TIMEOUT_SECONDS", "180"))
 RETRYABLE_HTTP_CODES = {408, 409, 425, 429}
 
 
@@ -54,13 +55,13 @@ def _retryable_http(code: int, raw: str) -> bool:
 
 
 def _urlopen_json(
-    req: urllib.request.Request, *, allow_retry: bool = True
+    req: urllib.request.Request, *, allow_retry: bool = True, timeout_seconds: float | None = None
 ) -> Dict[str, Any]:
     last_error = ""
     attempts = 2 if allow_retry else 1
     for attempt in range(attempts):
         try:
-            with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
+            with urllib.request.urlopen(req, timeout=timeout_seconds or HTTP_TIMEOUT_SECONDS) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             raw = exc.read().decode("utf-8", "replace")
@@ -87,7 +88,11 @@ def _request(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     )
     # Generation POSTs can be charged even when the response is lost. Fail
     # closed on ambiguous errors so callers query/reconcile before resubmitting.
-    return _urlopen_json(req, allow_retry=False)
+    return _urlopen_json(
+        req,
+        allow_retry=False,
+        timeout_seconds=GENERATION_POST_TIMEOUT_SECONDS,
+    )
 
 
 def _get(path: str, params: Dict[str, Any]) -> Dict[str, Any]:

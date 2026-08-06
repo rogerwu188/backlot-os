@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Make paid Giggle image submission durable and idempotent without reducing
+  concurrency: atomically record per-task intents, bind returned task IDs,
+  reuse exact completed fingerprints, and quarantine charged or unresolved
+  response-loss cases before any retry.
+- Replace the false `timeout = zero credits` assumption with bounded
+  authoritative-ledger classification and separate newly submitted, recovered,
+  and unmapped counts in batch receipts. Generation POSTs now use a dedicated
+  180-second response timeout while remaining non-retrying at the HTTP layer.
+
 ## 0.2.36
 
 - Fail action-like prompts that omit `action_unit` and would previously bypass

@@ -149,6 +149,17 @@ pattern, but it becomes `ADMITTED` only after the rewritten image or video and
 its applicable QA receipt are SHA-bound and pass.
 Configure `max_submit_workers`, `max_poll_workers`, and `max_qa_workers` when a
 provider or workstation needs lower concurrency.
+
+Provider submissions remain parallel but are now transaction-safe. Before each
+paid generation POST, BacklotOS atomically records a task fingerprint and submit
+intent. A returned provider task ID is durably bound before polling starts. If
+the response is lost, BacklotOS checks the authoritative credit window and marks
+only that task as verified uncharged, charged-with-missing-ID, or unresolved;
+it never assumes that a timeout was free. Exact fingerprints with a bound task
+ID are resumed without another POST, while charged or unresolved submissions
+are quarantined until the provider history restores their task ID. Other
+submissions, downloads, and QA workers continue concurrently.
+
 Every atomic action also carries an authored assembly window. The release
 builder preserves native real-time speed, keeps only the designed action plus
 result hold, and discards any unused provider minimum-duration tail. Long
