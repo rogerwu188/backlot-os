@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.36
+
 - Make paid Giggle image submission durable and idempotent without reducing
   concurrency: atomically record per-task intents, bind returned task IDs,
   reuse exact completed fingerprints, and quarantine charged or unresolved
@@ -10,14 +12,19 @@
   authoritative-ledger classification and separate newly submitted, recovered,
   and unmapped counts in batch receipts. Generation POSTs now use a dedicated
   180-second response timeout while remaining non-retrying at the HTTP layer.
-
-## 0.2.36
-
+- Reject image manifests that claim exact mask semantics when the selected
+  provider endpoint transports the mask only as a visual reference image.
+  Provider-native mask support must exist in the request payload before a
+  SHA-bound `edit_mask` can authorize paid generation.
 - Fail action-like prompts that omit `action_unit` and would previously bypass
   the performance-tempo gate. Require explicit atomic action windows, first
   fight/chase displacement by 0.5 seconds, combat beats no longer than 1.2
   seconds, and no unmotivated gap longer than 0.25 seconds before provider
   spend.
+- Require standard Seedance 2.0 video models at submission, add fail-closed
+  combat-coherence and source-corpus gates, register reusable wardrobe
+  variants, isolate dependency waits to their own task lanes, and make local
+  prompt-memory resolution portable across source and deployed layouts.
 
 ## 0.2.35
 
