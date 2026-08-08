@@ -15,7 +15,7 @@ CAPABILITY_VERSION = "1.0"
 GENERATION_MODE = "image_to_video_first_last"
 ENDPOINT = "/api/v1/generation/image-to-video"
 ROLES = ("start_frame", "end_frame")
-MODELS = {"seedance-2.0-pro", "seedance-2.0-fast"}
+MODELS = {"seedance-2.0"}
 ASPECT_RATIOS = {"16:9", "9:16", "4:3", "1:1", "3:4", "21:9", "adaptive"}
 RESOLUTIONS = {"720p", "480p"}
 
@@ -111,13 +111,13 @@ def prepare_first_last_submission(
     if len(prompt) > 10_000:
         raise ValidationError("prompt exceeds the Giggle 10,000-character limit")
 
-    model = task.get("model", "seedance-2.0-pro")
+    model = task.get("model", "seedance-2.0")
     duration = task.get("duration", 15)
     aspect_ratio = _field(task, "aspect_ratio", "aspectRatio", "9:16")
     resolution = task.get("resolution", "720p")
     count = _field(task, "generating_count", "generatingCount", 1)
     if model not in MODELS:
-        raise ValidationError("model must be seedance-2.0-pro or seedance-2.0-fast")
+        raise ValidationError("model must be seedance-2.0 (standard); Pro, fast, and mini are forbidden")
     if isinstance(duration, bool) or not isinstance(duration, int) or not 4 <= duration <= 15:
         raise ValidationError("duration must be an integer from 4 through 15")
     if aspect_ratio not in ASPECT_RATIOS:

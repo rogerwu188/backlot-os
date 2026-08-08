@@ -30,7 +30,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run selected shots from a Giggle API run_plan.")
     parser.add_argument("--plan", required=True)
     parser.add_argument("--shots", nargs="*", help="Shot ids to run, e.g. 01 02 03. Defaults to all.")
-    parser.add_argument("--model", default="seedance-2.0-pro")
+    parser.add_argument("--model", default="seedance-2.0")
     parser.add_argument("--ratio", default="9:16")
     parser.add_argument("--resolution", default="720p")
     parser.add_argument("--poll-seconds", type=int, default=15)

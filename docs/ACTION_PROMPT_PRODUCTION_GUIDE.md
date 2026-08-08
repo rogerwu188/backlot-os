@@ -74,6 +74,52 @@ this failure.
    speed, and remove only duplicate tail frames. Never hide excess duration with
    slow motion or time stretching.
 
+### Task2-1 cinematic shot-language contract
+
+Task2-1 writer output is converted into a typed
+`cinematic_shot_language_contract` before provider compilation. The contract
+keeps prompt responsibilities in this fixed order:
+
+1. `LOCKED_DESCRIPTORS`: the complete character/state, location/state, and prop
+   descriptor text. Each descriptor is stress-tested, SHA-256 bound, and pasted
+   verbatim; an ID or a style paraphrase is not a substitute for the text.
+2. `PURPOSE_GEOMETRY_TIME_CUTS`: one contiguous segment per compiled shot. Each
+   segment names its narrative purpose, entry and exit state, subject anchor,
+   camera side, axis relation, scale anchor, and the reason the camera moves.
+3. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+   wind direction, crowd formation, or one-variable iteration discipline.
+4. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+   here, never inside action or camera prose.
+5. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+   treatment; negative constraints cannot stand in for a positive physical
+   event.
+
+The segments must start at zero, remain contiguous, follow storyboard order,
+and cover the declared duration exactly. The compiler rejects unknown asset
+references, descriptor text whose SHA does not match, untested assets,
+decorative camera movement without motivation, timeline gaps, and unsupported
+dialogue policies before a paid generation call.
+
+Map writer fields deliberately: `shot_treatment.purpose` becomes
+`narrative_purpose`; blocking and scene-map data become `geometry`; the current
+continuity ledger becomes `entry_state`; the visible causal result becomes
+`exit_state`; and the cut reason becomes `camera_motivation`. Complex action
+starts after its initiation is already visible, then records contact, feedback,
+and result rather than spending the clip on a slow setup. Change one structured
+variable per retry and log that delta so an accepted improvement can be reused.
+
+### Corpus completion is a ledger gate
+
+Large source projects are never declared trained from a sample count alone.
+`corpus_absorption_gate.py` compares the authoritative source-asset count with
+unique ledger records. Every source item must finish as either `ADAPTED`, with
+source URL, content SHA, license basis, dataset version, adapter version,
+relations, and an evaluation receipt; or `EXCLUDED`, with a durable reason such
+as duplicate SHA, corruption, privacy risk, missing source, or low quality.
+Pending and missing records keep the run blocked. This makes “all assets
+trained” mean complete auditable coverage, while preventing duplicate or unsafe
+media from being forced into a dataset merely to raise a training count.
+
 ## Fifteen-second multi-keyframe action takes
 
 Use a multi-keyframe long take when the story event is spatially indivisible,

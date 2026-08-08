@@ -29,7 +29,7 @@ def command_preview(task: dict) -> list[str]:
     for path in task.get("reference_videos") or []:
         command.extend(["--video", str(abs_path(path))])
     command.extend([
-        "--model", task.get("model", "seedance-2.0-pro"),
+        "--model", task.get("model", "seedance-2.0"),
         "--duration", str(task.get("duration", 4)),
         "--aspect-ratio", task.get("aspect_ratio", "9:16"),
         "--resolution", task.get("resolution", "720p"),

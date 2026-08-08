@@ -119,7 +119,7 @@ def generation_fingerprint(task: dict) -> str:
     )
     payload = {
         "prompt_sha256": _prompt_sha(task),
-        "model": task.get("model", "seedance-2.0-pro"),
+        "model": task.get("model", "seedance-2.0"),
         "duration": task.get("duration_seconds", task.get("duration", 4)),
         "aspect_ratio": task.get("aspect_ratio", "9:16"),
         "resolution": task.get("resolution", "720p"),

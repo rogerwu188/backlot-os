@@ -1,7 +1,9 @@
 import importlib.util
 import json
 import subprocess
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -36,6 +38,91 @@ class FakeStore:
 
 
 class LoraMemoryHubTests(unittest.TestCase):
+    def test_s3_compatible_endpoint_is_forwarded_to_client(self):
+        calls = []
+        fake_boto3 = types.SimpleNamespace(client=lambda service, **kwargs: calls.append((service, kwargs)) or object())
+        fake_config = lambda **kwargs: types.SimpleNamespace(**kwargs)
+        original = sys.modules.get("boto3")
+        original_botocore = sys.modules.get("botocore")
+        original_botocore_client = sys.modules.get("botocore.client")
+        sys.modules["boto3"] = fake_boto3
+        sys.modules["botocore"] = types.SimpleNamespace(client=types.SimpleNamespace(Config=fake_config))
+        sys.modules["botocore.client"] = types.SimpleNamespace(Config=fake_config)
+        try:
+            HUB.S3MemoryStore("drama01", "training/backlotos", "https://s3.example.invalid")
+        finally:
+            if original is None:
+                sys.modules.pop("boto3", None)
+            else:
+                sys.modules["boto3"] = original
+            if original_botocore is None:
+                sys.modules.pop("botocore", None)
+            else:
+                sys.modules["botocore"] = original_botocore
+            if original_botocore_client is None:
+                sys.modules.pop("botocore.client", None)
+            else:
+                sys.modules["botocore.client"] = original_botocore_client
+        self.assertEqual(calls[0][0], "s3")
+        self.assertEqual(calls[0][1]["endpoint_url"], "https://s3.example.invalid")
+        self.assertEqual(calls[0][1]["region_name"], "us-east-1")
+        config = calls[0][1]["config"]
+        self.assertEqual(config.signature_version, "s3v4")
+
+    def test_content_addressed_accept_is_idempotent(self):
+        class ClientError(Exception):
+            pass
+        class FakeClient:
+            exceptions = types.SimpleNamespace(ClientError=ClientError)
+            def __init__(self):
+                self.puts = []
+            def head_object(self, **_):
+                return {"Metadata": {"sha256": "a" * 64}, "ContentLength": 4}
+            def put_object(self, **kwargs):
+                self.puts.append(kwargs)
+        store = object.__new__(HUB.S3MemoryStore)
+        store.client = FakeClient()
+        store.bucket = "bucket"
+        store.prefix = "training/hell-grind-lora/v1"
+        key = store.accept(b"body", "a" * 64)
+        self.assertEqual(key, "training/hell-grind-lora/v1/inbox/sha256/" + "a" * 64 + ".jsonl")
+        self.assertEqual(store.client.puts, [])
+
+    def test_content_addressed_accept_rejects_existing_conflict(self):
+        class ClientError(Exception):
+            pass
+        class FakeClient:
+            exceptions = types.SimpleNamespace(ClientError=ClientError)
+            def head_object(self, **_):
+                return {"Metadata": {"sha256": "b" * 64}, "ContentLength": 4}
+        store = object.__new__(HUB.S3MemoryStore)
+        store.client = FakeClient()
+        store.bucket = "bucket"
+        store.prefix = "training/hell-grind-lora/v1"
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            store.accept(b"body", "a" * 64)
+
+    def test_content_addressed_accept_hashes_existing_object_when_metadata_is_stripped(self):
+        class ClientError(Exception):
+            pass
+        class FakeBody:
+            def read(self):
+                return b"body"
+        class FakeClient:
+            exceptions = types.SimpleNamespace(ClientError=ClientError)
+            def head_object(self, **_):
+                return {"Metadata": {}, "ContentLength": 4}
+            def get_object(self, **_):
+                return {"Body": FakeBody()}
+            def put_object(self, **_):
+                raise AssertionError("idempotent accept must not rewrite the object")
+        store = object.__new__(HUB.S3MemoryStore)
+        store.client = FakeClient()
+        store.bucket = "bucket"
+        store.prefix = "training/hell-grind-lora/v1"
+        digest = __import__("hashlib").sha256(b"body").hexdigest()
+        self.assertTrue(store.accept(b"body", digest).endswith(digest + ".jsonl"))
+
     def test_health_state_exposes_failure_type_without_secret_message(self):
         HUB.update_hub_state(status="RETRY_PENDING", error=RuntimeError("credential-value"))
         state = HUB.hub_state()
@@ -48,6 +135,28 @@ class LoraMemoryHubTests(unittest.TestCase):
         row["failure_evidence"] = "/private/evidence.png"
         with self.assertRaisesRegex(ValueError, "redacted://"):
             HUB.canonical_submission({"schema": "backlotos.lora_memory_submission.v1", "samples": [row]})
+
+    def test_third_party_sample_without_explicit_training_rights_is_rejected(self):
+        row = sample()
+        row.update({
+            "source_kind": "third_party",
+            "source_url_sha256": "e" * 64,
+            "rights_basis": "publicly_viewable",
+            "content_policy": "licensed_training_material",
+        })
+        with self.assertRaisesRegex(ValueError, "explicit machine-learning training license"):
+            HUB.canonical_submission({"schema": "backlotos.lora_memory_submission.v1", "samples": [row]})
+
+    def test_abstracted_third_party_rule_with_explicit_rights_is_admitted(self):
+        row = sample()
+        row.update({
+            "source_kind": "third_party",
+            "source_url_sha256": "e" * 64,
+            "rights_basis": "explicit_machine_learning_training_license",
+            "content_policy": "abstracted_rule_only",
+        })
+        body, _ = HUB.canonical_submission({"schema": "backlotos.lora_memory_submission.v1", "samples": [row]})
+        self.assertIn(b"abstracted_rule_only", body)
 
     def test_s3_objects_merge_once_then_publish_from_hub(self):
         with tempfile.TemporaryDirectory() as directory:

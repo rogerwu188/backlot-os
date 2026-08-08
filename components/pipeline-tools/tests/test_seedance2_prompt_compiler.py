@@ -1,12 +1,27 @@
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from tools.seedance2_prompt_compiler import compile_prompt, load_local_lora_memory
+from tools.seedance2_prompt_compiler import compile_prompt, default_local_lora_memory, load_local_lora_memory
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
+    def test_default_memory_resolves_installed_production_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            production = root / "workflow/local_lora"
+            production.mkdir(parents=True)
+            module = root / "tools/seedance2_prompt_compiler.py"
+            module.parent.mkdir(exist_ok=True)
+            with mock.patch("tools.seedance2_prompt_compiler.__file__", str(module)):
+                self.assertEqual(
+                    default_local_lora_memory(),
+                    (production / "seedance2_prompt_failure_training.jsonl").resolve(),
+                )
+
     def dialogue(self, speaker="陈迹", text="谁提的？", **overrides):
         row = {
             "speaker": speaker, "text": text,
@@ -45,6 +60,62 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("{谁提的？}", prompt)
         self.assertEqual(manifest["route"], "/api/v1/generation/omni-video")
         self.assertEqual(manifest["shot_count"], 2)
+
+    def test_licensed_cinematic_shot_language_compiles_sectioned_time_coded_prompt(self):
+        hero = "负伤同伴：深色战衣，右肩破损渗血，面部与发型保持参考资产一致。"
+        battlefield = "暴雪战场：灰蓝天空，强横风向由画面右侧吹向左侧，地面脚印连续。"
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "duration_seconds": 8,
+            "shots": [
+                {"framing": "远景", "camera": "固定长焦", "action": "人物坠入雪原", "expression_arc": "冷漠到冲击", "cut_reason": "冲击接"},
+                {"framing": "中景", "camera": "跟拍", "action": "同伴负伤起身奔跑", "expression_arc": "震惊到决断", "cut_reason": "动作接"},
+            ],
+            "cinematic_shot_language_contract": {
+                "version": "1.0.0",
+                "locked_descriptors": [
+                    {"id": "@hero_wounded", "kind": "character_state", "text": hero, "text_sha256": hashlib.sha256(hero.encode()).hexdigest(), "paste_policy": "VERBATIM_EVERY_SHOT", "stress_test_status": "PASS"},
+                    {"id": "@snow_battlefield", "kind": "location_state", "text": battlefield, "text_sha256": hashlib.sha256(battlefield.encode()).hexdigest(), "paste_policy": "VERBATIM_EVERY_SHOT", "stress_test_status": "PASS"},
+                ],
+                "segments": [
+                    {"shot_index": 1, "start_seconds": 0, "end_seconds": 5, "narrative_purpose": "用远距离冲击证明尺度", "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果", "descriptor_ids": ["@snow_battlefield"], "camera_motivation": "让冲击尺度可读", "geometry": {"subject_anchor": "人物占画面高度不足十分之一", "camera_side": "战场外侧", "axis_relation": "沿坠落轴", "scale_anchor": "雪柱高于人物五倍"}, "audio": {"diegetic": "风啸、撞击、碎片落雪", "dialogue_policy": "NO_DIALOGUE"}},
+                    {"shot_index": 2, "start_seconds": 5, "end_seconds": 8, "narrative_purpose": "将旁观者转为行动者", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑", "descriptor_ids": ["@hero_wounded", "@snow_battlefield"], "camera_motivation": "读清起身到奔跑的连续路径", "geometry": {"subject_anchor": "伤肩与支撑手", "camera_side": "人物左侧", "axis_relation": "保持奔跑方向", "scale_anchor": "人物与脚印路径同框"}, "audio": {"diegetic": "喘息、踏雪、衣料", "dialogue_policy": "NO_DIALOGUE"}},
+                ],
+                "key_rules": ["复杂动作从已经发生的起势进入", "一次只改变一个可验证变量"],
+                "atmosphere_state": "暴雪、地雾和风向在每镜连续",
+                "style_prefix": "写实24fps，克制手持，只在动作需要时移动",
+                "negative_constraints": ["无动机环绕", "用风格词替代物理结果"],
+            },
+        })
+        prompt, manifest = compile_prompt(spec)
+        self.assertIn("【LOCKED DESCRIPTORS｜逐镜原文复用】", prompt)
+        self.assertIn("【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】", prompt)
+        self.assertIn("0-5秒 / 镜头1", prompt)
+        self.assertIn(hero, prompt)
+        self.assertEqual(manifest["cinematic_shot_language_gate"], "PASS_SECTIONED_AND_TIME_CODED")
+        self.assertTrue(manifest["cinematic_shot_language_contract"]["full_duration_coverage"])
+
+    def test_cinematic_shot_language_rejects_timeline_gap(self):
+        hero = "角色锁定描述"
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "duration_seconds": 8,
+            "shots": [
+                {"framing": "远景", "camera": "固定", "action": "A", "expression_arc": "A到B", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "B", "expression_arc": "B到C", "cut_reason": "视线接"},
+            ],
+            "cinematic_shot_language_contract": {
+                "version": "1.0.0",
+                "locked_descriptors": [{"id": "@hero", "kind": "character", "text": hero, "text_sha256": hashlib.sha256(hero.encode()).hexdigest(), "paste_policy": "VERBATIM_EVERY_SHOT", "stress_test_status": "PASS"}],
+                "segments": [
+                    {"shot_index": 1, "start_seconds": 0, "end_seconds": 3, "narrative_purpose": "A", "entry_state": "A", "exit_state": "B", "descriptor_ids": ["@hero"], "camera_motivation": "A", "geometry": {"subject_anchor": "A", "camera_side": "A", "axis_relation": "A", "scale_anchor": "A"}, "audio": {"diegetic": "A", "dialogue_policy": "NO_DIALOGUE"}},
+                    {"shot_index": 2, "start_seconds": 4, "end_seconds": 8, "narrative_purpose": "B", "entry_state": "B", "exit_state": "C", "descriptor_ids": ["@hero"], "camera_motivation": "B", "geometry": {"subject_anchor": "B", "camera_side": "B", "axis_relation": "B", "scale_anchor": "B"}, "audio": {"diegetic": "B", "dialogue_policy": "NO_DIALOGUE"}},
+                ],
+                "key_rules": ["一镜一目的"], "atmosphere_state": "连续", "style_prefix": "写实", "negative_constraints": ["跳切"],
+            },
+        })
+        with self.assertRaisesRegex(ValueError, "contiguous"):
+            compile_prompt(spec)
 
     def test_storyboard_rejects_missing_cut_reason(self):
         spec = self.base()

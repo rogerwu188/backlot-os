@@ -30,7 +30,7 @@ package and set the two variables explicitly.
 
 Set `GIGGLE_API_KEY` only in the deployment secret environment. Optional
 overrides are `GIGGLE_IMAGE_MODEL` (default `gpt2img`) and
-`GIGGLE_VIDEO_MODEL` (default `seedance-2.0-pro`). Use `providerHealth` before
+`GIGGLE_VIDEO_MODEL` (default and only accepted value `seedance-2.0`, standard). Use `providerHealth` before
 submitting, `generateImage`/`generateVideo` for explicit paid work, and
 `taskStatus` to reconcile the returned provider task ID. Generation POSTs are
 not automatically retried after ambiguous network failures.

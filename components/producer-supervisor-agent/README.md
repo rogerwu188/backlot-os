@@ -33,7 +33,7 @@ pip install -e components/producer-supervisor-agent
   `taskStatus` for Giggle. Its `parallelQa` method fans independent QA checks
   out concurrently and waits at one aggregate barrier; one failed check never
   cancels its siblings. It reports honest `ADAPTER_REQUIRED` without
-  `GIGGLE_API_KEY`. Defaults: image `gpt2img`, video `seedance-2.0-pro`.
+  `GIGGLE_API_KEY`. Defaults: image `gpt2img`, video `seedance-2.0` (standard only).
 - `backlotos-producer-agent` -- standalone entrypoint (single-shot CLI /
   `serve` NDJSON loop / `serve-http` minimal HTTP server), for running this
   package directly outside the launcher's external-command proxy. Mirrors

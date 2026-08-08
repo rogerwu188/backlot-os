@@ -7,8 +7,7 @@ from pathlib import Path
 from tools.compile_episode_parallel_prompt_batch import dialogue_duration_seconds
 
 
-ROOT = Path(__file__).resolve().parents[2]
-TOOL = ROOT / "tools/compile_episode_parallel_prompt_batch.py"
+TOOL = Path(__file__).resolve().parents[1] / "compile_episode_parallel_prompt_batch.py"
 
 
 def single_scene_state():
@@ -29,13 +28,39 @@ def action_beat(beat_id, **extra):
     }
 
 
+def dialogue_line(dia_id="DIA-001", beat_id="B01", speaker="A", text="Line", **extra):
+    return {
+        "dia_id": dia_id,
+        "beat_id": beat_id,
+        "speaker": speaker,
+        "text": text,
+        "action_timeline": [
+            {
+                "start_seconds": 0,
+                "end_seconds": 2,
+                "actions": ["主体=A；动作=转身；接触点=脚下地面；方向=朝向线索；终态=面向线索"],
+                "state_change": "A turns toward the clue.",
+                "action_budget_seconds": 2,
+            },
+            {
+                "start_seconds": 2,
+                "end_seconds": 4,
+                "actions": ["主体=A；动作=抬手；接触点=桌沿；方向=向前；终态=手停在桌沿"],
+                "state_change": "A's hand reaches the table edge.",
+                "action_budget_seconds": 2,
+            },
+        ],
+        **extra,
+    }
+
+
 class ParallelPromptBatchTests(unittest.TestCase):
     def test_compiles_image_and_video_batches_without_scene_drift(self):
         sheet = {
             "episode": "E25", "review_status": "APPROVED_TEST", "generation_allowed": True,
             "scene_variety": {"location": "day hall", "time_of_day": "day", "weather": "clear", "palette": "warm"},
             "structure": [action_beat("B01", name="turn", must_show=["table"], new_information="clue")],
-            "dialogue_draft": [{"dia_id": "DIA-001", "beat_id": "B01", "speaker": "A", "text": "Line", "function": "reveal", "payload": ["new_info"]}],
+            "dialogue_draft": [dialogue_line(function="reveal", payload=["new_info"])],
         }
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp); sp = tmp / "sheet.json"; st = tmp / "state.json"; out = tmp / "out"; manifest = tmp / "manifest.json"
@@ -47,6 +72,7 @@ class ParallelPromptBatchTests(unittest.TestCase):
             self.assertEqual(len(data["image_tasks"]), 1)
             self.assertEqual(len(data["video_tasks"]), 1)
             self.assertEqual(data["video_tasks"][0]["duration_seconds"], 4)
+            self.assertEqual(data["video_tasks"][0]["model"], "seedance-2.0")
             self.assertEqual(data["video_tasks"][0]["duration_plan"]["policy"], "qingshan.shot_generation_duration.v5")
             self.assertEqual(data["video_tasks"][0]["action_density_gate"]["status"], "PASS")
             image_prompt = Path(data["image_tasks"][0]["prompt_file"]).read_text()
@@ -71,7 +97,7 @@ class ParallelPromptBatchTests(unittest.TestCase):
         sheet = {
             "episode": "E25", "review_status": "APPROVED_TEST", "generation_allowed": True,
             "structure": [action_beat("B01", new_information="clue")],
-            "dialogue_draft": [{"dia_id": "DIA-001", "beat_id": "B01", "speaker": "A", "text": "Line", "function": "reveal clue"}],
+            "dialogue_draft": [dialogue_line(function="reveal clue")],
         }
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp); sp = tmp / "sheet.json"; st = tmp / "state.json"; manifest = tmp / "manifest.json"
@@ -91,7 +117,7 @@ class ParallelPromptBatchTests(unittest.TestCase):
         sheet = {
             "episode": "E25", "review_status": "APPROVED_TEST", "generation_allowed": True,
             "structure": [action_beat("B01", new_information="clue")],
-            "dialogue_draft": [{"dia_id": "DIA-001", "beat_id": "B01", "speaker": "A", "text": "Line", "function": "reveal clue"}],
+            "dialogue_draft": [dialogue_line(function="reveal clue")],
         }
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp); sp = tmp / "sheet.json"; st = tmp / "state.json"; manifest = tmp / "manifest.json"; ref = tmp / "ref.png"; refs = tmp / "refs.json"
@@ -108,8 +134,8 @@ class ParallelPromptBatchTests(unittest.TestCase):
             "episode": "E25", "review_status": "APPROVED_TEST", "generation_allowed": True,
             "structure": [action_beat("B01"), action_beat("B02")],
             "dialogue_draft": [
-                {"dia_id": "DIA-001", "beat_id": "B01", "speaker": "A", "text": "Line", "function": "one"},
-                {"dia_id": "DIA-002", "beat_id": "B02", "speaker": "A", "text": "Line", "function": "two"},
+                dialogue_line(function="one"),
+                dialogue_line(dia_id="DIA-002", beat_id="B02", function="two"),
             ],
         }
         state = {"scene_state": [

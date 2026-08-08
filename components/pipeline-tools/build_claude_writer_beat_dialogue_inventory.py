@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-SCENE_RE = re.compile(r"^\*\*(\d+-\d+)．(.+?)\*\*$")
-DIALOGUE_RE = re.compile(r"^([^△〔>\-#][^：]{0,20})：(?:（([^）]*)）)?(.*)$")
+SCENE_RE = re.compile(r"^\*\*(\d+-\d+)\s*[．。.]\s*(.+?)\*\*(?:\s*.*)?$")
+DIALOGUE_RE = re.compile(r"^([^△◇〔>\-#][^：]{0,20})：(?:（([^）]*)）)?(.*)$")
 
 
 def sha256(path: Path) -> str:
@@ -36,6 +36,13 @@ def parse(script: Path, manifest: dict) -> dict:
                 "beats": [],
             }
             scenes.append(current_scene)
+            current_beat = None
+            continue
+        # Claude Writer scripts append production notes and audits after the
+        # screenplay. Never let full-width colons in those sections leak into
+        # the final scene's dialogue inventory.
+        if scenes and line.startswith("## "):
+            current_scene = None
             current_beat = None
             continue
         if current_scene is None:

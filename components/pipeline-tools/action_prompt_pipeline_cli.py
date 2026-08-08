@@ -27,7 +27,14 @@ def _read_prompt(task: dict[str, Any], manifest_dir: Path) -> str:
     prompt_file = task.get("prompt_file")
     if not prompt_file:
         raise ValueError(f"{task.get('task_key', 'unknown')}: prompt or prompt_file is required")
-    return (manifest_dir / str(prompt_file)).resolve().read_text(encoding="utf-8")
+    value = Path(str(prompt_file))
+    candidates = [value] if value.is_absolute() else [Path.cwd() / value, manifest_dir / value]
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved.is_file():
+            return resolved.read_text(encoding="utf-8")
+    attempted = ", ".join(str(candidate.resolve()) for candidate in candidates)
+    raise FileNotFoundError(f"prompt_file not found; attempted: {attempted}")
 
 
 def compile_manifest(manifest_path: Path, output_dir: Path) -> dict[str, Any]:

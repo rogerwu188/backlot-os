@@ -64,16 +64,45 @@ def canonical_submission(payload: dict) -> tuple[bytes, str]:
 
 
 class S3MemoryStore:
-    def __init__(self, bucket: str, prefix: str = "backlotos-lora-memory"):
+    def __init__(self, bucket: str, prefix: str = "backlotos-lora-memory", endpoint_url: str | None = None):
         import boto3
-        self.client = boto3.client("s3")
+        from botocore.client import Config
+        self.client = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url or None,
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            config=Config(
+                signature_version="s3v4",
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+            ),
+        )
         self.bucket = bucket
         self.prefix = prefix.strip("/")
 
     def accept(self, body: bytes, digest: str) -> str:
         key = f"{self.prefix}/inbox/sha256/{digest}.jsonl"
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=body, ContentType="application/x-ndjson",
-                               Metadata={"sha256": digest, "schema": "backlotos-lora-memory-v1"})
+        try:
+            existing = self.client.head_object(Bucket=self.bucket, Key=key)
+        except self.client.exceptions.ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") not in {"404", "NoSuchKey", "NotFound"}:
+                raise
+        else:
+            stored_digest = existing.get("Metadata", {}).get("sha256")
+            if not stored_digest and int(existing.get("ContentLength", -1)) == len(body):
+                stored_body = self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+                stored_digest = hashlib.sha256(stored_body).hexdigest()
+            if stored_digest != digest or int(existing.get("ContentLength", -1)) != len(body):
+                raise ValueError("content-addressed S3 object conflicts with submitted digest")
+            return key
+        self.client.put_object(
+            Bucket=self.bucket,
+            Key=key,
+            Body=body,
+            ContentLength=len(body),
+            ContentType="application/x-ndjson",
+            Metadata={"sha256": digest, "schema": "backlotos-lora-memory-v1"},
+        )
         return key
 
     def pending(self) -> list[tuple[str, bytes]]:
@@ -91,7 +120,7 @@ class S3MemoryStore:
                               "githubCommit": commit, "processedUnix": int(time.time())}, sort_keys=True).encode()
         digest = hashlib.sha256(receipt).hexdigest()
         self.client.put_object(Bucket=self.bucket, Key=f"{self.prefix}/processed/{digest}.json",
-                               Body=receipt, ContentType="application/json")
+                               Body=receipt, ContentLength=len(receipt), ContentType="application/json")
         for key in keys:
             self.client.delete_object(Bucket=self.bucket, Key=key)
 
@@ -158,7 +187,11 @@ def main() -> None:
     args = parser.parse_args()
     bucket = os.environ["BACKLOTOS_LORA_S3_BUCKET"]
     checkout = Path(os.environ["BACKLOTOS_LORA_GITHUB_CHECKOUT"])
-    store = S3MemoryStore(bucket, os.environ.get("BACKLOTOS_LORA_S3_PREFIX", "backlotos-lora-memory"))
+    store = S3MemoryStore(
+        bucket,
+        os.environ.get("BACKLOTOS_LORA_S3_PREFIX", "backlotos-lora-memory"),
+        os.environ.get("BACKLOTOS_LORA_S3_ENDPOINT"),
+    )
     if args.converge_once:
         print(json.dumps(converge_once(store, checkout), ensure_ascii=False))
         return

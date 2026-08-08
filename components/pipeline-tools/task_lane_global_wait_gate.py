@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""Fail closed when task-local waits are promoted into a global production wait.
+
+This gate is intentionally independent from legacy episode queue refreshers.
+Episode queues model episode slots rather than per-task dependency lanes.  A
+heartbeat must materialize one supported task-lane state document and run this
+gate before reporting or persisting any global-wait decision.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import tempfile
+from collections import Counter
+from pathlib import Path
+from typing import Any
+
+
+ALLOWED_STATES = frozenset(
+    {"READY", "RUNNING", "WAITING_DEPENDENCY", "REMOTE_WAIT", "QA", "TERMINAL"}
+)
+SUPPORTED_INPUT_SCHEMAS = frozenset(
+    {
+        "backlotos.task_lane_scheduler_state.v1",
+        "qingshan.task_lane_scheduler_state.v1",
+    }
+)
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        os.replace(temporary, path)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def _failure(code: str, **details: Any) -> dict[str, Any]:
+    return {"code": code, **details}
+
+
+def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
+    failures: list[dict[str, Any]] = []
+    if payload.get("schema") not in SUPPORTED_INPUT_SCHEMAS:
+        failures.append(_failure("UNSUPPORTED_SCHEMA", actual=payload.get("schema")))
+
+    tasks = payload.get("tasks")
+    if not isinstance(tasks, list) or not tasks:
+        failures.append(_failure("TASKS_MISSING_OR_EMPTY"))
+        tasks = []
+
+    scheduler = payload.get("scheduler_decision")
+    if not isinstance(scheduler, dict) or not isinstance(scheduler.get("global_wait"), bool):
+        failures.append(_failure("GLOBAL_WAIT_DECISION_MISSING_OR_NOT_BOOLEAN"))
+        global_wait = None
+    else:
+        global_wait = scheduler["global_wait"]
+
+    task_ids = [str(task.get("task_id") or "") for task in tasks]
+    duplicate_ids = sorted(task_id for task_id, count in Counter(task_ids).items() if task_id and count > 1)
+    if duplicate_ids:
+        failures.append(_failure("DUPLICATE_TASK_ID", task_ids=duplicate_ids))
+    known_ids = {task_id for task_id in task_ids if task_id}
+
+    normalized: list[dict[str, Any]] = []
+    for index, task in enumerate(tasks):
+        task_id = str(task.get("task_id") or "")
+        lane_id = str(task.get("lane_id") or "")
+        state = str(task.get("state") or "")
+        if not task_id:
+            failures.append(_failure("TASK_ID_MISSING", task_index=index))
+        if not lane_id:
+            failures.append(_failure("LANE_ID_MISSING", task_id=task_id or None, task_index=index))
+        if state not in ALLOWED_STATES:
+            failures.append(_failure("INVALID_TASK_STATE", task_id=task_id or None, state=state))
+
+        predecessor = task.get("exact_predecessor_task_id")
+        if state == "WAITING_DEPENDENCY":
+            if not isinstance(predecessor, str) or not predecessor.strip():
+                failures.append(_failure("WAITING_DEPENDENCY_EXACT_PREDECESSOR_MISSING", task_id=task_id or None))
+            elif predecessor == task_id:
+                failures.append(_failure("WAITING_DEPENDENCY_SELF_REFERENCE", task_id=task_id))
+            elif predecessor not in known_ids:
+                failures.append(
+                    _failure(
+                        "WAITING_DEPENDENCY_EXACT_PREDECESSOR_UNKNOWN",
+                        task_id=task_id or None,
+                        exact_predecessor_task_id=predecessor,
+                    )
+                )
+        if state == "REMOTE_WAIT" and task.get("wait_scope") != "TASK_LOCAL":
+            failures.append(
+                _failure(
+                    "REMOTE_WAIT_SCOPE_MUST_BE_TASK_LOCAL",
+                    task_id=task_id or None,
+                    wait_scope=task.get("wait_scope"),
+                )
+            )
+        normalized.append(
+            {
+                "task_id": task_id,
+                "lane_id": lane_id,
+                "state": state,
+                "zero_cost": task.get("zero_cost") is True,
+                "exact_predecessor_task_id": predecessor,
+            }
+        )
+
+    ready = [task for task in normalized if task["state"] == "READY"]
+    ready_zero_cost = [task for task in ready if task["zero_cost"]]
+    qa = [task for task in normalized if task["state"] == "QA"]
+    remote_wait = [task for task in normalized if task["state"] == "REMOTE_WAIT"]
+    if global_wait is True and ready_zero_cost:
+        failures.append(
+            _failure(
+                "GLOBAL_WAIT_MASKS_READY_ZERO_COST_TASKS",
+                task_ids=[task["task_id"] for task in ready_zero_cost],
+                lane_ids=sorted({task["lane_id"] for task in ready_zero_cost}),
+            )
+        )
+    if global_wait is True and qa:
+        failures.append(
+            _failure(
+                "GLOBAL_WAIT_MASKS_ACTIVE_QA",
+                task_ids=[task["task_id"] for task in qa],
+                lane_ids=sorted({task["lane_id"] for task in qa}),
+            )
+        )
+
+    remote_lanes = {task["lane_id"] for task in remote_wait}
+    ready_other_lanes = [task for task in ready if task["lane_id"] not in remote_lanes]
+    if remote_wait and ready_other_lanes and global_wait is True:
+        failures.append(
+            _failure(
+                "REMOTE_WAIT_MASKS_READY_OTHER_LANES",
+                remote_wait_task_ids=[task["task_id"] for task in remote_wait],
+                ready_task_ids=[task["task_id"] for task in ready_other_lanes],
+            )
+        )
+
+    counts = Counter(task["state"] for task in normalized)
+    return {
+        "schema": "backlotos.task_lane_global_wait_gate.v1",
+        "status": "PASS" if not failures else "FAIL",
+        "episode": payload.get("episode"),
+        "scheduler_decision": {"global_wait": global_wait},
+        "state_counts": {state: counts.get(state, 0) for state in sorted(ALLOWED_STATES)},
+        "dispatchable_ready_task_ids": [task["task_id"] for task in ready],
+        "ready_zero_cost_task_ids": [task["task_id"] for task in ready_zero_cost],
+        "qa_task_ids": [task["task_id"] for task in qa],
+        "remote_wait_task_ids": [task["task_id"] for task in remote_wait],
+        "remote_wait_isolated_from_ready_lanes": bool(remote_wait and ready_other_lanes and global_wait is False),
+        "failures": failures,
+        "policy": {
+            "ready_zero_cost_blocks_global_wait": True,
+            "waiting_dependency_requires_exact_predecessor_task_id": True,
+            "remote_wait_scope": "TASK_LOCAL",
+            "remote_wait_never_masks_ready_other_lane": True,
+            "qa_is_active_work": True,
+        },
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--state", required=True, type=Path)
+    parser.add_argument("--out", type=Path)
+    args = parser.parse_args()
+    result = audit_scheduler_state(read_json(args.state))
+    if args.out:
+        write_json_atomic(args.out, result)
+    print(json.dumps(result, ensure_ascii=False))
+    return 0 if result["status"] == "PASS" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -30,6 +30,12 @@ RETRY_DELAY_SECONDS = float(os.environ.get("GIGGLE_API_RETRY_DELAY", "2"))
 HTTP_TIMEOUT_SECONDS = float(os.environ.get("GIGGLE_API_HTTP_TIMEOUT_SECONDS", "30"))
 GENERATION_POST_TIMEOUT_SECONDS = float(os.environ.get("GIGGLE_GENERATION_POST_TIMEOUT_SECONDS", "180"))
 RETRYABLE_HTTP_CODES = {408, 409, 425, 429}
+STANDARD_VIDEO_MODEL = "seedance-2.0"
+VIDEO_GENERATION_ENDPOINTS = {
+    "/api/v1/generation/text-to-video",
+    "/api/v1/generation/image-to-video",
+    "/api/v1/generation/omni-video",
+}
 
 
 def _api_key() -> str:
@@ -79,6 +85,11 @@ def _urlopen_json(
 
 
 def _request(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    if path in VIDEO_GENERATION_ENDPOINTS and payload.get("model") != STANDARD_VIDEO_MODEL:
+        raise SystemExit(
+            "paid video submission blocked: model must be seedance-2.0 (standard); "
+            "Pro, fast, and mini are forbidden"
+        )
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         f"{BASE_URL}{path}",
@@ -210,7 +221,7 @@ def main() -> int:
     vid.add_argument("--prompt", required=True)
     vid.add_argument("--start-frame")
     vid.add_argument("--end-frame")
-    vid.add_argument("--model", default="seedance-2.0-pro")
+    vid.add_argument("--model", default="seedance-2.0")
     vid.add_argument("--duration", type=int, default=4)
     vid.add_argument("--aspect-ratio", default="9:16")
     vid.add_argument("--resolution", default="720p")
@@ -227,7 +238,7 @@ def main() -> int:
     omni.add_argument("--audio-asset-id", action="append")
     omni.add_argument("--video", action="append")
     omni.add_argument("--video-asset-id", action="append")
-    omni.add_argument("--model", default="seedance-2.0-pro")
+    omni.add_argument("--model", default="seedance-2.0")
     omni.add_argument("--duration", type=int, default=4)
     omni.add_argument("--aspect-ratio", default="9:16")
     omni.add_argument("--resolution", default="720p")

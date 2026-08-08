@@ -7,10 +7,21 @@ import argparse
 import json
 from pathlib import Path
 
+try:
+    from giggle_api_client import STANDARD_VIDEO_MODEL
+except ModuleNotFoundError:  # Imported as tools.compile_episode_dialogue_video_batch in tests.
+    from tools.giggle_api_client import STANDARD_VIDEO_MODEL
+
 
 def compile_batch(script: dict, image_receipt: dict, scene_state: dict, prompt_dir: Path) -> dict:
     episode = script["episode"]
-    scene = scene_state["scene_state"][0]
+    scenes = scene_state.get("scene_state") or []
+    if len(scenes) != 1:
+        raise ValueError(
+            "legacy dialogue compiler supports exactly one scene; "
+            "use compile_episode_parallel_prompt_batch.py for multi-scene episodes"
+        )
+    scene = scenes[0]
     images = {}
     for task in image_receipt.get("tasks", []):
         key = task.get("task_key", "")
@@ -25,14 +36,13 @@ def compile_batch(script: dict, image_receipt: dict, scene_state: dict, prompt_d
             raise ValueError(f"missing admitted beat image: {beat}")
         dia_id = line["dia_id"]
         speaker = line["speaker"]
-        listener = "张夏" if speaker == "陈迹" else "陈迹"
         prompt = (
             f"Animate the supplied script-locked {episode} {beat} still for five seconds, vertical 9:16, "
             f"inside the same {scene['time_of_day']} {scene['location']} in {scene['weather']} weather. "
             f"Preserve the exact canonical faces, wardrobe, props, lighting, room geography, and current beat action. "
             f"{speaker} speaks exactly once in natural Mandarin with restrained historical-drama performance: “{line['text']}” "
-            f"Only {speaker}'s mouth moves for the line; {listener} listens with one subtle, causally appropriate reaction and does not speak. "
-            "Use native-speed human motion, clean room tone, subtle market ambience and only story-motivated practical sound. "
+            f"Only {speaker}'s mouth moves for the line; all visible listeners react subtly and causally without speaking. "
+            "Use native-speed human motion, clean room tone, script-locked scene ambience and only story-motivated practical sound. "
             "Do not add music, subtitles, captions, readable ledger marks, letters, numbers, signs, logos, watermarks, extra dialogue, paraphrase, repeated gesture, cyclic motion, slow motion, or time-of-day change."
         )
         prompt_path = prompt_dir / f"{dia_id}.txt"
@@ -44,7 +54,7 @@ def compile_batch(script: dict, image_receipt: dict, scene_state: dict, prompt_d
             "tool_type": "video_generation",
             "prompt_file": str(prompt_path),
             "reference_images": [images[beat]],
-            "model": "seedance-2.0-pro",
+            "model": STANDARD_VIDEO_MODEL,
             "duration": 5,
             "aspect_ratio": "9:16",
             "resolution": "720p",
