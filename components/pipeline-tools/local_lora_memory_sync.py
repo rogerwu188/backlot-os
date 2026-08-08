@@ -24,7 +24,8 @@ ALLOWED_FIELDS = {
     "schema", "sample_id", "status", "generation_mode", "applicable_modes",
     "failure_evidence", "failed_prompt_sha256", "failed_asset_sha256",
     "root_cause", "optimization", "accepted_evidence", "accepted_prompt_sha256",
-    "accepted_asset_sha256", "compiler_guard_clause", "tags",
+    "accepted_asset_sha256", "compiler_guard_clause", "tags", "source_kind",
+    "source_url_sha256", "rights_basis", "content_policy",
 }
 FORBIDDEN_KEY_PARTS = {"token", "secret", "password", "credential", "cookie", "authorization", "api_key"}
 DEFAULT_REMOTE = "https://github.com/rogerwu188/backlot-os.git"
@@ -163,6 +164,16 @@ def _load(path: Path) -> dict[str, dict]:
         sample_id = str(raw.get("sample_id") or "").strip()
         if not sample_id or raw.get("status") != "ADMITTED":
             raise ValueError(f"line {line_number} must be an ADMITTED sample with sample_id")
+        if raw.get("source_kind") == "third_party":
+            if raw.get("rights_basis") != "explicit_machine_learning_training_license":
+                raise ValueError(
+                    f"line {line_number} third-party content lacks an explicit machine-learning training license"
+                )
+            if raw.get("content_policy") not in {"abstracted_rule_only", "licensed_training_material"}:
+                raise ValueError(f"line {line_number} third-party content_policy is not admissible")
+            source_url_sha = str(raw.get("source_url_sha256") or "")
+            if len(source_url_sha) != 64 or any(ch not in "0123456789abcdef" for ch in source_url_sha.lower()):
+                raise ValueError(f"line {line_number} third-party source_url_sha256 is required")
         for evidence_key in ("failure_evidence", "accepted_evidence"):
             evidence = str(raw.get(evidence_key) or "")
             if evidence and not evidence.startswith("redacted://"):

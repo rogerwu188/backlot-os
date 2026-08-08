@@ -49,6 +49,28 @@ class LoraMemoryHubTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "redacted://"):
             HUB.canonical_submission({"schema": "backlotos.lora_memory_submission.v1", "samples": [row]})
 
+    def test_third_party_sample_without_explicit_training_rights_is_rejected(self):
+        row = sample()
+        row.update({
+            "source_kind": "third_party",
+            "source_url_sha256": "e" * 64,
+            "rights_basis": "publicly_viewable",
+            "content_policy": "licensed_training_material",
+        })
+        with self.assertRaisesRegex(ValueError, "explicit machine-learning training license"):
+            HUB.canonical_submission({"schema": "backlotos.lora_memory_submission.v1", "samples": [row]})
+
+    def test_abstracted_third_party_rule_with_explicit_rights_is_admitted(self):
+        row = sample()
+        row.update({
+            "source_kind": "third_party",
+            "source_url_sha256": "e" * 64,
+            "rights_basis": "explicit_machine_learning_training_license",
+            "content_policy": "abstracted_rule_only",
+        })
+        body, _ = HUB.canonical_submission({"schema": "backlotos.lora_memory_submission.v1", "samples": [row]})
+        self.assertIn(b"abstracted_rule_only", body)
+
     def test_s3_objects_merge_once_then_publish_from_hub(self):
         with tempfile.TemporaryDirectory() as directory:
             checkout = Path(directory) / "repo"
