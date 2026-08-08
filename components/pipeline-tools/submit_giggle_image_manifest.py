@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -24,6 +25,77 @@ except ModuleNotFoundError:  # Imported as tools.submit_giggle_image_manifest.
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def portable_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+class DuplicateSubmissionBlocked(RuntimeError):
+    """Raised when a prior charged or unresolved intent cannot be resubmitted safely."""
+
+
+def atomic_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".part")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def submission_fingerprint(task: dict[str, Any]) -> str:
+    contract = {
+        "task_key": task.get("task_key"),
+        "prompt_sha256": task.get("prompt_sha256"),
+        "references": [row.get("sha256") for row in task.get("reference_bindings") or []],
+        "model": task.get("model", "gpt-image-2-pro"),
+        "aspect_ratio": task.get("aspect_ratio", "9:16"),
+        "resolution": task.get("resolution", "1K"),
+    }
+    return hashlib.sha256(json.dumps(contract, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def transaction_path(transaction_dir: Path, task: dict[str, Any]) -> Path:
+    fingerprint = submission_fingerprint(task)
+    return transaction_dir / f"{task['task_key']}__{fingerprint[:16]}.json"
+
+
+def prior_submission_result(task: dict[str, Any], transaction_dir: Path) -> dict[str, Any] | None:
+    path = transaction_path(transaction_dir, task)
+    if not path.is_file():
+        return None
+    transaction = json.loads(path.read_text(encoding="utf-8"))
+    if transaction.get("submission_fingerprint") != submission_fingerprint(task):
+        raise DuplicateSubmissionBlocked(
+            f"{task['task_key']} has a transaction with a different submission fingerprint"
+        )
+    state = transaction.get("state")
+    if state == "SUBMITTED_TASK_ID_BOUND" and transaction.get("task_id"):
+        return {
+            "task_key": task["task_key"],
+            "beat_id": task.get("beat_id"),
+            "task_id": transaction["task_id"],
+            "status": "submitted",
+            "receipt": transaction.get("receipt"),
+            "transaction": portable_path(path),
+            "recovered_from_transaction": True,
+        }
+    if state in {
+        "INTENT_RECORDED",
+        "RESPONSE_LOST_PENDING_LEDGER_RECONCILIATION",
+        "CHARGED_TASK_ID_MISSING",
+        "CHARGE_STATE_UNRESOLVED_BATCH",
+    }:
+        raise DuplicateSubmissionBlocked(
+            f"{task['task_key']} duplicate submit blocked by transaction state {state}"
+        )
+    return None
 
 
 def resolve(path: str | Path) -> Path:
@@ -72,12 +144,38 @@ def validate_anchor_count_gate_requirement(
         raise ValueError("blocked_tasks must exactly match declared dependent anchors")
 
 
+def validate_mask_transport(task: dict[str, Any]) -> None:
+    """Fail closed when a manifest claims mask semantics the endpoint cannot enforce.
+
+    The current Giggle image-to-image request carries every input through
+    ``reference_images``. A binding named ``edit_mask`` is therefore only a
+    visual reference; its SHA does not make it a provider-native edit mask.
+    """
+    mask_bindings = [
+        row for row in task.get("reference_bindings") or []
+        if row.get("role") == "edit_mask"
+    ]
+    if not mask_bindings:
+        return
+    transport = task.get("mask_transport") or {}
+    if transport.get("mode") != "provider_native":
+        raise ValueError(
+            f"{task.get('task_key', 'UNKNOWN')} edit_mask is reference-only; "
+            "exact mask submission requires provider-native mask transport"
+        )
+    raise ValueError(
+        f"{task.get('task_key', 'UNKNOWN')} provider-native mask transport is not implemented "
+        "for /api/v1/generation/image-to-image"
+    )
+
+
 def validate_task(task: dict[str, Any]) -> None:
     for field in ("task_key", "prompt_file", "reference_images"):
         if not task.get(field):
             raise ValueError(f"{task.get('task_key', 'UNKNOWN')} missing {field}")
     if task.get("tool_type") != "image_generation":
         raise ValueError(f"{task['task_key']} is not an image_generation task")
+    validate_mask_transport(task)
     prompt_path = resolve(task["prompt_file"])
     if not prompt_path.is_file():
         raise ValueError(f"Missing prompt: {task['prompt_file']}")
@@ -116,7 +214,10 @@ def validate_task(task: dict[str, Any]) -> None:
         raise ValueError(f"{task['task_key']} reference image order differs from bound contract")
 
 
-def submit_one(task: dict[str, Any], receipt_dir: Path) -> dict[str, Any]:
+def submit_one(task: dict[str, Any], receipt_dir: Path, transaction_dir: Path) -> dict[str, Any]:
+    recovered = prior_submission_result(task, transaction_dir)
+    if recovered:
+        return recovered
     prompt = resolve(task["prompt_file"]).read_text(encoding="utf-8")
     references = [str(resolve(path)) for path in task["reference_images"]]
     payload = {
@@ -128,29 +229,67 @@ def submit_one(task: dict[str, Any], receipt_dir: Path) -> dict[str, Any]:
         "resolution": task.get("resolution", "1K"),
         "watermark": False,
     }
-    response = _request("/api/v1/generation/image-to-image", payload)
+    transaction = transaction_path(transaction_dir, task)
+    intent = {
+        "schema": "qingshan.giggle_submit_transaction.v1",
+        "task_key": task["task_key"],
+        "attempt_id": str(uuid.uuid4()),
+        "submission_fingerprint": submission_fingerprint(task),
+        "state": "INTENT_RECORDED",
+        "intent_recorded_at": utc_now(),
+        "model": payload["model"],
+        "prompt_sha256": task.get("prompt_sha256"),
+        "reference_sha256": [row.get("sha256") for row in task.get("reference_bindings") or []],
+        "retry_guard": "DO_NOT_RESUBMIT_UNTIL_LEDGER_RECONCILED",
+    }
+    atomic_json(transaction, intent)
+    try:
+        response = _request("/api/v1/generation/image-to-image", payload)
+    except (Exception, SystemExit) as exc:
+        intent.update({
+            "state": "RESPONSE_LOST_PENDING_LEDGER_RECONCILIATION",
+            "response_lost_at": utc_now(),
+            "error": str(exc),
+        })
+        atomic_json(transaction, intent)
+        raise
     task_id = (response.get("data") or {}).get("task_id")
     if not task_id:
+        intent.update({
+            "state": "RESPONSE_LOST_PENDING_LEDGER_RECONCILIATION",
+            "response_lost_at": utc_now(),
+            "error": "Submit response missing data.task_id",
+        })
+        atomic_json(transaction, intent)
         raise RuntimeError("Submit response missing data.task_id")
     receipt = receipt_dir / f"{task['task_key']}_submit_receipt.json"
-    receipt.write_text(json.dumps(response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_json(receipt, response)
+    intent.update({
+        "state": "SUBMITTED_TASK_ID_BOUND",
+        "response_recorded_at": utc_now(),
+        "task_id": task_id,
+        "receipt": str(receipt.relative_to(ROOT)),
+    })
+    atomic_json(transaction, intent)
     return {
         "task_key": task["task_key"],
         "beat_id": task.get("beat_id"),
         "task_id": task_id,
         "status": "submitted",
         "receipt": str(receipt.relative_to(ROOT)),
+        "transaction": portable_path(transaction),
+        "recovered_from_transaction": False,
     }
 
 
 def submit_all(
-    tasks: list[dict[str, Any]], receipt_dir: Path, concurrency: int
+    tasks: list[dict[str, Any]], receipt_dir: Path, transaction_dir: Path, concurrency: int
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Submit every item and preserve isolated client exits as item failures."""
     results: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
-        futures = {pool.submit(submit_one, task, receipt_dir): task for task in tasks}
+        futures = {pool.submit(submit_one, task, receipt_dir, transaction_dir): task for task in tasks}
         for future in as_completed(futures):
             task = futures[future]
             try:
@@ -158,12 +297,61 @@ def submit_all(
             except (Exception, SystemExit) as exc:
                 failures.append({
                     "task_key": task["task_key"],
-                    "status": "submit_failed",
-                    "credit": 0,
-                    "credit_status": "FAILED_ZERO",
+                    "status": "submit_response_lost",
+                    "credit": None,
+                    "credit_status": "PENDING_LEDGER_RECONCILIATION",
                     "error": str(exc),
+                    "transaction": portable_path(transaction_path(transaction_dir, task)),
                 })
     return results, failures
+
+
+def classify_ambiguous_failures(
+    failures: list[dict[str, Any]],
+    *,
+    known_submitted: int,
+    matched_ledger_rows: int,
+    transaction_dir: Path,
+) -> str:
+    """Classify response-loss rows without pretending that an HTTP timeout means zero cost."""
+    ambiguous = len(failures)
+    extra_charges = matched_ledger_rows - known_submitted
+    if ambiguous == 0:
+        return "NO_AMBIGUOUS_SUBMISSIONS"
+    if extra_charges == 0:
+        state = "NOT_CHARGED_RETRYABLE"
+        status = "FAILED_ZERO_VERIFIED"
+        credit = 0
+        summary = "ALL_RESPONSE_LOSSES_VERIFIED_NOT_CHARGED"
+    elif ambiguous == 1 and extra_charges == 1:
+        state = "CHARGED_TASK_ID_MISSING"
+        status = "CHARGED_TASK_ID_MISSING"
+        credit = None
+        summary = "ONE_CHARGED_RESPONSE_LOSS_REQUIRES_TASK_HISTORY_RECOVERY"
+    else:
+        state = "CHARGE_STATE_UNRESOLVED_BATCH"
+        status = "CHARGE_STATE_UNRESOLVED_BATCH"
+        credit = None
+        summary = "BATCH_RESPONSE_LOSSES_QUARANTINED_PENDING_TASK_HISTORY_RECOVERY"
+    for failure in failures:
+        failure["status"] = "submit_failed" if state == "NOT_CHARGED_RETRYABLE" else "submit_quarantined"
+        failure["credit"] = credit
+        failure["credit_status"] = status
+        path = transaction_dir / Path(failure["transaction"]).name
+        transaction = json.loads(path.read_text(encoding="utf-8"))
+        transaction.update({
+            "state": state,
+            "ledger_reconciled_at": utc_now(),
+            "batch_known_task_ids": known_submitted,
+            "batch_ledger_pay_rows": matched_ledger_rows,
+            "batch_unmapped_pay_rows": max(0, extra_charges),
+            "retry_guard": (
+                "RETRY_ALLOWED_NEW_ATTEMPT" if state == "NOT_CHARGED_RETRYABLE"
+                else "DO_NOT_RESUBMIT_RECOVER_TASK_ID_FROM_PROVIDER_HISTORY"
+            ),
+        })
+        atomic_json(path, transaction)
+    return summary
 
 
 def main() -> int:
@@ -201,39 +389,73 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     receipt_dir = out.parent / f"{out.stem}_receipts"
     receipt_dir.mkdir(parents=True, exist_ok=True)
+    episode_key = str(manifest.get("episode") or "UNKNOWN").replace("/", "-")
+    transaction_dir = ROOT / "workflow" / "tasks" / "giggle_submit_transactions" / episode_key
+    transaction_dir.mkdir(parents=True, exist_ok=True)
     results: list[dict[str, Any]] = []
     failures: list[dict[str, Any]] = []
     submit_started_at = datetime.now(timezone.utc)
     if args.precheck_only:
         results = [{"task_key": task["task_key"], "beat_id": task.get("beat_id"), "status": "precheck_pass"} for task in tasks]
     else:
-        results, failures = submit_all(tasks, receipt_dir, args.concurrency)
+        results, failures = submit_all(tasks, receipt_dir, transaction_dir, args.concurrency)
     submit_finished_at = datetime.now(timezone.utc)
 
     results.sort(key=lambda row: row["task_key"])
     failures.sort(key=lambda row: row["task_key"])
     credit_reconciliation = None
-    if not args.precheck_only and results:
-        expected_credit_count = sum(row["status"] == "submitted" for row in results)
-        for attempt in range(7):
-            credit_reconciliation = reconcile_rows(
-                fetch_pay_statements(),
-                start=submit_started_at - timedelta(seconds=10),
-                end=datetime.now(timezone.utc) + timedelta(seconds=10),
-                expected_count=expected_credit_count,
-                event_description="SingleGenerateImage",
-                model=str(tasks[0].get("model", "gpt-image-2-pro")),
-            )
-            if credit_reconciliation["status"] == "PASS" or attempt == 6:
-                break
-            time.sleep(5)
+    ambiguity_resolution = "NOT_APPLICABLE"
+    if not args.precheck_only:
+        newly_submitted = sum(
+            row["status"] == "submitted" and not row.get("recovered_from_transaction")
+            for row in results
+        )
+        recovered_submitted = sum(bool(row.get("recovered_from_transaction")) for row in results)
+        maximum_possible_charges = newly_submitted + len(failures)
+        if maximum_possible_charges == 0:
+            credit_reconciliation = {
+                "status": "PASS_REUSED_TRANSACTIONS",
+                "method": "NO_NEW_POST_REUSED_DURABLE_TASK_ID_BINDINGS",
+                "newly_submitted": 0,
+                "recovered_task_ids": recovered_submitted,
+                "charged_credits_this_run": 0,
+            }
+            matched = 0
+        else:
+            for attempt in range(7):
+                credit_reconciliation = reconcile_rows(
+                    fetch_pay_statements(),
+                    start=submit_started_at - timedelta(seconds=10),
+                    end=datetime.now(timezone.utc) + timedelta(seconds=10),
+                    expected_count=maximum_possible_charges,
+                    event_description="SingleGenerateImage",
+                    model=str(tasks[0].get("model", "gpt-image-2-pro")),
+                )
+                matched = int(credit_reconciliation.get("matched_count", 0))
+                if matched >= newly_submitted or attempt == 6:
+                    break
+                time.sleep(5)
+            if newly_submitted <= matched <= maximum_possible_charges:
+                credit_reconciliation["status"] = "PASS_BOUNDED"
+                credit_reconciliation["known_task_id_count"] = newly_submitted
+                credit_reconciliation["recovered_task_id_count"] = recovered_submitted
+                credit_reconciliation["ambiguous_response_count"] = len(failures)
+                credit_reconciliation["unmapped_pay_row_count"] = matched - newly_submitted
+        ambiguity_resolution = classify_ambiguous_failures(
+            failures,
+            known_submitted=newly_submitted,
+            matched_ledger_rows=matched,
+            transaction_dir=transaction_dir,
+        )
         credit_out = out.parent / f"{out.stem}_credit_statement.json"
-        credit_out.write_text(json.dumps(credit_reconciliation, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        atomic_json(credit_out, credit_reconciliation)
 
     generation_pass = len(results) == len(tasks) and not failures
-    cost_pass = args.precheck_only or (credit_reconciliation or {}).get("status") == "PASS"
+    cost_pass = args.precheck_only or (credit_reconciliation or {}).get("status") in {
+        "PASS", "PASS_BOUNDED", "PASS_REUSED_TRANSACTIONS"
+    }
     report = {
-        "schema": "qingshan.giggle_image_batch_submit.v1",
+        "schema": "qingshan.giggle_image_batch_submit.v2",
         "episode": manifest.get("episode"),
         "manifest": str(manifest_path.relative_to(ROOT)),
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
@@ -243,13 +465,21 @@ def main() -> int:
         "machine_gates": gates,
         "status": "PASS" if generation_pass and cost_pass else "FAIL",
         "submitted": sum(row["status"] == "submitted" for row in results),
+        "newly_submitted": sum(
+            row["status"] == "submitted" and not row.get("recovered_from_transaction")
+            for row in results
+        ),
+        "recovered_task_ids": sum(bool(row.get("recovered_from_transaction")) for row in results),
         "precheck_pass": sum(row["status"] == "precheck_pass" for row in results),
         "failed": len(failures),
         "results": results,
         "failures": failures,
         "credit_reconciliation": credit_reconciliation,
+        "ambiguity_resolution": ambiguity_resolution,
+        "transaction_dir": portable_path(transaction_dir),
+        "duplicate_submit_policy": "TASK_FINGERPRINT_TRANSACTION_GUARD",
     }
-    out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_json(out, report)
     print(json.dumps({key: report[key] for key in ("status", "submitted", "precheck_pass", "failed")}, ensure_ascii=False))
     return 0 if report["status"] == "PASS" else 2
 
