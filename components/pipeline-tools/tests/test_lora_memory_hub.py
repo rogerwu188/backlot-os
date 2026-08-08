@@ -1,7 +1,9 @@
 import importlib.util
 import json
 import subprocess
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -36,6 +38,20 @@ class FakeStore:
 
 
 class LoraMemoryHubTests(unittest.TestCase):
+    def test_s3_compatible_endpoint_is_forwarded_to_client(self):
+        calls = []
+        fake_boto3 = types.SimpleNamespace(client=lambda service, **kwargs: calls.append((service, kwargs)) or object())
+        original = sys.modules.get("boto3")
+        sys.modules["boto3"] = fake_boto3
+        try:
+            HUB.S3MemoryStore("drama01", "training/backlotos", "https://s3.example.invalid")
+        finally:
+            if original is None:
+                sys.modules.pop("boto3", None)
+            else:
+                sys.modules["boto3"] = original
+        self.assertEqual(calls, [("s3", {"endpoint_url": "https://s3.example.invalid"})])
+
     def test_health_state_exposes_failure_type_without_secret_message(self):
         HUB.update_hub_state(status="RETRY_PENDING", error=RuntimeError("credential-value"))
         state = HUB.hub_state()

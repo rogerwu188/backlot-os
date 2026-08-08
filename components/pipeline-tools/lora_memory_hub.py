@@ -64,9 +64,9 @@ def canonical_submission(payload: dict) -> tuple[bytes, str]:
 
 
 class S3MemoryStore:
-    def __init__(self, bucket: str, prefix: str = "backlotos-lora-memory"):
+    def __init__(self, bucket: str, prefix: str = "backlotos-lora-memory", endpoint_url: str | None = None):
         import boto3
-        self.client = boto3.client("s3")
+        self.client = boto3.client("s3", endpoint_url=endpoint_url or None)
         self.bucket = bucket
         self.prefix = prefix.strip("/")
 
@@ -158,7 +158,11 @@ def main() -> None:
     args = parser.parse_args()
     bucket = os.environ["BACKLOTOS_LORA_S3_BUCKET"]
     checkout = Path(os.environ["BACKLOTOS_LORA_GITHUB_CHECKOUT"])
-    store = S3MemoryStore(bucket, os.environ.get("BACKLOTOS_LORA_S3_PREFIX", "backlotos-lora-memory"))
+    store = S3MemoryStore(
+        bucket,
+        os.environ.get("BACKLOTOS_LORA_S3_PREFIX", "backlotos-lora-memory"),
+        os.environ.get("BACKLOTOS_LORA_S3_ENDPOINT"),
+    )
     if args.converge_once:
         print(json.dumps(converge_once(store, checkout), ensure_ascii=False))
         return

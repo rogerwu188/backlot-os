@@ -9,6 +9,8 @@ merges and validates them, and pushes the deterministic corpus to GitHub.
 
 1. Create a private S3 bucket and grant this service `ListBucket`, `GetObject`,
    `PutObject`, and `DeleteObject` only for the configured prefix.
+   For an S3-compatible provider, set `BACKLOTOS_LORA_S3_ENDPOINT` to its HTTPS
+   API endpoint. Keep the LoRA prefix separate from production relay prefixes.
 2. Create a fine-grained GitHub token for the hub with Contents read/write on
    the BacklotOS repository. Do not distribute it to production nodes.
 3. Copy `.env.example` to `.env`, replace every placeholder, and keep `.env`
