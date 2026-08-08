@@ -155,7 +155,7 @@ def main():
     parser.add_argument("--config", default="/Users/rogerwu/qingshan_short_drama/configs/e04_v5_continuity_config.json")
     parser.add_argument("--out", default="/Users/rogerwu/qingshan_short_drama/working_assets/e04_v5_api_fallback")
     parser.add_argument("--shots", required=True, help="comma-separated shot ids, e.g. 02,03,04")
-    parser.add_argument("--model", default="seedance-2.0-pro")
+    parser.add_argument("--model", default="seedance-2.0")
     parser.add_argument("--submit-only", action="store_true")
     parser.add_argument("--poll-existing", help="JSON manifest to resume polling")
     parser.add_argument("--poll-interval", type=int, default=20)

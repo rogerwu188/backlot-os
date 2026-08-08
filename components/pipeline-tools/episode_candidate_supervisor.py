@@ -93,7 +93,7 @@ def submit_next(args: argparse.Namespace, receipt: dict, previous_task_id: str, 
     start_frame = Path(args.qa_dir) / "visual_review_latest.jpg"
     result = generate_video(SimpleNamespace(
         prompt=prompt,
-        model="seedance-2.0-pro",
+        model="seedance-2.0",
         duration=4,
         aspect_ratio="9:16",
         resolution="720p",

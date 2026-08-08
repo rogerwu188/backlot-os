@@ -147,7 +147,7 @@ def main() -> int:
     parser.add_argument("--audio-asset-id", action="append", default=[], help="Giggle audio asset_id. Repeat as needed.")
     parser.add_argument("--audio-url", action="append", default=[], help="Public audio URL. Repeat as needed.")
     parser.add_argument("--out-dir", required=True)
-    parser.add_argument("--model", default="seedance-2.0-pro")
+    parser.add_argument("--model", default="seedance-2.0")
     parser.add_argument("--duration", type=int, default=4)
     parser.add_argument("--ratio", default="9:16")
     parser.add_argument("--resolution", default="720p")

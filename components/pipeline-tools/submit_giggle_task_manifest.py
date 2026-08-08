@@ -594,7 +594,7 @@ def submit_one(task: dict[str, Any]) -> dict[str, Any]:
         args.extend(["--reference-image", str(BASE / reference_image)])
     args.extend([
         "--model",
-        task.get("model", "seedance-2.0-pro"),
+        task.get("model", "seedance-2.0"),
         "--duration",
         str(task.get("duration", 4)),
         "--aspect-ratio",

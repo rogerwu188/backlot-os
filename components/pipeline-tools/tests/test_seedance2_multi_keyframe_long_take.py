@@ -64,7 +64,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             })
         return {
             "mode": "multi_keyframe_long_take", "duration_seconds": 15,
-            "model": "seedance-2.0-pro", "resolution": "1080p", "real_time_1x": True,
+            "model": "seedance-2.0", "resolution": "1080p", "real_time_1x": True,
             "camera_motion_policy": "MOTIVATED_TRACK_OR_LOCKED_AXIS_NO_SWAY_NO_ORBIT_NO_ROAM",
             "subject_and_identity_lock": "same people", "spatial_continuity_lock": "same breach",
             "actor_roster": ["lead", "witness"],
@@ -168,7 +168,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=continuous), self.frame(root / "c", 15, "end", transition=continuous)]
             spec = self.spec(frames)
             spec["model"] = "seedance-2.0-fast"
-            with self.assertRaisesRegex(ValueError, "seedance-2.0-pro"):
+            with self.assertRaisesRegex(ValueError, "seedance-2.0 \(standard\)"):
                 compile_prompt(spec)
 
     def test_rejects_impossible_camera_axis_jump(self):

@@ -562,7 +562,7 @@ class AgentCutTests(unittest.TestCase):
                 "version": "1.0", "task_key": "E23-B01-to-B03",
                 "generation_mode": "image_to_video_first_last", "prompt": "continuous take",
                 "inputs": [{"role": "start_frame", "source": str(start)}, {"role": "end_frame", "source": str(end)}],
-                "model": "seedance-2.0-pro", "duration": 15, "aspect_ratio": "9:16", "resolution": "720p",
+                "model": "seedance-2.0", "duration": 15, "aspect_ratio": "9:16", "resolution": "720p",
             }
             result = prepare_first_last_submission(task, include_command=True)
         self.assertTrue(result["allowed"])
@@ -582,7 +582,7 @@ class AgentCutTests(unittest.TestCase):
                     {"role": "start_frame", "source": str(frame)},
                     {"role": "start_frame", "source": str(frame)},
                 ],
-                "model": "seedance-2.0-pro", "duration": 15, "aspectRatio": "9:16", "resolution": "720p",
+                "model": "seedance-2.0", "duration": 15, "aspectRatio": "9:16", "resolution": "720p",
             }
             with self.assertRaisesRegex(ValidationError, "duplicate role"):
                 prepare_first_last_submission(base)
@@ -600,7 +600,7 @@ class AgentCutTests(unittest.TestCase):
                     {"role": "start_frame", "source": str(frame)},
                     {"role": "end_frame", "source": str(frame)},
                 ],
-                "model": "seedance-2.0-pro", "duration": 15, "aspectRatio": "9:16", "resolution": "720p",
+                "model": "seedance-2.0", "duration": 15, "aspectRatio": "9:16", "resolution": "720p",
             }
             server = AgentServer(AgentCutEngine(), workers=1)
             compact = server.handle({"id": "p1", "method": "prepareFirstLastGeneration", "params": {"task": task}})
@@ -619,7 +619,7 @@ class AgentCutTests(unittest.TestCase):
                 "prompt": "continuous", "inputs": [
                     {"role": "start_frame", "source": str(frame)}, {"role": "end_frame", "source": str(frame)},
                 ],
-                "model": "seedance-2.0-pro", "duration": 15, "aspectRatio": "9:16", "resolution": "720p",
+                "model": "seedance-2.0", "duration": 15, "aspectRatio": "9:16", "resolution": "720p",
             }
             probe = Mock(returncode=0, stdout='{"format":{"duration":"15.069"}}', stderr="")
             detect = Mock(returncode=0, stdout="", stderr="[showinfo] pts_time:9.375\n")

@@ -69,6 +69,49 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             report = evaluate_manifest(self.manifest(root, action_unit=True, contract=contract, duration=4), root=root)
             self.assertEqual(report["status"], "PASS", report)
 
+    def test_fast_but_incoherent_combat_is_rejected(self):
+        contract = {
+            "playback_speed": "REAL_TIME_1X",
+            "primary_action_complete_by_seconds": 1.2,
+            "result_hold_seconds": 0.0,
+            "atomic_action_windows": [
+                {"start_seconds": 0.0, "end_seconds": 1.0, "action": "攻击"},
+                {"start_seconds": 1.0, "end_seconds": 2.0, "action": "防守"},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root, action_unit=True, contract=contract, duration=2)
+            prompt = root / "prompt.txt"
+            prompt.write_text("两人打斗，动作很快但随机交换招式", encoding="utf-8")
+            manifest["tasks"][0]["prompt_sha256"] = hashlib.sha256(prompt.read_bytes()).hexdigest()
+            report = evaluate_manifest(manifest, root=root)
+            self.assertIn("COMBAT_CHOREOGRAPHY_CONTRACT_MISSING", {row["code"] for row in report["failures"]})
+
+    def test_combat_requires_complete_causal_beats_and_terminal_result(self):
+        contract = {
+            "playback_speed": "REAL_TIME_1X",
+            "primary_action_complete_by_seconds": 1.2,
+            "result_hold_seconds": 0.0,
+            "atomic_action_windows": [
+                {"start_seconds": 0.0, "end_seconds": 1.0, "action": "攻击"},
+                {"start_seconds": 1.0, "end_seconds": 2.0, "action": "防守"},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root, action_unit=True, contract=contract, duration=2)
+            prompt = root / "prompt.txt"
+            prompt.write_text("两人打斗，进攻后防守", encoding="utf-8")
+            manifest["tasks"][0]["prompt_sha256"] = hashlib.sha256(prompt.read_bytes()).hexdigest()
+            manifest["tasks"][0]["combat_choreography_contract"] = {
+                "initiator": "甲", "objective": "夺刀", "spatial_axis": "甲左乙右",
+                "causal_beats": [{"attack_intent": "甲刺", "defense_response": "乙格挡", "visible_consequence": "刀偏离", "end_state": "乙扣腕"}],
+                "terminal_state": {"winner": "乙", "loser": "甲", "physical_result": "甲被按住且刀落地"},
+            }
+            report = evaluate_manifest(manifest, root=root)
+            self.assertEqual(report["status"], "PASS", report)
+
 
 if __name__ == "__main__":
     unittest.main()

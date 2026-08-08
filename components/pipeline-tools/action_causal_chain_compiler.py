@@ -37,7 +37,7 @@ def compile_chain(plan: dict[str, Any]) -> dict[str, Any]:
             "depends_on_task": previous_key,
             "tail_to_head_identity_required": index > 1,
             "exact_predecessor_tail_required": index > 1,
-            "model": beat.get("model", plan.get("model", "seedance-2.0-pro")),
+            "model": beat.get("model", plan.get("model", "seedance-2.0")),
             "resolution": beat.get("resolution", plan.get("resolution", "1080p")),
             "provider_duration_seconds": beat.get("provider_duration_seconds", 4),
             "edit_policy": "TRIM_ONLY_NO_SPEED_CHANGE",

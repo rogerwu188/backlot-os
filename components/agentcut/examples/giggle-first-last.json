@@ -7,7 +7,7 @@
     {"role": "start_frame", "source": "start-frame.png", "metadata": {"beat_id": "B01"}},
     {"role": "end_frame", "source": "end-frame.png", "metadata": {"beat_id": "B03"}}
   ],
-  "model": "seedance-2.0-pro",
+  "model": "seedance-2.0",
   "duration": 15,
   "aspect_ratio": "9:16",
   "resolution": "720p",

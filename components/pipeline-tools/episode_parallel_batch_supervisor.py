@@ -1707,7 +1707,7 @@ def submit_one(task: dict, receipt: dict) -> dict:
             command.extend(["--audio-asset-id", str(asset_id)])
         for asset_id in [*task.get("reference_video_asset_ids", []), *task.get("resolved_reference_video_asset_ids", [])]:
             command.extend(["--video-asset-id", str(asset_id)])
-    command.extend(["--model", task.get("model", "gpt-image-2-pro" if tool_type == "image_generation" else "seedance-2.0-pro")])
+    command.extend(["--model", task.get("model", "gpt-image-2-pro" if tool_type == "image_generation" else "seedance-2.0")])
     if tool_type == "video_generation":
         try:
             duration = cli_int_duration(task.get("duration", 4))

@@ -50,6 +50,39 @@ def _hydrated_tasks(manifest: dict[str, Any], root: Path) -> tuple[list[dict[str
     return tasks, failures
 
 
+def _combat_causality_failures(tasks: list[dict[str, Any]], tempo: dict[str, Any]) -> list[dict[str, Any]]:
+    """Reject combat that has motion timing but no viewer-readable cause and effect."""
+    fight_keys = {row["task_key"] for row in tempo.get("rows") or [] if row.get("fight_or_chase")}
+    failures: list[dict[str, Any]] = []
+    for task in tasks:
+        key = str(task.get("task_key") or "UNKNOWN")
+        if key not in fight_keys:
+            continue
+        contract = task.get("combat_choreography_contract")
+        if not isinstance(contract, dict):
+            failures.append({"code": "COMBAT_CHOREOGRAPHY_CONTRACT_MISSING", "task_key": key})
+            continue
+        for field in ("initiator", "objective", "spatial_axis", "terminal_state"):
+            if not contract.get(field):
+                failures.append({"code": "COMBAT_CHOREOGRAPHY_FIELD_MISSING", "task_key": key, "field": field})
+        beats = contract.get("causal_beats")
+        if not isinstance(beats, list) or not beats:
+            failures.append({"code": "COMBAT_CAUSAL_BEATS_MISSING", "task_key": key})
+            continue
+        for index, beat in enumerate(beats, 1):
+            missing = [field for field in ("attack_intent", "defense_response", "visible_consequence", "end_state") if not isinstance(beat, dict) or not beat.get(field)]
+            if missing:
+                failures.append({"code": "COMBAT_CAUSAL_BEAT_INCOMPLETE", "task_key": key, "index": index, "missing": missing})
+        terminal = contract.get("terminal_state")
+        if isinstance(terminal, dict):
+            missing = [field for field in ("winner", "loser", "physical_result") if not terminal.get(field)]
+            if missing:
+                failures.append({"code": "COMBAT_TERMINAL_STATE_INCOMPLETE", "task_key": key, "missing": missing})
+        else:
+            failures.append({"code": "COMBAT_TERMINAL_STATE_INCOMPLETE", "task_key": key})
+    return failures
+
+
 def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_path: str | Path | None = None) -> dict[str, Any]:
     """Evaluate the current manifest itself; historical PASS receipts cannot substitute."""
     root_path = Path(root).resolve()
@@ -58,6 +91,7 @@ def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_pa
         failures.append({"code": "CURRENT_MANIFEST_TASKS_MISSING"})
     tempo = evaluate_performance_tempo(tasks)
     failures.extend(tempo.get("failures") or [])
+    failures.extend(_combat_causality_failures(tasks, tempo))
 
     manifest_sha = None
     if manifest_path is not None:
@@ -83,5 +117,5 @@ def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_pa
             "performance_tempo_gate_path": str(tempo_path),
             "performance_tempo_gate_sha256": _sha256_bytes(tempo_path.read_bytes()),
         },
-        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require the standard seedance-2.0 model; Pro is forbidden.",
+        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require the standard seedance-2.0 model; Pro is forbidden. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
     }

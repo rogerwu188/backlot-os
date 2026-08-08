@@ -596,8 +596,8 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     duration = require(spec.get("duration_seconds"), "duration_seconds is required")
     if duration != 15:
         raise ValueError("multi_keyframe_long_take requires exactly 15 seconds")
-    if spec.get("model") != "seedance-2.0-pro":
-        raise ValueError("multi_keyframe_long_take requires seedance-2.0-pro")
+    if spec.get("model") != "seedance-2.0":
+        raise ValueError("multi_keyframe_long_take requires seedance-2.0 (standard)")
     if spec.get("resolution") != "1080p":
         raise ValueError("multi_keyframe_long_take requires native 1080p")
     if spec.get("real_time_1x") is not True:
