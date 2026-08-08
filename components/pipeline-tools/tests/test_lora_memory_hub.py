@@ -41,8 +41,13 @@ class LoraMemoryHubTests(unittest.TestCase):
     def test_s3_compatible_endpoint_is_forwarded_to_client(self):
         calls = []
         fake_boto3 = types.SimpleNamespace(client=lambda service, **kwargs: calls.append((service, kwargs)) or object())
+        fake_config = lambda **kwargs: types.SimpleNamespace(**kwargs)
         original = sys.modules.get("boto3")
+        original_botocore = sys.modules.get("botocore")
+        original_botocore_client = sys.modules.get("botocore.client")
         sys.modules["boto3"] = fake_boto3
+        sys.modules["botocore"] = types.SimpleNamespace(client=types.SimpleNamespace(Config=fake_config))
+        sys.modules["botocore.client"] = types.SimpleNamespace(Config=fake_config)
         try:
             HUB.S3MemoryStore("drama01", "training/backlotos", "https://s3.example.invalid")
         finally:
@@ -50,6 +55,14 @@ class LoraMemoryHubTests(unittest.TestCase):
                 sys.modules.pop("boto3", None)
             else:
                 sys.modules["boto3"] = original
+            if original_botocore is None:
+                sys.modules.pop("botocore", None)
+            else:
+                sys.modules["botocore"] = original_botocore
+            if original_botocore_client is None:
+                sys.modules.pop("botocore.client", None)
+            else:
+                sys.modules["botocore.client"] = original_botocore_client
         self.assertEqual(calls[0][0], "s3")
         self.assertEqual(calls[0][1]["endpoint_url"], "https://s3.example.invalid")
         self.assertEqual(calls[0][1]["region_name"], "us-east-1")

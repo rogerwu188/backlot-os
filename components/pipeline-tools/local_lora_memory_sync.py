@@ -26,6 +26,7 @@ ALLOWED_FIELDS = {
     "root_cause", "optimization", "accepted_evidence", "accepted_prompt_sha256",
     "accepted_asset_sha256", "compiler_guard_clause", "tags", "source_kind",
     "source_url_sha256", "rights_basis", "content_policy",
+    "admission_gate", "zero_credit_workaround_evidence", "zero_credit_workaround_sha256",
 }
 FORBIDDEN_KEY_PARTS = {"token", "secret", "password", "credential", "cookie", "authorization", "api_key"}
 DEFAULT_REMOTE = "https://github.com/rogerwu188/backlot-os.git"
@@ -105,7 +106,9 @@ def _sync_lock():
 def _stage_pending(source: Path) -> Path:
     pending = _install_root() / PENDING_DATASET
     merged = _load(pending)
-    for sample_id, row in _load(source.resolve()).items():
+    # The compiler memory may also contain active defensive rewrites used as
+    # local prompt guards. Only ADMITTED rows are training/sync candidates.
+    for sample_id, row in _load(source.resolve(), skip_non_admitted=True).items():
         if sample_id in merged and merged[sample_id] != row:
             raise ValueError(f"immutable sample_id conflict in local pending memory: {sample_id}")
         merged[sample_id] = row
@@ -148,7 +151,7 @@ def upload_to_collector(source: Path) -> dict:
     return result
 
 
-def _load(path: Path) -> dict[str, dict]:
+def _load(path: Path, *, skip_non_admitted: bool = False) -> dict[str, dict]:
     rows: dict[str, dict] = {}
     if not path.is_file():
         return rows
@@ -162,6 +165,8 @@ def _load(path: Path) -> dict[str, dict]:
         if any(any(part in key.lower() for part in FORBIDDEN_KEY_PARTS) for key in raw):
             raise ValueError(f"line {line_number} contains a credential-like field")
         sample_id = str(raw.get("sample_id") or "").strip()
+        if raw.get("status") != "ADMITTED" and skip_non_admitted:
+            continue
         if not sample_id or raw.get("status") != "ADMITTED":
             raise ValueError(f"line {line_number} must be an ADMITTED sample with sample_id")
         if raw.get("source_kind") == "third_party":
@@ -174,7 +179,7 @@ def _load(path: Path) -> dict[str, dict]:
             source_url_sha = str(raw.get("source_url_sha256") or "")
             if len(source_url_sha) != 64 or any(ch not in "0123456789abcdef" for ch in source_url_sha.lower()):
                 raise ValueError(f"line {line_number} third-party source_url_sha256 is required")
-        for evidence_key in ("failure_evidence", "accepted_evidence"):
+        for evidence_key in ("failure_evidence", "accepted_evidence", "zero_credit_workaround_evidence"):
             evidence = str(raw.get(evidence_key) or "")
             if evidence and not evidence.startswith("redacted://"):
                 raise ValueError(f"line {line_number} {evidence_key} must use redacted:// evidence")

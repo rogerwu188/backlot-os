@@ -10,6 +10,7 @@ music before any Giggle/AI Director video generation starts.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List
@@ -33,6 +34,61 @@ def anchor_has_source(anchor: Dict[str, Any]) -> bool:
 
 def normalized_path(value: str) -> Path:
     return Path(value).expanduser().resolve()
+
+
+def sha256_file(path_value: str) -> str:
+    digest = hashlib.sha256()
+    with normalized_path(path_value).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_declared_sha(
+    *,
+    label: str,
+    path_value: Any,
+    expected_sha256: Any,
+    errors: List[str],
+) -> None:
+    if not expected_sha256:
+        return
+    if not path_value or not existing_file(str(path_value)):
+        errors.append(f"{label} path is missing for declared SHA")
+        return
+    actual = sha256_file(str(path_value))
+    if actual != str(expected_sha256):
+        errors.append(f"{label} SHA mismatch: expected {expected_sha256}, got {actual}")
+
+
+def validate_state_bible_wardrobe_selection(
+    config: Dict[str, Any], manifest: Dict[str, Any], errors: List[str]
+) -> None:
+    """Keep an episode State Bible selection identical to its production binding."""
+    for char_id, state in (config.get("character_state") or {}).items():
+        wardrobe_variant_id = state.get("wardrobe_variant_id")
+        if not wardrobe_variant_id:
+            continue
+        anchor = (manifest.get("characters") or {}).get(char_id)
+        if not anchor:
+            errors.append(
+                f"State Bible wardrobe selection lacks production character binding: "
+                f"{char_id}/{wardrobe_variant_id}"
+            )
+            continue
+        bound_variant_id = anchor.get("wardrobe_variant_id")
+        if bound_variant_id != wardrobe_variant_id:
+            errors.append(
+                f"State Bible wardrobe variant does not match production binding: "
+                f"{char_id}/{wardrobe_variant_id} != {bound_variant_id or 'MISSING'}"
+            )
+        state_ref = state.get("wardrobe_reference_image")
+        bound_ref = anchor.get("reference_image")
+        if state_ref and bound_ref and normalized_path(str(state_ref)) != normalized_path(str(bound_ref)):
+            errors.append(
+                f"State Bible wardrobe reference does not match production binding: "
+                f"{char_id}/{wardrobe_variant_id}"
+            )
 
 
 def validate_historical_inheritance(manifest: Dict[str, Any], errors: List[str]) -> None:
@@ -68,7 +124,13 @@ def validate_historical_inheritance(manifest: Dict[str, Any], errors: List[str])
                 errors.append(f"returning character identity drift/change-face detected: {char_id}")
 
         wardrobe_variant_id = anchor.get("wardrobe_variant_id")
+        wardrobe_variant_required = bool(
+            anchor.get("wardrobe_variant_required")
+            or anchor.get("wardrobe_reference_image")
+        )
         registered_variants = registered.get("wardrobe_variants") or registered.get("variants") or {}
+        if wardrobe_variant_required and not wardrobe_variant_id:
+            errors.append(f"returning character requires registered wardrobe variant: {char_id}")
         if wardrobe_variant_id:
             variant = registered_variants.get(wardrobe_variant_id)
             if not variant:
@@ -78,8 +140,36 @@ def validate_historical_inheritance(manifest: Dict[str, Any], errors: List[str])
                 current_ref = anchor.get("reference_image")
                 if variant.get("identity_verification") != "PASS":
                     errors.append(f"wardrobe variant lacks same-face/same-body PASS: {char_id}/{wardrobe_variant_id}")
+                if variant.get("verification_status") != "PASS":
+                    errors.append(f"wardrobe variant is not production verified: {char_id}/{wardrobe_variant_id}")
+                if not variant_ref or not existing_file(str(variant_ref)):
+                    errors.append(f"wardrobe variant reference is missing: {char_id}/{wardrobe_variant_id}")
                 if variant_ref and current_ref and normalized_path(str(current_ref)) != normalized_path(str(variant_ref)):
                     errors.append(f"episode reference does not match registered wardrobe variant: {char_id}/{wardrobe_variant_id}")
+                validate_declared_sha(
+                    label=f"wardrobe variant {char_id}/{wardrobe_variant_id}",
+                    path_value=variant_ref,
+                    expected_sha256=variant.get("reference_sha256"),
+                    errors=errors,
+                )
+                validate_declared_sha(
+                    label=f"wardrobe asset manifest {char_id}/{wardrobe_variant_id}",
+                    path_value=variant.get("asset_manifest"),
+                    expected_sha256=variant.get("asset_manifest_sha256"),
+                    errors=errors,
+                )
+                validate_declared_sha(
+                    label=f"wardrobe identity parent {char_id}/{wardrobe_variant_id}",
+                    path_value=variant.get("identity_parent_reference_image"),
+                    expected_sha256=variant.get("identity_parent_sha256"),
+                    errors=errors,
+                )
+                validate_declared_sha(
+                    label=f"wardrobe identity QA report {char_id}/{wardrobe_variant_id}",
+                    path_value=variant.get("identity_qa_report"),
+                    expected_sha256=variant.get("identity_qa_report_sha256"),
+                    errors=errors,
+                )
 
         for field in ("body_reference",):
             canonical = registered.get(field)
@@ -158,6 +248,7 @@ def build_errors(config: Dict[str, Any], manifest: Dict[str, Any]) -> List[str]:
 
     validate_historical_inheritance(manifest, errors)
     validate_entity_inheritance(manifest, errors)
+    validate_state_bible_wardrobe_selection(config, manifest, errors)
 
     for char_id, anchor in characters.items():
         if not anchor_has_source(anchor):

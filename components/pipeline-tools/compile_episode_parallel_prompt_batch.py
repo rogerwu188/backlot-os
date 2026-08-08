@@ -11,11 +11,13 @@ from pathlib import Path
 try:
     from shot_duration_policy import plan_dialogue_duration
     from action_xuanhuan_script_gate import validate as validate_action_xuanhuan
+    from giggle_api_client import STANDARD_VIDEO_MODEL
     from storyboard_sheet_gate import requires_storyboard_sheet_gate, validate_gate_report, validate_plan
     from video_prompt_action_density_gate import require_action_timeline
 except ModuleNotFoundError:  # Imported as tools.compile_episode_parallel_prompt_batch in tests.
     from tools.shot_duration_policy import plan_dialogue_duration
     from tools.action_xuanhuan_script_gate import validate as validate_action_xuanhuan
+    from tools.giggle_api_client import STANDARD_VIDEO_MODEL
     from tools.storyboard_sheet_gate import requires_storyboard_sheet_gate, validate_gate_report, validate_plan
     from tools.video_prompt_action_density_gate import require_action_timeline
 
@@ -297,7 +299,7 @@ def main() -> int:
             "duration_plan": duration_plan,
             "action_timeline": action_timeline,
             "action_density_gate": action_density_gate,
-            "model": "seedance-2.0-pro",
+            "model": STANDARD_VIDEO_MODEL,
             "aspect_ratio": "9:16",
             "resolution": "720p",
             "prompt_file": str(path),

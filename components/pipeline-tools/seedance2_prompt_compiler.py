@@ -557,7 +557,12 @@ def compile_expressive_voice_contract(spec: dict, mode: str) -> tuple[str, dict 
 
 def load_local_lora_memory(mode: str, path: Path = DEFAULT_LOCAL_LORA_MEMORY) -> tuple[list[dict], str | None]:
     """Load admitted LoRA-ready examples whose guards apply before paid generation."""
-    auto_sync(path)
+    # Only the configured production dataset participates in centralized sync.
+    # Callers may pass a temporary or episode-local memory file containing
+    # pending defensive rewrites that are valid for compilation but are not
+    # ADMITTED training rows and must never be staged to the collector.
+    if path.expanduser().resolve() == DEFAULT_LOCAL_LORA_MEMORY.expanduser().resolve():
+        auto_sync(path)
     if not path.is_file():
         return [], None
     rows = []
