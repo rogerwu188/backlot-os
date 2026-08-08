@@ -62,6 +62,105 @@ ACTION_CAMERA_EDIT_ONLY = {"whip_pan_cut", "detail_triple_cut", "shot_reverse_ex
 ACTION_CAMERA_DYNAMIC_FAMILIES = {"moving", "accent"}
 
 
+def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tuple[str, dict | None]:
+    """Compile a descriptor-first, time-coded shot prompt without mixing concerns."""
+    contract = spec.get("cinematic_shot_language_contract")
+    if not contract:
+        return "", None
+    if require(contract.get("version"), "cinematic shot language version is required") != "1.0.0":
+        raise ValueError("unsupported cinematic shot language contract version")
+    descriptors = require(contract.get("locked_descriptors"), "locked_descriptors are required")
+    if not isinstance(descriptors, list) or not descriptors:
+        raise ValueError("locked_descriptors must be a non-empty list")
+    descriptor_rows, descriptor_ids = [], set()
+    for index, row in enumerate(descriptors, start=1):
+        descriptor_id = require(row.get("id"), f"descriptor {index} id is required")
+        if descriptor_id in descriptor_ids:
+            raise ValueError(f"duplicate locked descriptor: {descriptor_id}")
+        descriptor_ids.add(descriptor_id)
+        kind = require(row.get("kind"), f"descriptor {descriptor_id} kind is required")
+        if kind not in {"character", "character_state", "location", "location_state", "prop", "prop_state"}:
+            raise ValueError(f"unsupported descriptor kind: {kind}")
+        descriptor_text = require(row.get("text"), f"descriptor {descriptor_id} text is required")
+        digest = require(row.get("text_sha256"), f"descriptor {descriptor_id} text_sha256 is required")
+        if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest.lower()):
+            raise ValueError(f"descriptor {descriptor_id} text_sha256 must be lowercase SHA-256")
+        if hashlib.sha256(descriptor_text.encode("utf-8")).hexdigest() != digest:
+            raise ValueError(f"descriptor {descriptor_id} text does not match text_sha256")
+        if row.get("paste_policy") != "VERBATIM_EVERY_SHOT":
+            raise ValueError(f"descriptor {descriptor_id} must use VERBATIM_EVERY_SHOT")
+        if row.get("stress_test_status") != "PASS":
+            raise ValueError(f"descriptor {descriptor_id} must pass its stress test")
+        descriptor_rows.append(f"{descriptor_id}({kind},sha256={digest})：{descriptor_text}")
+
+    segments = require(contract.get("segments"), "cinematic shot language segments are required")
+    if not isinstance(segments, list) or len(segments) != shot_count:
+        raise ValueError("cinematic shot language segments must exactly cover compiled shots")
+    duration = float(require(spec.get("duration_seconds"), "duration_seconds is required"))
+    cursor, compiled = 0.0, []
+    for index, row in enumerate(segments, start=1):
+        start = float(require(row.get("start_seconds"), f"segment {index} start_seconds is required"))
+        end = float(require(row.get("end_seconds"), f"segment {index} end_seconds is required"))
+        if abs(start - cursor) > 0.01 or end <= start or end > duration + 0.01:
+            raise ValueError(f"segment {index} must be contiguous and inside duration_seconds")
+        if int(require(row.get("shot_index"), f"segment {index} shot_index is required")) != index:
+            raise ValueError("cinematic segment shot_index must match compiled shot order")
+        geometry = require(row.get("geometry"), f"segment {index} geometry is required")
+        geometry_fields = ("subject_anchor", "camera_side", "axis_relation", "scale_anchor")
+        for field in geometry_fields:
+            require(geometry.get(field), f"segment {index} geometry.{field} is required")
+        refs = require(row.get("descriptor_ids"), f"segment {index} descriptor_ids are required")
+        if not isinstance(refs, list) or not refs or not set(refs).issubset(descriptor_ids):
+            raise ValueError(f"segment {index} references unknown or empty descriptors")
+        audio = require(row.get("audio"), f"segment {index} audio is required")
+        require(audio.get("diegetic"), f"segment {index} diegetic audio is required")
+        dialogue_policy = require(audio.get("dialogue_policy"), f"segment {index} dialogue_policy is required")
+        if dialogue_policy not in {"EXACT_QUOTED_LINES_ONLY", "NO_DIALOGUE", "CLOSED_MOUTH_VOICE_OVER"}:
+            raise ValueError(f"segment {index} has unsupported dialogue_policy")
+        compiled.append({
+            "start_seconds": start, "end_seconds": end, "shot_index": index,
+            "narrative_purpose": require(row.get("narrative_purpose"), f"segment {index} narrative_purpose is required"),
+            "entry_state": require(row.get("entry_state"), f"segment {index} entry_state is required"),
+            "exit_state": require(row.get("exit_state"), f"segment {index} exit_state is required"),
+            "camera_motivation": require(row.get("camera_motivation"), f"segment {index} camera_motivation is required"),
+            "geometry": {field: geometry[field] for field in geometry_fields},
+            "descriptor_ids": refs, "audio": audio,
+        })
+        cursor = end
+    if abs(cursor - duration) > 0.01:
+        raise ValueError("cinematic shot language segments must cover the full duration")
+    rules = require(contract.get("key_rules"), "cinematic shot language key_rules are required")
+    if not isinstance(rules, list) or not rules:
+        raise ValueError("cinematic shot language key_rules must be a non-empty list")
+    atmosphere = require(contract.get("atmosphere_state"), "atmosphere_state is required")
+    style = require(contract.get("style_prefix"), "style_prefix is required")
+    negatives = require(contract.get("negative_constraints"), "cinematic negative_constraints are required")
+    if not isinstance(negatives, list) or not negatives:
+        raise ValueError("cinematic negative_constraints must be a non-empty list")
+    segment_rows = [
+        f"{row['start_seconds']:g}-{row['end_seconds']:g}秒 / 镜头{row['shot_index']}：目的={row['narrative_purpose']}；"
+        f"入口={row['entry_state']}；出口={row['exit_state']}；引用={','.join(row['descriptor_ids'])}；"
+        f"几何=主体{row['geometry']['subject_anchor']}、机位侧{row['geometry']['camera_side']}、"
+        f"轴线{row['geometry']['axis_relation']}、尺度{row['geometry']['scale_anchor']}；"
+        f"镜头运动只为{row['camera_motivation']}；现场声={row['audio']['diegetic']}；对白策略={row['audio']['dialogue_policy']}"
+        for row in compiled
+    ]
+    prompt = (
+        "\n\n【LOCKED DESCRIPTORS｜逐镜原文复用】" + "；".join(descriptor_rows)
+        + "。\n【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】\n" + "\n".join(segment_rows)
+        + "\n【KEY RULES】" + "；".join(rules)
+        + f"。\n【ATMOSPHERE STATE】{atmosphere}。\n【STYLE PREFIX】{style}。"
+        + "\n【NEGATIVE CONSTRAINTS】" + " / ".join(negatives) + "。"
+        + "\n提示词各区块职责不可互相污染：动作不得夹带台词，风格不得改写角色/场景描述，负面词不得代替正向可见物理事件。"
+    )
+    return prompt, {
+        "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
+        "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "source_method": "HELL_GRIND_LICENSED_PRODUCTION_METHODOLOGY",
+    }
+
+
 def compile_combat_camera_language(
     contract: dict, beats: list[dict], duration: float, actual_mode: str
 ) -> tuple[str, dict]:
@@ -813,7 +912,8 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         route = "/api/v1/generation/image-to-video"
         contract = "single_unbroken_shot_first_last_frames"
 
-    prompt = f"{header}\n\n{body}{combat_prompt}{expressive_voice_prompt}\n\n{tail.strip()}\n"
+    cinematic_prompt, cinematic_contract = compile_cinematic_shot_language_contract(spec, len(shots))
+    prompt = f"{header}\n\n{body}{combat_prompt}{expressive_voice_prompt}{cinematic_prompt}\n\n{tail.strip()}\n"
     post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     manifest = {
         "schema": "qingshan.seedance2_prompt_compilation.v2" if visual_contract else "qingshan.seedance2_prompt_compilation.v1",
@@ -830,6 +930,8 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "episode_character_registry": character_registry,
         "combat_choreography_contract": combat_contract,
         "combat_camera_language_gate": "PASS_MOTIVATED_ONLY" if combat_contract else "NOT_APPLICABLE",
+        "cinematic_shot_language_contract": cinematic_contract,
+        "cinematic_shot_language_gate": "PASS_SECTIONED_AND_TIME_CODED" if cinematic_contract else "NOT_APPLICABLE",
     }
     if version:
         manifest["visual_benchmark_contract_version"] = version
