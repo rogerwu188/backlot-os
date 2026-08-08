@@ -144,12 +144,38 @@ def validate_anchor_count_gate_requirement(
         raise ValueError("blocked_tasks must exactly match declared dependent anchors")
 
 
+def validate_mask_transport(task: dict[str, Any]) -> None:
+    """Fail closed when a manifest claims mask semantics the endpoint cannot enforce.
+
+    The current Giggle image-to-image request carries every input through
+    ``reference_images``. A binding named ``edit_mask`` is therefore only a
+    visual reference; its SHA does not make it a provider-native edit mask.
+    """
+    mask_bindings = [
+        row for row in task.get("reference_bindings") or []
+        if row.get("role") == "edit_mask"
+    ]
+    if not mask_bindings:
+        return
+    transport = task.get("mask_transport") or {}
+    if transport.get("mode") != "provider_native":
+        raise ValueError(
+            f"{task.get('task_key', 'UNKNOWN')} edit_mask is reference-only; "
+            "exact mask submission requires provider-native mask transport"
+        )
+    raise ValueError(
+        f"{task.get('task_key', 'UNKNOWN')} provider-native mask transport is not implemented "
+        "for /api/v1/generation/image-to-image"
+    )
+
+
 def validate_task(task: dict[str, Any]) -> None:
     for field in ("task_key", "prompt_file", "reference_images"):
         if not task.get(field):
             raise ValueError(f"{task.get('task_key', 'UNKNOWN')} missing {field}")
     if task.get("tool_type") != "image_generation":
         raise ValueError(f"{task['task_key']} is not an image_generation task")
+    validate_mask_transport(task)
     prompt_path = resolve(task["prompt_file"])
     if not prompt_path.is_file():
         raise ValueError(f"Missing prompt: {task['prompt_file']}")

@@ -13,10 +13,31 @@ from tools.submit_giggle_image_manifest import (
     submit_all,
     transaction_path,
     validate_anchor_count_gate_requirement,
+    validate_mask_transport,
 )
 
 
 class SubmitGiggleImageManifestTest(unittest.TestCase):
+    def test_image_without_edit_mask_does_not_require_mask_transport(self):
+        validate_mask_transport({"task_key": "PLAIN", "reference_bindings": []})
+
+    def test_edit_mask_reference_cannot_claim_exact_mask_semantics(self):
+        task = {
+            "task_key": "MASKED",
+            "reference_bindings": [{"role": "edit_mask"}],
+        }
+        with self.assertRaisesRegex(ValueError, "reference-only"):
+            validate_mask_transport(task)
+
+    def test_provider_native_mask_claim_fails_until_payload_support_exists(self):
+        task = {
+            "task_key": "MASKED",
+            "reference_bindings": [{"role": "edit_mask"}],
+            "mask_transport": {"mode": "provider_native"},
+        }
+        with self.assertRaisesRegex(ValueError, "not implemented"):
+            validate_mask_transport(task)
+
     def test_video_unit_batch_requires_variable_anchor_gate(self):
         manifest = {"tasks": [{"video_unit_id": "E99-CW-U01"}]}
         with self.assertRaisesRegex(ValueError, "anchor count must be justified per unit"):
