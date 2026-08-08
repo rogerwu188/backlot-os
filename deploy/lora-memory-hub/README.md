@@ -11,6 +11,9 @@ merges and validates them, and pushes the deterministic corpus to GitHub.
    `PutObject`, and `DeleteObject` only for the configured prefix.
    For an S3-compatible provider, set `BACKLOTOS_LORA_S3_ENDPOINT` to its HTTPS
    API endpoint. Keep the LoRA prefix separate from production relay prefixes.
+   ArkFS deployments are supported: the hub uses SigV4 with checksum calculation
+   only when required and verifies an existing content-addressed object by reading
+   and hashing it when the provider strips custom object metadata.
 2. Create a fine-grained GitHub token for the hub with Contents read/write on
    the BacklotOS repository. Do not distribute it to production nodes.
 3. Copy `.env.example` to `.env`, replace every placeholder, and keep `.env`
@@ -51,3 +54,6 @@ exists only as an explicit development override.
 Run exactly one convergence replica per GitHub checkout. HTTP ingestion remains
 threaded, and duplicate uploads are idempotent because S3 keys use the canonical
 dataset SHA-256.
+
+For the isolated Hell Grind training corpus, use a dedicated prefix such as
+`training/hell-grind-lora/v1`; never reuse `relay/qingshan-drama`.

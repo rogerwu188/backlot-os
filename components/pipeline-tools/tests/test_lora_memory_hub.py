@@ -50,7 +50,65 @@ class LoraMemoryHubTests(unittest.TestCase):
                 sys.modules.pop("boto3", None)
             else:
                 sys.modules["boto3"] = original
-        self.assertEqual(calls, [("s3", {"endpoint_url": "https://s3.example.invalid"})])
+        self.assertEqual(calls[0][0], "s3")
+        self.assertEqual(calls[0][1]["endpoint_url"], "https://s3.example.invalid")
+        self.assertEqual(calls[0][1]["region_name"], "us-east-1")
+        config = calls[0][1]["config"]
+        self.assertEqual(config.signature_version, "s3v4")
+
+    def test_content_addressed_accept_is_idempotent(self):
+        class ClientError(Exception):
+            pass
+        class FakeClient:
+            exceptions = types.SimpleNamespace(ClientError=ClientError)
+            def __init__(self):
+                self.puts = []
+            def head_object(self, **_):
+                return {"Metadata": {"sha256": "a" * 64}, "ContentLength": 4}
+            def put_object(self, **kwargs):
+                self.puts.append(kwargs)
+        store = object.__new__(HUB.S3MemoryStore)
+        store.client = FakeClient()
+        store.bucket = "bucket"
+        store.prefix = "training/hell-grind-lora/v1"
+        key = store.accept(b"body", "a" * 64)
+        self.assertEqual(key, "training/hell-grind-lora/v1/inbox/sha256/" + "a" * 64 + ".jsonl")
+        self.assertEqual(store.client.puts, [])
+
+    def test_content_addressed_accept_rejects_existing_conflict(self):
+        class ClientError(Exception):
+            pass
+        class FakeClient:
+            exceptions = types.SimpleNamespace(ClientError=ClientError)
+            def head_object(self, **_):
+                return {"Metadata": {"sha256": "b" * 64}, "ContentLength": 4}
+        store = object.__new__(HUB.S3MemoryStore)
+        store.client = FakeClient()
+        store.bucket = "bucket"
+        store.prefix = "training/hell-grind-lora/v1"
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            store.accept(b"body", "a" * 64)
+
+    def test_content_addressed_accept_hashes_existing_object_when_metadata_is_stripped(self):
+        class ClientError(Exception):
+            pass
+        class FakeBody:
+            def read(self):
+                return b"body"
+        class FakeClient:
+            exceptions = types.SimpleNamespace(ClientError=ClientError)
+            def head_object(self, **_):
+                return {"Metadata": {}, "ContentLength": 4}
+            def get_object(self, **_):
+                return {"Body": FakeBody()}
+            def put_object(self, **_):
+                raise AssertionError("idempotent accept must not rewrite the object")
+        store = object.__new__(HUB.S3MemoryStore)
+        store.client = FakeClient()
+        store.bucket = "bucket"
+        store.prefix = "training/hell-grind-lora/v1"
+        digest = __import__("hashlib").sha256(b"body").hexdigest()
+        self.assertTrue(store.accept(b"body", digest).endswith(digest + ".jsonl"))
 
     def test_health_state_exposes_failure_type_without_secret_message(self):
         HUB.update_hub_state(status="RETRY_PENDING", error=RuntimeError("credential-value"))
