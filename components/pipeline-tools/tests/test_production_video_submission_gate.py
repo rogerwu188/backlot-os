@@ -17,6 +17,7 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
             "duration_seconds": duration,
             "action_unit": action_unit,
+            "model": "seedance-2.0",
         }
         if contract is not None:
             task["performance_tempo_contract"] = contract
@@ -43,6 +44,14 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             (root / "prompt.txt").write_text("changed", encoding="utf-8")
             report = evaluate_manifest(manifest, root=root)
             self.assertIn("CURRENT_PROMPT_SHA_MISMATCH", {row["code"] for row in report["failures"]})
+
+    def test_pro_model_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root)
+            manifest["tasks"][0]["model"] = "seedance-2.0-pro"
+            report = evaluate_manifest(manifest, root=root)
+            self.assertIn("STANDARD_SEEDANCE2_MODEL_REQUIRED", {row["code"] for row in report["failures"]})
 
     def test_atomic_real_time_task_passes(self):
         contract = {

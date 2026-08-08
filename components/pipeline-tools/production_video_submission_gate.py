@@ -29,6 +29,13 @@ def _hydrated_tasks(manifest: dict[str, Any], root: Path) -> tuple[list[dict[str
     failures: list[dict[str, Any]] = []
     for original in manifest.get("tasks") or []:
         task = dict(original)
+        if task.get("model") != "seedance-2.0":
+            failures.append({
+                "code": "STANDARD_SEEDANCE2_MODEL_REQUIRED",
+                "task_key": task.get("task_key"),
+                "actual_model": task.get("model"),
+                "required_model": "seedance-2.0",
+            })
         prompt_file = task.get("prompt_file")
         if prompt_file:
             prompt_path = _resolve(root, str(prompt_file))
@@ -76,6 +83,5 @@ def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_pa
             "performance_tempo_gate_path": str(tempo_path),
             "performance_tempo_gate_sha256": _sha256_bytes(tempo_path.read_bytes()),
         },
-        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only.",
+        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require the standard seedance-2.0 model; Pro is forbidden.",
     }
-
