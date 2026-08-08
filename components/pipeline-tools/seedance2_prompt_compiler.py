@@ -17,7 +17,21 @@ except ImportError:  # Direct script execution from components/pipeline-tools.
 
 MODES = {"storyboard", "continuous_long_take", "multi_keyframe_long_take"}
 DIALOGUE_MODES = {"ON_CAMERA_NATIVE_LIP_SYNC", "CLOSED_MOUTH_VOICE_OVER", "NO_DIALOGUE"}
-DEFAULT_LOCAL_LORA_MEMORY = Path(__file__).resolve().parent / "local_lora/seedance2_prompt_failure_training.jsonl"
+
+
+def default_local_lora_memory() -> Path:
+    """Resolve one portable compiler source to its actual deployed memory."""
+    explicit = os.environ.get("BACKLOTOS_LOCAL_LORA_MEMORY", "").strip()
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    module = Path(__file__).resolve()
+    production_memory = module.parents[1] / "workflow/local_lora/seedance2_prompt_failure_training.jsonl"
+    if production_memory.parent.is_dir():
+        return production_memory
+    return module.parent / "local_lora/seedance2_prompt_failure_training.jsonl"
+
+
+DEFAULT_LOCAL_LORA_MEMORY = default_local_lora_memory()
 STATIC_ACTOR_MOTION_TERMS = (
     "静止", "完全不动", "纹丝不动", "定格", "保持姿势", "保持原位",
     "仍在原区", "尚未启动", "留在安全区", "留在后方", "frozen", "freeze", "motionless",

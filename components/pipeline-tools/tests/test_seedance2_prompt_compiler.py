@@ -3,11 +3,25 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from tools.seedance2_prompt_compiler import compile_prompt, load_local_lora_memory
+from tools.seedance2_prompt_compiler import compile_prompt, default_local_lora_memory, load_local_lora_memory
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
+    def test_default_memory_resolves_installed_production_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            production = root / "workflow/local_lora"
+            production.mkdir(parents=True)
+            module = root / "tools/seedance2_prompt_compiler.py"
+            module.parent.mkdir(exist_ok=True)
+            with mock.patch("tools.seedance2_prompt_compiler.__file__", str(module)):
+                self.assertEqual(
+                    default_local_lora_memory(),
+                    (production / "seedance2_prompt_failure_training.jsonl").resolve(),
+                )
+
     def dialogue(self, speaker="陈迹", text="谁提的？", **overrides):
         row = {
             "speaker": speaker, "text": text,
