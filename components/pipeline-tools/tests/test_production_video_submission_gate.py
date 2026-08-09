@@ -18,6 +18,7 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             "duration_seconds": duration,
             "action_unit": action_unit,
             "model": "seedance-2.0-fast",
+            "resolution": "720p",
         }
         if contract is not None:
             task["performance_tempo_contract"] = contract
@@ -31,6 +32,10 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
                 "giggle": {
                     "status": "TEST_FIXTURE",
                     "supported_models": supported_models or ["seedance-2.0-fast"],
+                    "model_capabilities": {
+                        "seedance-2.0-fast": {"resolutions": ["720p", "480p"]},
+                        "seedance-2.0-pro": {"resolutions": ["720p", "480p"]},
+                    },
                 }
             },
         }), encoding="utf-8")
@@ -98,6 +103,17 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             manifest["allowed_video_models"] = ["seedance-2.0-fast"]
             report = self.evaluate(manifest, root, supported_models=["seedance-2.0-fast", "seedance-2.0-pro"])
             self.assertEqual(report["status"], "PASS", report)
+
+    def test_fast_1080p_is_rejected_before_provider_post(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root)
+            manifest["tasks"][0]["resolution"] = "1080p"
+            report = self.evaluate(manifest, root)
+            self.assertIn(
+                "TASK_RESOLUTION_UNSUPPORTED_BY_PROVIDER_MODEL",
+                {row["code"] for row in report["failures"]},
+            )
 
     def test_atomic_real_time_task_passes(self):
         contract = {

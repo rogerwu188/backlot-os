@@ -64,7 +64,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             })
         return {
             "mode": "multi_keyframe_long_take", "duration_seconds": 15,
-            "model": "seedance-2.0-fast", "resolution": "1080p", "real_time_1x": True,
+            "model": "seedance-2.0-fast", "resolution": "720p", "real_time_1x": True,
             "camera_motion_policy": "MOTIVATED_TRACK_OR_LOCKED_AXIS_NO_SWAY_NO_ORBIT_NO_ROAM",
             "subject_and_identity_lock": "same people", "spatial_continuity_lock": "same breach",
             "actor_roster": ["lead", "witness"],

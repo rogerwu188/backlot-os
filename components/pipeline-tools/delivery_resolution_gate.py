@@ -20,11 +20,26 @@ def evaluate_batch(config: dict[str, Any]) -> dict[str, Any]:
         resolution = str(task.get("resolution") or "").lower()
         model = str(task.get("model") or "")
         height = HEIGHTS.get(resolution, 0)
-        rows.append({"task_key": key, "resolution": resolution, "native_height": height, "model": model})
-        if height < minimum:
+        provider_native_exception = (
+            model == "seedance-2.0-fast"
+            and resolution == "720p"
+            and task.get("provider_native_max_resolution") is True
+            and str(task.get("delivery_target_resolution") or "").lower() == "1080p"
+            and task.get("delivery_transform") == "DETERMINISTIC_UPSCALE_REQUIRED"
+        )
+        rows.append({
+            "task_key": key,
+            "resolution": resolution,
+            "native_height": height,
+            "model": model,
+            "provider_native_exception": provider_native_exception,
+            "delivery_target_resolution": task.get("delivery_target_resolution"),
+            "delivery_transform": task.get("delivery_transform"),
+        })
+        if height < minimum and not provider_native_exception:
             failures.append({"code": "NATIVE_GENERATION_RESOLUTION_BELOW_RELEASE_FLOOR", "task_key": key, "actual": resolution, "minimum_height": minimum})
         if task.get("resolution_source") == "UPSCALED_FROM_LOWER_RESOLUTION":
             failures.append({"code": "COSMETIC_UPSCALE_CANNOT_SATISFY_NATIVE_RESOLUTION", "task_key": key})
         if allowed_models and model not in allowed_models:
             failures.append({"code": "GENERATION_MODEL_BELOW_AUTHORIZED_QUALITY_TIER", "task_key": key, "actual": model, "allowed": sorted(allowed_models)})
-    return {"schema": "qingshan.delivery_resolution_gate.v1", "status": "PASS" if not failures else "FAIL", "rows": rows, "failures": failures, "policy": "Formal replacements must be generated natively at or above the declared height."}
+    return {"schema": "qingshan.delivery_resolution_gate.v1", "status": "PASS" if not failures else "FAIL", "rows": rows, "failures": failures, "policy": "Formal replacements must be generated natively at or above the declared height. When an explicitly authorized provider/model is capped below delivery resolution, the task must declare the provider-native maximum and a deterministic delivery transform; it must never be mislabeled as native 1080p."}
