@@ -93,13 +93,31 @@ keeps prompt responsibilities in this fixed order:
    subject or physical trigger to the camera response, the exact movement
    window, a stop condition, and a readable result hold. It must not carry the
    keyframe's composition, focal length, camera height, or current-pose duties.
-5. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+5. `SPATIAL_AXIS_LEDGER`: screen direction, eyeline target, background anchor,
+   camera side, axis relation, and exact entry/exit state.
+6. `OFFSCREEN_RELATIONSHIP_LEDGER`: target visibility, offscreen side, presence
+   evidence, exit visibility, and explicit stay-visible/stay-hidden/re-entry
+   policy. It contains video continuity only, never keyframe composition.
+7. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+   job per cut.
+8. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+   state handoffs across cuts.
+9. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-6. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+10. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-7. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+11. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
+
+The offscreen ledger is video-side continuity only: it binds the spatial-axis
+eyeline target to `ON_SCREEN` or `OFF_SCREEN`, a stable offscreen side, a
+diegetic or visible presence cue, an exit visibility, and either
+`STAY_OFFSCREEN`, `VISIBLE_HOLD`, or a named `REENTER_ON_TRIGGER`. An offscreen
+target cannot appear before the trigger, and an on-screen target cannot carry
+offscreen fields. Composition, shot scale, focal length, camera height, and the
+actor's current pose remain keyframe responsibilities and are rejected from the
+V12 adapter contract.
 
 Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a

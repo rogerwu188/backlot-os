@@ -198,6 +198,14 @@ SPATIAL_BACKGROUND_REGIONS = {
 }
 SPATIAL_GAZE_DIRECTIONS = {"screen_left", "screen_right", "camera", "up", "down", "none"}
 SPATIAL_AXIS_TRANSITIONS = {"ESTABLISH_AXIS", "HOLD_AXIS", "DECLARED_AXIS_CROSS"}
+OFFSCREEN_RELATIONSHIP_POLICY = "EXPLICIT_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY"
+OFFSCREEN_VISIBILITY_STATES = {"ON_SCREEN", "OFF_SCREEN"}
+OFFSCREEN_SIDES = {"screen_left", "screen_right", "behind_camera", "ahead_of_camera"}
+OFFSCREEN_REVEAL_POLICIES = {"STAY_OFFSCREEN", "REENTER_ON_TRIGGER", "VISIBLE_HOLD"}
+OFFSCREEN_EVIDENCE_TYPES = {
+    "EYELINE", "DIEGETIC_AUDIO", "CONTACT_TRACE", "SHADOW_OR_REFLECTION",
+    "VISIBLE_FRAME_PRESENCE",
+}
 CAMERA_ACTION_COUPLING_POLICY = "SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD"
 CAMERA_ACTION_COUPLING_TYPES = {"LOCKED_HOLD", "SUBJECT_TRIGGERED_MOVE"}
 CAMERA_ACTION_RESPONSE_TYPES = {
@@ -216,6 +224,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9",
             "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
             "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
+            "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -453,6 +462,199 @@ def compile_spatial_axis_ledger(
             "shots": compiled,
             "full_shot_coverage": True,
             "adapter": "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
+        },
+    )
+
+
+def compile_offscreen_relationship_ledger(
+    contract: dict,
+    segments: list[dict],
+    descriptor_ids: set[str],
+    spatial_axis_ledger: dict | None,
+) -> tuple[str, dict | None]:
+    """Keep eyeline targets present without inventing undeclared on-screen bodies."""
+    ledger = contract.get("offscreen_relationship_ledger")
+    if not ledger:
+        return "", None
+    if not spatial_axis_ledger:
+        raise ValueError("offscreen_relationship_ledger requires spatial_axis_ledger")
+    if ledger.get("policy") != OFFSCREEN_RELATIONSHIP_POLICY:
+        raise ValueError(
+            "offscreen_relationship_ledger policy must be "
+            f"{OFFSCREEN_RELATIONSHIP_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "offscreen_relationship_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "offscreen_relationship_ledger must exactly cover all compiled shots"
+        )
+    spatial_rows = {
+        int(row["shot_index"]): row for row in spatial_axis_ledger["shots"]
+    }
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"offscreen relationship row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "offscreen_relationship_ledger shot_index must match compiled shot order"
+            )
+        spatial = spatial_rows[shot_index]
+        subject_id = require(
+            row.get("subject_descriptor_id"),
+            f"offscreen relationship row {index} subject_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("eyeline_target_descriptor_id"),
+            f"offscreen relationship row {index} eyeline_target_descriptor_id is required",
+        )
+        if subject_id not in descriptor_ids or target_id not in descriptor_ids:
+            raise ValueError(
+                f"offscreen relationship row {index} references unknown descriptor"
+            )
+        if subject_id != spatial["subject_descriptor_id"]:
+            raise ValueError(
+                f"offscreen relationship row {index} subject must match spatial-axis ledger"
+            )
+        if target_id != spatial["eyeline_target_descriptor_id"]:
+            raise ValueError(
+                f"offscreen relationship row {index} target must match spatial-axis ledger"
+            )
+        gaze_direction = require(
+            row.get("gaze_direction"),
+            f"offscreen relationship row {index} gaze_direction is required",
+        )
+        if gaze_direction != spatial["gaze_direction"]:
+            raise ValueError(
+                f"offscreen relationship row {index} gaze must match spatial-axis ledger"
+            )
+        visibility = require(
+            row.get("target_visibility"),
+            f"offscreen relationship row {index} target_visibility is required",
+        )
+        exit_visibility = require(
+            row.get("exit_visibility"),
+            f"offscreen relationship row {index} exit_visibility is required",
+        )
+        if visibility not in OFFSCREEN_VISIBILITY_STATES:
+            raise ValueError(f"unsupported target visibility: {visibility}")
+        if exit_visibility not in OFFSCREEN_VISIBILITY_STATES:
+            raise ValueError(f"unsupported exit visibility: {exit_visibility}")
+        evidence_type = require(
+            row.get("presence_evidence_type"),
+            f"offscreen relationship row {index} presence_evidence_type is required",
+        )
+        if evidence_type not in OFFSCREEN_EVIDENCE_TYPES:
+            raise ValueError(f"unsupported offscreen presence evidence: {evidence_type}")
+        evidence = require(
+            row.get("presence_evidence"),
+            f"offscreen relationship row {index} presence_evidence is required",
+        )
+        reveal_policy = require(
+            row.get("reveal_policy"),
+            f"offscreen relationship row {index} reveal_policy is required",
+        )
+        if reveal_policy not in OFFSCREEN_REVEAL_POLICIES:
+            raise ValueError(f"unsupported offscreen reveal policy: {reveal_policy}")
+        offscreen_side = row.get("offscreen_side")
+        reentry_trigger = row.get("reentry_trigger")
+        if visibility == "OFF_SCREEN":
+            if offscreen_side not in OFFSCREEN_SIDES:
+                raise ValueError(
+                    f"offscreen relationship row {index} requires a supported offscreen_side"
+                )
+            if evidence_type == "VISIBLE_FRAME_PRESENCE":
+                raise ValueError(
+                    f"offscreen relationship row {index} cannot use visible-frame evidence"
+                )
+            if reveal_policy == "STAY_OFFSCREEN":
+                if exit_visibility != "OFF_SCREEN" or reentry_trigger is not None:
+                    raise ValueError(
+                        f"offscreen relationship row {index} STAY_OFFSCREEN must remain offscreen"
+                    )
+            elif reveal_policy == "REENTER_ON_TRIGGER":
+                require(
+                    reentry_trigger,
+                    f"offscreen relationship row {index} reentry_trigger is required",
+                )
+                if exit_visibility != "ON_SCREEN":
+                    raise ValueError(
+                        f"offscreen relationship row {index} reentry must exit on-screen"
+                    )
+            else:
+                raise ValueError(
+                    f"offscreen relationship row {index} OFF_SCREEN target needs stay or reentry policy"
+                )
+        else:
+            if offscreen_side is not None or reentry_trigger is not None:
+                raise ValueError(
+                    f"offscreen relationship row {index} on-screen target cannot have offscreen fields"
+                )
+            if reveal_policy != "VISIBLE_HOLD" or exit_visibility != "ON_SCREEN":
+                raise ValueError(
+                    f"offscreen relationship row {index} on-screen target must use VISIBLE_HOLD"
+                )
+            if evidence_type != "VISIBLE_FRAME_PRESENCE":
+                raise ValueError(
+                    f"offscreen relationship row {index} on-screen target needs visible-frame evidence"
+                )
+        entry_state = require(
+            row.get("entry_state"),
+            f"offscreen relationship row {index} entry_state is required",
+        )
+        exit_state = require(
+            row.get("exit_state"),
+            f"offscreen relationship row {index} exit_state is required",
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"offscreen relationship row {index} entry/exit state must match cinematic segment"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "subject_descriptor_id": subject_id,
+            "eyeline_target_descriptor_id": target_id,
+            "gaze_direction": gaze_direction,
+            "target_visibility": visibility,
+            "offscreen_side": offscreen_side,
+            "presence_evidence_type": evidence_type,
+            "presence_evidence": evidence,
+            "reveal_policy": reveal_policy,
+            "reentry_trigger": reentry_trigger,
+            "exit_visibility": exit_visibility,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}：主体={row['subject_descriptor_id']}；"
+        f"视线={row['gaze_direction']}→{row['eyeline_target_descriptor_id']}；"
+        f"目标可见性={row['target_visibility']}"
+        f"{('@' + row['offscreen_side']) if row['offscreen_side'] else ''}；"
+        f"存在证据={row['presence_evidence_type']}:{row['presence_evidence']}；"
+        f"显影策略={row['reveal_policy']}；"
+        f"再入触发={row['reentry_trigger'] or '无'}；"
+        f"出口可见性={row['exit_visibility']}；入口={row['entry_state']}；出口={row['exit_state']}"
+        for row in compiled
+    ]
+    return (
+        "\n【OFFSCREEN RELATIONSHIP LEDGER｜画外目标方位、证据与再入】"
+        + "。".join(prompt_rows)
+        + "。OFF_SCREEN 目标在再入触发前严禁入画；不得用新增人物、错误视线或无来源声画线索替代已声明的画外存在。",
+        {
+            "version": "1.0.0",
+            "policy": OFFSCREEN_RELATIONSHIP_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height", "current_pose"
+            ],
+            "adapter": "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
         },
     )
 
@@ -923,6 +1125,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     spatial_axis_prompt, spatial_axis_ledger = compile_spatial_axis_ledger(
         contract, compiled, descriptor_ids
     )
+    offscreen_prompt, offscreen_ledger = compile_offscreen_relationship_ledger(
+        contract, compiled, descriptor_ids, spatial_axis_ledger
+    )
     camera_style_prompt, camera_style_plan = compile_camera_style_plan(contract, compiled)
     coupling_prompt, coupling_ledger = compile_camera_action_coupling_ledger(
         contract, compiled
@@ -941,6 +1146,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + camera_style_prompt
         + coupling_prompt
         + spatial_axis_prompt
+        + offscreen_prompt
         + information_ladder_prompt
         + state_ledger_prompt
         + "\n【KEY RULES】" + "；".join(rules)
@@ -951,13 +1157,15 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
         "camera_action_coupling_gate": "PASS_TRIGGER_RESPONSE_RESULT_HOLD" if coupling_ledger else "NOT_APPLICABLE",
         "spatial_axis_ledger": spatial_axis_ledger,
         "spatial_axis_gate": "PASS_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND_COVERAGE" if spatial_axis_ledger else "NOT_APPLICABLE",
+        "offscreen_relationship_ledger": offscreen_ledger,
+        "offscreen_relationship_gate": "PASS_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY" if offscreen_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
         "shot_information_gate": "PASS_UNIQUE_FULL_COVERAGE" if information_ladder else "NOT_APPLICABLE",
         "cross_cut_state_ledger": state_ledger,

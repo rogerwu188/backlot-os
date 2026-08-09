@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V12 with a typed
+  offscreen-relationship ledger for task2-1 video prompts. Every eyeline target
+  must declare whether it is visible or offscreen, preserve a stable offscreen
+  side, provide diegetic or visible presence evidence, and remain hidden until
+  an explicit re-entry trigger. The ledger cross-checks the V10 spatial-axis
+  target and gaze, preserves exact entry/exit states, excludes keyframe-only
+  composition fields, and retains the `AMERICAN_HOLLYWOOD` cultural label.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V11 with a typed
   camera-action coupling ledger for task2-1 video prompts. Camera movement must
   follow a visible subject or physical trigger, remain inside its declared time

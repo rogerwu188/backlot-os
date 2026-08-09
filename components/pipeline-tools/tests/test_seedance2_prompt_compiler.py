@@ -8,6 +8,7 @@ from unittest import mock
 from tools.seedance2_prompt_compiler import (
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
+    compile_offscreen_relationship_ledger,
     compile_prompt,
     default_local_lora_memory,
     load_local_lora_memory,
@@ -172,6 +173,86 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "not adapted for production"):
             compile_camera_style_plan(contract, segments)
+
+    def offscreen_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1,
+            "entry_state": "观察者停下并看向画外目标",
+            "exit_state": "观察者仍锁定画外目标",
+        }]
+        spatial = {
+            "shots": [{
+                "shot_index": 1,
+                "subject_descriptor_id": "@observer",
+                "eyeline_target_descriptor_id": "@target",
+                "gaze_direction": "camera",
+            }],
+        }
+        row = {
+            "shot_index": 1,
+            "subject_descriptor_id": "@observer",
+            "eyeline_target_descriptor_id": "@target",
+            "gaze_direction": "camera",
+            "target_visibility": "OFF_SCREEN",
+            "offscreen_side": "behind_camera",
+            "presence_evidence_type": "DIEGETIC_AUDIO",
+            "presence_evidence": "画外目标的呼吸与脚步保持同一方位",
+            "reveal_policy": "STAY_OFFSCREEN",
+            "reentry_trigger": None,
+            "exit_visibility": "OFF_SCREEN",
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        contract = {
+            "offscreen_relationship_ledger": {
+                "policy": "EXPLICIT_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY",
+                "shots": [row],
+            },
+        }
+        return contract, segments, spatial
+
+    def test_offscreen_relationship_binds_side_evidence_and_visibility(self):
+        contract, segments, spatial = self.offscreen_fixture()
+        prompt, manifest = compile_offscreen_relationship_ledger(
+            contract, segments, {"@observer", "@target"}, spatial
+        )
+        self.assertIn("【OFFSCREEN RELATIONSHIP LEDGER", prompt)
+        self.assertIn("OFF_SCREEN@behind_camera", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
+        )
+        self.assertTrue(manifest["video_side_only"])
+        self.assertIn("lens_mm", manifest["forbidden_keyframe_fields"])
+
+    def test_offscreen_relationship_rejects_spatial_target_mismatch(self):
+        contract, segments, spatial = self.offscreen_fixture(
+            eyeline_target_descriptor_id="@wrong"
+        )
+        with self.assertRaisesRegex(ValueError, "target must match spatial-axis ledger"):
+            compile_offscreen_relationship_ledger(
+                contract, segments, {"@observer", "@target", "@wrong"}, spatial
+            )
+
+    def test_offscreen_relationship_rejects_undeclared_reentry(self):
+        contract, segments, spatial = self.offscreen_fixture(
+            reveal_policy="REENTER_ON_TRIGGER",
+            exit_visibility="ON_SCREEN",
+        )
+        with self.assertRaisesRegex(ValueError, "reentry_trigger is required"):
+            compile_offscreen_relationship_ledger(
+                contract, segments, {"@observer", "@target"}, spatial
+            )
+
+    def test_offscreen_relationship_rejects_visible_evidence_for_hidden_target(self):
+        contract, segments, spatial = self.offscreen_fixture(
+            presence_evidence_type="VISIBLE_FRAME_PRESENCE"
+        )
+        with self.assertRaisesRegex(ValueError, "cannot use visible-frame evidence"):
+            compile_offscreen_relationship_ledger(
+                contract, segments, {"@observer", "@target"}, spatial
+            )
 
     def camera_coupling_segment(self):
         return [{
