@@ -89,6 +89,8 @@ class ContinuousTaskLaneDispatcherTests(unittest.TestCase):
             self.assertTrue((root / "events/shot.json").is_file())
             updated = json.loads(state.read_text(encoding="utf-8"))
             self.assertEqual(updated["tasks"][0]["state"], "RUNNING")
+            for field in ("lease_owner", "lease_expires_at", "last_progress_at", "next_due_at"):
+                self.assertTrue(updated["tasks"][0].get(field), field)
             dispatches = json.loads(journal.read_text(encoding="utf-8"))["dispatches"]
             self.assertEqual(len(dispatches), 1)
             self.assertEqual(next(iter(dispatches.values()))["status"], "DISPATCHED")
@@ -98,6 +100,8 @@ class ContinuousTaskLaneDispatcherTests(unittest.TestCase):
             second = dispatch_cycle(state, journal, root, capacity=1, apply=True)
             self.assertEqual(second["outcomes"][0]["status"], "REUSED_DURABLE_DISPATCH")
             self.assertEqual(len(json.loads(journal.read_text(encoding="utf-8"))["dispatches"]), 1)
+            reused = json.loads(state.read_text(encoding="utf-8"))["tasks"][0]
+            self.assertTrue(reused["lease_owner"].startswith("dispatch-recovery:"))
 
     def test_missing_dispatch_descriptor_fails_closed(self):
         with tempfile.TemporaryDirectory() as td:

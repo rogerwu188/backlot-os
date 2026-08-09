@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Make task-lane liveness scoped and fail-closed: RUNNING now requires a live
+  owner lease plus progress and next-due timestamps, stale rows are excluded
+  from active successors, and observation-only watchdogs cannot keep an
+  unfinished episode falsely healthy. Continuous dispatch writes the initial
+  bounded lease, with regression coverage for missing/expired leases, overdue
+  progress, observation-only continuity, live producing work, and task-local
+  remote waits.
+
 ## 0.2.48
 
 - Correct the exact-first-frame continuity operand to compare decoded frame 0

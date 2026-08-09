@@ -14,6 +14,7 @@ import json
 import os
 import tempfile
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,16 @@ SUPPORTED_INPUT_SCHEMAS = frozenset(
         "backlotos.task_lane_scheduler_state.v1",
         "qingshan.task_lane_scheduler_state.v1",
     }
+)
+OBSERVATION_DELIVERABLE_TYPES = frozenset(
+    {"QA_RECEIPT", "PIPELINE_GATE", "WATCHDOG_RECEIPT", "MONITOR_RECEIPT"}
+)
+OBSERVATION_TASK_MARKERS = ("WATCH", "WATCHDOG", "MONITOR", "METADATA-REPAIR")
+RUNNING_LEASE_FIELDS = (
+    "lease_owner",
+    "lease_expires_at",
+    "last_progress_at",
+    "next_due_at",
 )
 
 
@@ -53,7 +64,37 @@ def _failure(code: str, **details: Any) -> dict[str, Any]:
     return {"code": code, **details}
 
 
-def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
+def _timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def _liveness_role(task: dict[str, Any]) -> str:
+    explicit = str(task.get("liveness_role") or "").strip().upper()
+    if explicit in {"PRODUCING", "QA", "OBSERVATION"}:
+        return explicit
+    if task.get("observation_only") is True:
+        return "OBSERVATION"
+    deliverable = str(task.get("deliverable_type") or "").strip().upper()
+    task_id = str(task.get("task_id") or "").strip().upper()
+    if deliverable in OBSERVATION_DELIVERABLE_TYPES or any(
+        marker in task_id for marker in OBSERVATION_TASK_MARKERS
+    ):
+        return "OBSERVATION"
+    return "QA" if task.get("state") == "QA" else "PRODUCING"
+
+
+def audit_scheduler_state(
+    payload: dict[str, Any], *, now: datetime | None = None
+) -> dict[str, Any]:
+    checked_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     failures: list[dict[str, Any]] = []
     if payload.get("schema") not in SUPPORTED_INPUT_SCHEMAS:
         failures.append(_failure("UNSUPPORTED_SCHEMA", actual=payload.get("schema")))
@@ -110,6 +151,65 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
                     wait_scope=task.get("wait_scope"),
                 )
             )
+        liveness_role = _liveness_role(task)
+        lease_valid = state != "RUNNING"
+        lease_expired = False
+        progress_overdue = False
+        if state == "RUNNING":
+            missing = [
+                field
+                for field in RUNNING_LEASE_FIELDS
+                if not isinstance(task.get(field), str) or not task[field].strip()
+            ]
+            if missing:
+                failures.append(
+                    _failure(
+                        "RUNNING_LEASE_FIELDS_MISSING",
+                        task_id=task_id or None,
+                        required_fields=list(RUNNING_LEASE_FIELDS),
+                        missing_fields=missing,
+                    )
+                )
+            lease_expires_at = _timestamp(task.get("lease_expires_at"))
+            last_progress_at = _timestamp(task.get("last_progress_at"))
+            next_due_at = _timestamp(task.get("next_due_at"))
+            invalid_timestamps = [
+                field
+                for field, parsed in (
+                    ("lease_expires_at", lease_expires_at),
+                    ("last_progress_at", last_progress_at),
+                    ("next_due_at", next_due_at),
+                )
+                if field not in missing and parsed is None
+            ]
+            if invalid_timestamps:
+                failures.append(
+                    _failure(
+                        "RUNNING_LEASE_TIMESTAMPS_INVALID",
+                        task_id=task_id or None,
+                        fields=invalid_timestamps,
+                    )
+                )
+            if lease_expires_at is not None and lease_expires_at <= checked_at:
+                lease_expired = True
+                failures.append(
+                    _failure(
+                        "RUNNING_LEASE_EXPIRED",
+                        task_id=task_id or None,
+                        lease_expires_at=task.get("lease_expires_at"),
+                    )
+                )
+            if next_due_at is not None and next_due_at < checked_at:
+                progress_overdue = True
+                failures.append(
+                    _failure(
+                        "RUNNING_PROGRESS_OVERDUE",
+                        task_id=task_id or None,
+                        last_progress_at=task.get("last_progress_at"),
+                        next_due_at=task.get("next_due_at"),
+                    )
+                )
+            lease_valid = not missing and not invalid_timestamps and not lease_expired and not progress_overdue
         normalized.append(
             {
                 "task_id": task_id,
@@ -117,6 +217,10 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
                 "state": state,
                 "zero_cost": task.get("zero_cost") is True,
                 "exact_predecessor_task_id": predecessor,
+                "liveness_role": liveness_role,
+                "lease_valid": lease_valid,
+                "lease_expired": lease_expired,
+                "progress_overdue": progress_overdue,
             }
         )
 
@@ -154,9 +258,17 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
             )
         )
 
-    active_local = running + qa
-    active_successors = running + qa + remote_wait
-    unfinished = ready + active_local + waiting_dependency + remote_wait
+    live_running = [task for task in running if task["lease_valid"]]
+    observation_local = [
+        task for task in live_running + qa if task["liveness_role"] == "OBSERVATION"
+    ]
+    productive_local = [
+        task for task in live_running + qa if task["liveness_role"] in {"PRODUCING", "QA"}
+    ]
+    stale_running = [task for task in running if not task["lease_valid"]]
+    active_local = productive_local
+    active_successors = productive_local + remote_wait
+    unfinished = ready + running + qa + waiting_dependency + remote_wait
     legal_blocker = scheduler.get("legal_blocker") if isinstance(scheduler, dict) else None
     if unfinished and not ready and not active_local and not remote_wait:
         valid_legal_blocker = (
@@ -186,17 +298,17 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
         failures.append(
             _failure(
                 "HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR",
-                required_states=["RUNNING", "REMOTE_WAIT", "QA"],
+                required_states=["LIVE_PRODUCING", "LIVE_QA", "TASK_LOCAL_REMOTE_WAIT"],
                 detail=(
-                    "A heartbeat is a checkpoint, not task completion. Dispatch a successor "
-                    "or preserve a task-local remote/QA lane before returning the heartbeat receipt."
+                    "A heartbeat is a checkpoint, not task completion. Persisted observation "
+                    "tasks and stale RUNNING rows cannot satisfy continuity."
                 ),
             )
         )
 
     if not unfinished:
         liveness_state = "COMPLETE"
-    elif ready or active_local:
+    elif ready or productive_local:
         liveness_state = "ACTIVE"
     elif remote_wait:
         liveness_state = "REMOTE_WAIT_TASK_LOCAL"
@@ -217,12 +329,15 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
         "qa_task_ids": [task["task_id"] for task in qa],
         "remote_wait_task_ids": [task["task_id"] for task in remote_wait],
         "active_successor_task_ids": [task["task_id"] for task in active_successors],
+        "productive_local_task_ids": [task["task_id"] for task in productive_local],
+        "observation_task_ids": [task["task_id"] for task in observation_local],
+        "stale_running_task_ids": [task["task_id"] for task in stale_running],
         "heartbeat_return_allowed": not any(
             row["code"] == "HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR" for row in failures
         ),
         "remote_wait_isolated_from_ready_lanes": bool(remote_wait and ready_other_lanes and global_wait is False),
         "liveness_state": liveness_state,
-        "active_local_task_ids": [task["task_id"] for task in active_local],
+        "active_local_task_ids": [task["task_id"] for task in productive_local],
         "legal_blocker": legal_blocker,
         "failures": failures,
         "policy": {
@@ -234,6 +349,8 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
             "idle_unfinished_requires_legal_blocker_evidence": True,
             "heartbeat_is_checkpoint_not_completion": True,
             "active_successor_required_when_configured": continuation_required,
+            "running_requires_scoped_lease": True,
+            "observation_tasks_do_not_satisfy_continuity": True,
         },
     }
 
