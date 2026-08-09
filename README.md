@@ -126,6 +126,13 @@ time range, subject anchor, axis relation, and narrative purpose. Unplanned time
 defaults to a locked camera, so tracking, arcs, pushes, pulls, cranes, shake, and
 slow motion cannot accumulate into continuous drift.
 
+Combat contracts also require a causal continuity ladder. It binds ordered
+action beats to persistent contact, environment, recovery, damage, formation,
+prop, or distance evidence and closes on one relational composition. The
+resolving camera must be one of the motivated segments already declared in the
+camera plan. This licensed Hell Grind Scene 69 integration is explicitly a
+portable prompt/rule adapter; it does not claim Seedance model-weight training.
+
 When several short clips cannot preserve one continuous physical event, use
 `multi_keyframe_long_take` instead of adding more edit seams. This mode compiles
 one 15-second Seedance 2 Pro Omni generation from 3-9 ordered, SHA-bound

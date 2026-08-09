@@ -363,6 +363,37 @@ Edit-only techniques (`whip_pan_cut`, `detail_triple_cut`, and
 decisive contact, sustained shake, adjacent dynamic motion, decorative orbit,
 and continuous push/pull/roam fail before paid submission.
 
+### Causal combat-continuity ladders
+
+Camera grammar alone does not guarantee that an exchange remains physically
+legible. Every combat contract therefore includes one to three
+`continuity_ladders`. A ladder binds ordered action-beat indexes, an entry and
+exit state, persistent visible evidence, any required real-world measurement,
+one final relational composition, and a camera resolution that must match an
+already declared camera segment. Contact must leave a visible consequence;
+damage, formation, props, distance, and recovery cannot reset between beats.
+
+The licensed Scene 69 prompt/rule adapter exposes nine typed methods:
+
+- `causal_impact_aftermath_ladder`
+- `occlusion_breach_threat_reveal`
+- `timed_emotional_reaction_microsequence`
+- `damage_accumulation_state_promotion`
+- `reversible_crowd_geometry_ceremonial_entrance`
+- `prop_geometric_anchor_momentum_recovery`
+- `reciprocal_charge_convergence_ladder`
+- `asymmetric_locked_clash_sustained_force`
+- `defense_rhythm_failure_combo_ladder`
+
+Each method has its own required evidence vocabulary. Spatial methods require a
+positive measurement in metres, centimetres, seconds, degrees, or body lengths;
+damage promotion additionally requires a durable state ID. The final frame must
+show the relevant identities, force direction, path, and environmental result
+together. Missing evidence, unordered beat bindings, duplicate methods, invalid
+measurements, and camera resolutions outside the motivated plan fail before a
+paid submission. This is a licensed prompt/rule adapter, not trained Seedance
+model weights.
+
 ## Selective BGM flow
 
 Every release episode must choose one source policy:

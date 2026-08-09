@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add the licensed Hell Grind Scene 69 prompt/rule adapter with nine typed
+  combat-continuity methods that bind ordered beats, persistent visible
+  evidence, measured spatial change, and a final relational composition.
+- Require every combat continuity resolution to reuse an already motivated
+  camera segment; reject missing evidence, invalid measurements, state resets,
+  and decorative camera substitutions before provider spend. This adapter does
+  not claim Seedance model-weight training.
+
 ## 0.2.37
 
 - Add a persistent, idempotent task-lane dispatcher that claims READY work as
