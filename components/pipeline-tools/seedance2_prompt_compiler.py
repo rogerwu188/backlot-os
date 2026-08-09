@@ -168,6 +168,17 @@ COMBAT_CONTINUITY_METHODS = {
         },
         "measurement_required": True, "state_promotion_required": True,
     },
+    "low_profile_evasion_limb_failure_counterlaunch_recovery_ladder": {
+        "label": "低姿闪避肢体失效反发恢复阶梯", "min_beats": 3,
+        "required_evidence": {
+            "attack_commitment", "low_profile_evasion_clearance",
+            "targeted_limb_contact", "support_failure",
+            "counterlaunch_contact", "airborne_displacement",
+            "carried_prop_continuity", "landing_absorption",
+            "landing_recovery_state", "crowd_reaction", "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
 }
 COMBAT_EVIDENCE_TYPES = set().union(
     *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
@@ -684,7 +695,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
         "continuity_ladders": continuity_ladders,
-        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V5",
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V6",
     }
 
 

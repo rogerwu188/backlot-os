@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add the licensed Hell Grind Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17, and Scene 69B.16 prompt/rule adapter with fourteen typed
+- Add the licensed Hell Grind Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17, Scene 69B.16, and Scene 69B.15 prompt/rule adapter with fifteen typed
   combat-continuity methods that bind ordered beats, persistent visible
   evidence, measured spatial change, and a final relational composition.
 - Add embodied-topology traversal for action that uses a larger opponent,
@@ -22,6 +22,11 @@
   clearance, glancing protective contact, separate protected-body and damaged-
   armor states, a persistent fragment or deformation consequence, opposed
   recovery costs, and relational closure.
+- Add a low-profile evasion and limb-failure counterlaunch ladder that requires
+  measured strike-line clearance, a targeted support-limb wound, persistent
+  load-bearing failure, counterlaunch contact, measured airborne displacement,
+  carried-prop continuity, landing absorption, recovery stance, witness-field
+  reaction, and relational closure.
 - Require every combat continuity resolution to reuse an already motivated
   camera segment; reject missing evidence, invalid measurements, state resets,
   and decorative camera substitutions before provider spend. This adapter does

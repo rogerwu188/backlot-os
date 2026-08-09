@@ -273,7 +273,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["combat_choreography_contract"]["continuity_adapter"],
-                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V5",
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V6",
             )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
             self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
@@ -487,6 +487,39 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             }]
             spec["combat_choreography_contract"] = contract
             with self.assertRaisesRegex(ValueError, "missing required evidence: armor_glancing_contact"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_low_profile_limb_failure_without_support_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "low_profile_evasion_limb_failure_counterlaunch_recovery_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the opponent commits overhead while the runner drops below the strike line",
+                "exit_state": "the wounded opponent remains unstable while the displaced runner completes a prop-preserving landing",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "attack_commitment", "low_profile_evasion_clearance",
+                        "targeted_limb_contact", "counterlaunch_contact",
+                        "airborne_displacement", "carried_prop_continuity",
+                        "landing_absorption", "landing_recovery_state",
+                        "crowd_reaction", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 5, "unit": "m"},
+                "promoted_state_id": "opponent_support_limb_failure_state_1",
+                "final_relational_frame": "wounded support limb, displaced runner, retained prop, landing stance, and reacting witnesses remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove support failure and recovery without substituting camera motion for physics",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: support_failure"):
                 compile_prompt(spec)
 
     def test_combat_rejects_continuous_perpetual_camera_motion(self):

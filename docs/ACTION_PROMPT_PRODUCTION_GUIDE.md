@@ -374,7 +374,7 @@ already declared camera segment. Contact must leave a visible consequence;
 damage, formation, props, distance, and recovery cannot reset between beats.
 
 The licensed Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17,
-and Scene 69B.16 prompt/rule adapter exposes fourteen typed
+Scene 69B.16, and Scene 69B.15 prompt/rule adapter exposes fifteen typed
 methods:
 
 - `causal_impact_aftermath_ladder`
@@ -391,6 +391,7 @@ methods:
 - `force_conversion_controlled_recovery_ladder`
 - `follow_through_exposure_penetration_extraction_ladder`
 - `near_miss_armor_interception_recovery_ladder`
+- `low_profile_evasion_limb_failure_counterlaunch_recovery_ladder`
 
 Each method has its own required evidence vocabulary. Spatial methods require a
 positive measurement in metres, centimetres, seconds, degrees, or body lengths;
@@ -441,6 +442,16 @@ deformation consequence, opposing attacker/defender recovery costs, and a
 shared closing frame. The damaged protection receives a durable state ID.
 Decorative whip-pans, impact zooms, perpetual handheld drift, unmotivated slow
 motion, and invented glow cannot replace physical contact evidence.
+
+`low_profile_evasion_limb_failure_counterlaunch_recovery_ladder` organizes a
+low-profile evasion, targeted support-limb hit, visible load-bearing failure,
+opponent counterlaunch, measured airborne displacement, and prop-preserving
+landing as one causal exchange. The support-limb failure receives a durable
+state ID; the closing frame must retain the wound, both recovery costs, the
+carried prop, landing absorption, and any motivated witness-field reaction.
+Ground tracking may establish clearance and a stable impact frame may resolve
+the result, but repeated whip-pans, perpetual shake, decorative slow motion,
+and impact zooms cannot replace readable body mechanics.
 
 ## Selective BGM flow
 
