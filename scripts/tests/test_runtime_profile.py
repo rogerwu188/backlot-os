@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -105,10 +106,20 @@ class RuntimeProfileTests(unittest.TestCase):
     def test_doctor_uses_storyclaw_profile(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            bin_dir = root / "install" / "venv" / "bin"
+            install_dir = root / "install"
+            bin_dir = install_dir / "venv" / "bin"
             command_dir = root / "commands"
             bin_dir.mkdir(parents=True)
             command_dir.mkdir()
+            installed_version = install_dir / "source" / "version"
+            installed_version.parent.mkdir(parents=True)
+            shutil.copyfile(ROOT / "VERSION", installed_version)
+            installed_image_submit = install_dir / "share" / "pipeline-tools" / "submit_giggle_image_manifest.py"
+            installed_image_submit.parent.mkdir(parents=True)
+            shutil.copyfile(
+                ROOT / "components" / "pipeline-tools" / "submit_giggle_image_manifest.py",
+                installed_image_submit,
+            )
             for name in ("git", "ffmpeg", "ffprobe", "node"):
                 target = command_dir / name
                 target.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
@@ -134,7 +145,7 @@ class RuntimeProfileTests(unittest.TestCase):
             python_target.chmod(0o755)
             env = self.base_env(root)
             env["BACKLOT_RUNTIME_PROFILE"] = "storyclaw"
-            env["BACKLOT_INSTALL_DIR"] = str(root / "install")
+            env["BACKLOT_INSTALL_DIR"] = str(install_dir)
             env["PATH"] = f"{command_dir}:{os.environ.get('PATH', '')}"
             completed = subprocess.run(
                 ["bash", str(DOCTOR)],

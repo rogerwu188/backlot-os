@@ -7,6 +7,28 @@ source "$repo_root/scripts/lib/runtime-profile.sh"
 install_root="${BACKLOT_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/backlotos}"
 failed=0
 
+source_version="$(tr -d '[:space:]' < "$repo_root/VERSION")"
+installed_version_file="$install_root/source/version"
+if [[ -f "$installed_version_file" ]] && [[ "$(tr -d '[:space:]' < "$installed_version_file")" == "$source_version" ]]; then
+  echo "PASS installed-version:$source_version"
+else
+  installed_version="MISSING"
+  if [[ -f "$installed_version_file" ]]; then
+    installed_version="$(tr -d '[:space:]' < "$installed_version_file")"
+  fi
+  echo "FAIL installed-version:source=$source_version installed=$installed_version"
+  failed=1
+fi
+
+source_image_submit="$repo_root/components/pipeline-tools/submit_giggle_image_manifest.py"
+installed_image_submit="$install_root/share/pipeline-tools/submit_giggle_image_manifest.py"
+if [[ -f "$installed_image_submit" ]] && cmp -s "$source_image_submit" "$installed_image_submit"; then
+  echo "PASS installed-artifact:submit_giggle_image_manifest.py"
+else
+  echo "FAIL installed-artifact:submit_giggle_image_manifest.py differs-from-source"
+  failed=1
+fi
+
 check_command() {
   if command -v "$1" >/dev/null 2>&1; then
     echo "PASS command:$1"
@@ -81,6 +103,7 @@ for production_gate in \
   bgm_authenticity_gate.py \
   continuous_task_lane_dispatcher.py \
   shot_package_completion_gate.py \
+  submit_giggle_image_manifest.py \
   retry_strategy_change_gate.py \
   task_lane_global_wait_gate.py \
   local_lora_memory_sync.py; do
