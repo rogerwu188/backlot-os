@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V10 with a typed
+  spatial-axis ledger for task2-1. Every cut binds screen region, eyeline target,
+  background depth anchor, camera side, axis relation, and exact state handoff;
+  undeclared axis crossings or silent scene-geography changes fail before paid
+  generation. Label every Hell Grind-derived camera rule as
+  `AMERICAN_HOLLYWOOD` / “美式好莱坞” and route camera style per shot by genre;
+  reserved Eastern wuxia/kung-fu profiles remain blocked until separately
+  adapted and validated.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V9 with a typed shot
   information ladder for task2-1. Every cut must contribute one unique visible
   information unit, bind its shot scale and numeric lens to a declared camera

@@ -5,7 +5,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.seedance2_prompt_compiler import compile_prompt, default_local_lora_memory, load_local_lora_memory
+from tools.seedance2_prompt_compiler import (
+    compile_camera_style_plan,
+    compile_prompt,
+    default_local_lora_memory,
+    load_local_lora_memory,
+)
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
@@ -79,13 +84,20 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
                 ],
                 "segments": [
                     {"shot_index": 1, "start_seconds": 0, "end_seconds": 5, "narrative_purpose": "用远距离冲击证明尺度", "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果", "descriptor_ids": ["@snow_battlefield"], "camera_motivation": "让冲击尺度可读", "geometry": {"subject_anchor": "人物占画面高度不足十分之一", "camera_side": "战场外侧", "axis_relation": "沿坠落轴", "scale_anchor": "雪柱高于人物五倍"}, "audio": {"diegetic": "风啸、撞击、碎片落雪", "dialogue_policy": "NO_DIALOGUE"}},
-                    {"shot_index": 2, "start_seconds": 5, "end_seconds": 8, "narrative_purpose": "将旁观者转为行动者", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑", "descriptor_ids": ["@hero_wounded", "@snow_battlefield"], "camera_motivation": "读清起身到奔跑的连续路径", "geometry": {"subject_anchor": "伤肩与支撑手", "camera_side": "人物左侧", "axis_relation": "保持奔跑方向", "scale_anchor": "人物与脚印路径同框"}, "audio": {"diegetic": "喘息、踏雪、衣料", "dialogue_policy": "NO_DIALOGUE"}},
+                    {"shot_index": 2, "start_seconds": 5, "end_seconds": 8, "narrative_purpose": "将旁观者转为行动者", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑", "descriptor_ids": ["@hero_wounded", "@snow_battlefield"], "camera_motivation": "读清起身到奔跑的连续路径", "geometry": {"subject_anchor": "伤肩与支撑手", "camera_side": "战场外侧", "axis_relation": "沿坠落轴", "scale_anchor": "人物与脚印路径同框"}, "audio": {"diegetic": "喘息、踏雪、衣料", "dialogue_policy": "NO_DIALOGUE"}},
                 ],
                 "shot_information_ladder": {
                     "coverage_policy": "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT",
                     "shots": [
                         {"shot_index": 1, "information_unit_id": "impact-scale", "information_type": "consequence", "subject_action": "人物撞入雪原", "visible_evidence": "雪柱和碎片超过人物高度", "visible_consequence": "地面保留冲击坑与落雪", "shot_scale": "大远景", "lens_mm": 35, "camera_role": "建立冲击尺度与落点", "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果"},
                         {"shot_index": 2, "information_unit_id": "witness-activation", "information_type": "reaction", "subject_action": "负伤同伴起身奔向落点", "visible_evidence": "伤肩、支撑手和连续脚印同框", "shot_scale": "中景", "lens_mm": 50, "camera_role": "读取旁观者转为行动者", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
+                    ],
+                },
+                "spatial_axis_ledger": {
+                    "coverage_policy": "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND",
+                    "shots": [
+                        {"shot_index": 1, "axis_id": "battlefield-axis", "axis_side": "south-bank", "axis_transition": "ESTABLISH_AXIS", "subject_descriptor_id": "@snow_battlefield", "subject_screen_region": "screen_center", "gaze_direction": "down", "eyeline_target_descriptor_id": "@snow_battlefield", "background_anchor_descriptor_id": "@snow_battlefield", "background_screen_region": "full_background", "camera_side": "战场外侧", "axis_relation": "沿坠落轴", "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果"},
+                        {"shot_index": 2, "axis_id": "battlefield-axis", "axis_side": "south-bank", "axis_transition": "HOLD_AXIS", "subject_descriptor_id": "@hero_wounded", "subject_screen_region": "screen_left", "gaze_direction": "screen_right", "eyeline_target_descriptor_id": "@snow_battlefield", "background_anchor_descriptor_id": "@snow_battlefield", "background_screen_region": "right_depth", "camera_side": "战场外侧", "axis_relation": "沿坠落轴", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
                     ],
                 },
                 "cross_cut_state_ledger": {
@@ -111,7 +123,10 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("【LOCKED DESCRIPTORS｜逐镜原文复用】", prompt)
         self.assertIn("【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】", prompt)
         self.assertIn("0-5秒 / 镜头1", prompt)
+        self.assertIn("【CAMERA STYLE PROFILE｜运镜文化风格标签】", prompt)
+        self.assertIn("运镜风格=美式好莱坞[AMERICAN_HOLLYWOOD]", prompt)
         self.assertIn("【SHOT INFORMATION LADDER｜一镜一信息】", prompt)
+        self.assertIn("【SPATIAL AXIS LEDGER｜屏幕方位、视线与背景锚点】", prompt)
         self.assertIn("【CROSS-CUT STATE LEDGER｜跨镜状态账本】", prompt)
         self.assertIn(hero, prompt)
         self.assertEqual(manifest["cinematic_shot_language_gate"], "PASS_SECTIONED_AND_TIME_CODED")
@@ -120,6 +135,57 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertEqual(ledger["adapter"], "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8")
         information = manifest["cinematic_shot_language_contract"]["shot_information_ladder"]
         self.assertEqual(information["adapter"], "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9")
+        spatial = manifest["cinematic_shot_language_contract"]["spatial_axis_ledger"]
+        self.assertEqual(spatial["adapter"], "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10")
+        style_plan = manifest["cinematic_shot_language_contract"]["camera_style_plan"]
+        self.assertEqual(style_plan["selection_policy"], "PER_SHOT_GENRE_AWARE")
+        self.assertEqual(style_plan["shots"][0]["style_profile_id"], "AMERICAN_HOLLYWOOD")
+        self.assertEqual(style_plan["shots"][0]["style_label_zh"], "美式好莱坞")
+        self.assertIn("EASTERN_WUXIA", style_plan["reserved_not_adapted_profiles"])
+
+    def test_camera_style_plan_rejects_reserved_unadapted_style(self):
+        segments = [{"shot_index": 1}]
+        contract = {
+            "camera_style_plan": {
+                "selection_policy": "PER_SHOT_GENRE_AWARE",
+                "shots": [{
+                    "shot_index": 1,
+                    "style_profile_id": "EASTERN_WUXIA",
+                    "selection_reason": "武侠题材",
+                }],
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "not adapted for production"):
+            compile_camera_style_plan(contract, segments)
+
+    def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
+        hero = "角色锁定描述"
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "duration_seconds": 8,
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "A", "expression_arc": "A到B", "cut_reason": "视线接"},
+                {"framing": "近景", "camera": "固定", "action": "B", "expression_arc": "B到C", "cut_reason": "视线接"},
+            ],
+            "cinematic_shot_language_contract": {
+                "version": "1.0.0",
+                "locked_descriptors": [{"id": "@hero", "kind": "character", "text": hero, "text_sha256": hashlib.sha256(hero.encode()).hexdigest(), "paste_policy": "VERBATIM_EVERY_SHOT", "stress_test_status": "PASS"}],
+                "segments": [
+                    {"shot_index": 1, "start_seconds": 0, "end_seconds": 4, "narrative_purpose": "A", "entry_state": "A", "exit_state": "B", "descriptor_ids": ["@hero"], "camera_motivation": "A", "geometry": {"subject_anchor": "A", "camera_side": "南侧", "axis_relation": "同一对话轴", "scale_anchor": "A"}, "audio": {"diegetic": "A", "dialogue_policy": "NO_DIALOGUE"}},
+                    {"shot_index": 2, "start_seconds": 4, "end_seconds": 8, "narrative_purpose": "B", "entry_state": "B", "exit_state": "C", "descriptor_ids": ["@hero"], "camera_motivation": "B", "geometry": {"subject_anchor": "B", "camera_side": "北侧", "axis_relation": "同一对话轴", "scale_anchor": "B"}, "audio": {"diegetic": "B", "dialogue_policy": "NO_DIALOGUE"}},
+                ],
+                "spatial_axis_ledger": {
+                    "coverage_policy": "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND",
+                    "shots": [
+                        {"shot_index": 1, "axis_id": "dialogue-axis", "axis_side": "south", "axis_transition": "ESTABLISH_AXIS", "subject_descriptor_id": "@hero", "subject_screen_region": "screen_left", "gaze_direction": "screen_right", "eyeline_target_descriptor_id": "@hero", "background_anchor_descriptor_id": "@hero", "background_screen_region": "right_depth", "camera_side": "南侧", "axis_relation": "同一对话轴", "entry_state": "A", "exit_state": "B"},
+                        {"shot_index": 2, "axis_id": "dialogue-axis", "axis_side": "north", "axis_transition": "HOLD_AXIS", "subject_descriptor_id": "@hero", "subject_screen_region": "screen_right", "gaze_direction": "screen_left", "eyeline_target_descriptor_id": "@hero", "background_anchor_descriptor_id": "@hero", "background_screen_region": "left_depth", "camera_side": "北侧", "axis_relation": "同一对话轴", "entry_state": "B", "exit_state": "C"},
+                    ],
+                },
+                "key_rules": ["保持轴线"], "atmosphere_state": "连续", "style_prefix": "写实", "negative_constraints": ["未声明越轴"],
+            },
+        })
+        with self.assertRaisesRegex(ValueError, "undeclared axis cross"):
+            compile_prompt(spec)
 
     def test_cinematic_shot_language_rejects_duplicate_information_unit(self):
         hero = "角色锁定描述"

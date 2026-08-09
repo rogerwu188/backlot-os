@@ -192,6 +192,262 @@ SHOT_INFORMATION_TYPES = {
     "orientation", "threat", "action_setup", "contact_detail",
     "consequence", "reaction", "resolution",
 }
+SPATIAL_SCREEN_REGIONS = {"screen_left", "screen_center", "screen_right", "full_frame"}
+SPATIAL_BACKGROUND_REGIONS = {
+    "left_depth", "center_depth", "right_depth", "full_background",
+}
+SPATIAL_GAZE_DIRECTIONS = {"screen_left", "screen_right", "camera", "up", "down", "none"}
+SPATIAL_AXIS_TRANSITIONS = {"ESTABLISH_AXIS", "HOLD_AXIS", "DECLARED_AXIS_CROSS"}
+CAMERA_STYLE_PROFILES = {
+    "AMERICAN_HOLLYWOOD": {
+        "label_zh": "美式好莱坞",
+        "cultural_tradition": "AMERICAN_HOLLYWOOD",
+        "provenance": "HELL_GRIND_LICENSED_PRODUCTION_METHODOLOGY",
+        "deployment_status": "ADAPTED",
+        "adapter_lineage": [
+            "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V7",
+            "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8",
+            "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9",
+            "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
+        ],
+    },
+    # Reserved identifiers make the selection boundary explicit without claiming
+    # that these traditions have already been learned or cleared for production.
+    "EASTERN_WUXIA": {
+        "label_zh": "东方武侠",
+        "cultural_tradition": "EASTERN_WUXIA",
+        "provenance": None,
+        "deployment_status": "RESERVED_NOT_ADAPTED",
+        "adapter_lineage": [],
+    },
+    "EASTERN_KUNGFU": {
+        "label_zh": "东方功夫",
+        "cultural_tradition": "EASTERN_KUNGFU",
+        "provenance": None,
+        "deployment_status": "RESERVED_NOT_ADAPTED",
+        "adapter_lineage": [],
+    },
+}
+
+
+def compile_camera_style_plan(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict]:
+    """Label camera grammar per shot and keep cultural styles selectable."""
+    plan = contract.get("camera_style_plan")
+    if not plan:
+        plan = {
+            "selection_policy": "PER_SHOT_GENRE_AWARE",
+            "shots": [
+                {
+                    "shot_index": row["shot_index"],
+                    "style_profile_id": "AMERICAN_HOLLYWOOD",
+                    "selection_reason": "当前运镜规则来自已许可 Hell Grind 方法学",
+                }
+                for row in segments
+            ],
+        }
+    if plan.get("selection_policy") != "PER_SHOT_GENRE_AWARE":
+        raise ValueError(
+            "camera_style_plan selection_policy must be PER_SHOT_GENRE_AWARE"
+        )
+    rows = require(plan.get("shots"), "camera_style_plan shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("camera_style_plan must exactly cover all compiled shots")
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"camera style row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError("camera_style_plan shot_index must match compiled shot order")
+        profile_id = require(
+            row.get("style_profile_id"),
+            f"camera style row {index} style_profile_id is required",
+        )
+        profile = CAMERA_STYLE_PROFILES.get(profile_id)
+        if not profile:
+            raise ValueError(f"unknown camera style profile: {profile_id}")
+        if profile["deployment_status"] != "ADAPTED":
+            raise ValueError(f"camera style profile is not adapted for production: {profile_id}")
+        reason = require(
+            row.get("selection_reason"),
+            f"camera style row {index} selection_reason is required",
+        )
+        compiled.append({
+            "shot_index": shot_index,
+            "style_profile_id": profile_id,
+            "style_label_zh": profile["label_zh"],
+            "cultural_tradition": profile["cultural_tradition"],
+            "selection_reason": reason,
+            "provenance": profile["provenance"],
+            "adapter_lineage": profile["adapter_lineage"],
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}：运镜风格={row['style_label_zh']}"
+        f"[{row['style_profile_id']}]；选择依据={row['selection_reason']}"
+        for row in compiled
+    ]
+    return (
+        "\n【CAMERA STYLE PROFILE｜运镜文化风格标签】" + "。".join(prompt_rows) + "。",
+        {
+            "version": "1.0.0",
+            "adapter": "TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1",
+            "selection_policy": "PER_SHOT_GENRE_AWARE",
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "available_profiles": sorted({row["style_profile_id"] for row in compiled}),
+            "reserved_not_adapted_profiles": [
+                profile_id for profile_id, profile in CAMERA_STYLE_PROFILES.items()
+                if profile["deployment_status"] != "ADAPTED"
+            ],
+        },
+    )
+
+
+def compile_spatial_axis_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Make screen direction, eyelines, and background geography explicit per cut."""
+    ledger = contract.get("spatial_axis_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("coverage_policy") != "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND":
+        raise ValueError(
+            "spatial_axis_ledger coverage_policy must be "
+            "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND"
+        )
+    rows = require(ledger.get("shots"), "spatial_axis_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("spatial_axis_ledger must exactly cover all compiled shots")
+
+    compiled, axis_sides = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"spatial axis row {index} shot_index is required"
+        ))
+        if shot_index != index:
+            raise ValueError("spatial_axis_ledger shot_index must match compiled shot order")
+        axis_id = require(row.get("axis_id"), f"spatial axis row {index} axis_id is required")
+        axis_side = require(
+            row.get("axis_side"), f"spatial axis row {index} axis_side is required"
+        )
+        transition = require(
+            row.get("axis_transition"),
+            f"spatial axis row {index} axis_transition is required",
+        )
+        if transition not in SPATIAL_AXIS_TRANSITIONS:
+            raise ValueError(f"unsupported spatial axis transition: {transition}")
+        previous_side = axis_sides.get(axis_id)
+        if previous_side is None:
+            if transition != "ESTABLISH_AXIS":
+                raise ValueError(f"spatial axis {axis_id} must start with ESTABLISH_AXIS")
+        elif previous_side == axis_side:
+            if transition != "HOLD_AXIS":
+                raise ValueError(f"spatial axis {axis_id} unchanged side must use HOLD_AXIS")
+        elif transition != "DECLARED_AXIS_CROSS":
+            raise ValueError(f"undeclared axis cross for spatial axis {axis_id}")
+        axis_sides[axis_id] = axis_side
+
+        subject_id = require(
+            row.get("subject_descriptor_id"),
+            f"spatial axis row {index} subject_descriptor_id is required",
+        )
+        eyeline_target_id = require(
+            row.get("eyeline_target_descriptor_id"),
+            f"spatial axis row {index} eyeline_target_descriptor_id is required",
+        )
+        background_id = require(
+            row.get("background_anchor_descriptor_id"),
+            f"spatial axis row {index} background_anchor_descriptor_id is required",
+        )
+        for field, descriptor_id in (
+            ("subject_descriptor_id", subject_id),
+            ("eyeline_target_descriptor_id", eyeline_target_id),
+            ("background_anchor_descriptor_id", background_id),
+        ):
+            if descriptor_id not in descriptor_ids:
+                raise ValueError(
+                    f"spatial axis row {index} {field} references unknown descriptor"
+                )
+        subject_region = require(
+            row.get("subject_screen_region"),
+            f"spatial axis row {index} subject_screen_region is required",
+        )
+        if subject_region not in SPATIAL_SCREEN_REGIONS:
+            raise ValueError(f"unsupported subject screen region: {subject_region}")
+        background_region = require(
+            row.get("background_screen_region"),
+            f"spatial axis row {index} background_screen_region is required",
+        )
+        if background_region not in SPATIAL_BACKGROUND_REGIONS:
+            raise ValueError(f"unsupported background screen region: {background_region}")
+        gaze_direction = require(
+            row.get("gaze_direction"),
+            f"spatial axis row {index} gaze_direction is required",
+        )
+        if gaze_direction not in SPATIAL_GAZE_DIRECTIONS:
+            raise ValueError(f"unsupported gaze direction: {gaze_direction}")
+        camera_side = require(
+            row.get("camera_side"), f"spatial axis row {index} camera_side is required"
+        )
+        axis_relation = require(
+            row.get("axis_relation"),
+            f"spatial axis row {index} axis_relation is required",
+        )
+        if camera_side != segment["geometry"]["camera_side"]:
+            raise ValueError(f"spatial axis row {index} camera_side must match cinematic segment")
+        if axis_relation != segment["geometry"]["axis_relation"]:
+            raise ValueError(f"spatial axis row {index} axis_relation must match cinematic segment")
+        entry_state = require(
+            row.get("entry_state"), f"spatial axis row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"spatial axis row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"spatial axis row {index} entry/exit state must match cinematic segment"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "axis_id": axis_id,
+            "axis_side": axis_side,
+            "axis_transition": transition,
+            "subject_descriptor_id": subject_id,
+            "subject_screen_region": subject_region,
+            "gaze_direction": gaze_direction,
+            "eyeline_target_descriptor_id": eyeline_target_id,
+            "background_anchor_descriptor_id": background_id,
+            "background_screen_region": background_region,
+            "camera_side": camera_side,
+            "axis_relation": axis_relation,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['axis_id']}/{row['axis_transition']}]："
+        f"轴侧={row['axis_side']}；主体={row['subject_descriptor_id']}@{row['subject_screen_region']}；"
+        f"视线={row['gaze_direction']}→{row['eyeline_target_descriptor_id']}；"
+        f"背景={row['background_anchor_descriptor_id']}@{row['background_screen_region']}；"
+        f"机位侧={row['camera_side']}，轴线={row['axis_relation']}；"
+        f"入口={row['entry_state']}，出口={row['exit_state']}"
+        for row in compiled
+    ]
+    return (
+        "\n【SPATIAL AXIS LEDGER｜屏幕方位、视线与背景锚点】" + "。".join(prompt_rows) + "。"
+        "所有切镜必须保持已声明的屏幕方向、视线目标和背景地理；只有 DECLARED_AXIS_CROSS 可以改变轴侧。",
+        {
+            "version": "1.0.0",
+            "coverage_policy": "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND",
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "adapter": "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
+        },
+    )
 
 
 def compile_shot_information_ladder(
@@ -479,6 +735,10 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     information_ladder_prompt, information_ladder = compile_shot_information_ladder(
         contract, compiled
     )
+    spatial_axis_prompt, spatial_axis_ledger = compile_spatial_axis_ledger(
+        contract, compiled, descriptor_ids
+    )
+    camera_style_prompt, camera_style_plan = compile_camera_style_plan(contract, compiled)
     segment_rows = [
         f"{row['start_seconds']:g}-{row['end_seconds']:g}秒 / 镜头{row['shot_index']}：目的={row['narrative_purpose']}；"
         f"入口={row['entry_state']}；出口={row['exit_state']}；引用={','.join(row['descriptor_ids'])}；"
@@ -490,6 +750,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     prompt = (
         "\n\n【LOCKED DESCRIPTORS｜逐镜原文复用】" + "；".join(descriptor_rows)
         + "。\n【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】\n" + "\n".join(segment_rows)
+        + camera_style_prompt
+        + spatial_axis_prompt
         + information_ladder_prompt
         + state_ledger_prompt
         + "\n【KEY RULES】" + "；".join(rules)
@@ -500,7 +762,11 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "SPATIAL_AXIS_LEDGER", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "camera_style_plan": camera_style_plan,
+        "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
+        "spatial_axis_ledger": spatial_axis_ledger,
+        "spatial_axis_gate": "PASS_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND_COVERAGE" if spatial_axis_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
         "shot_information_gate": "PASS_UNIQUE_FULL_COVERAGE" if information_ladder else "NOT_APPLICABLE",
         "cross_cut_state_ledger": state_ledger,

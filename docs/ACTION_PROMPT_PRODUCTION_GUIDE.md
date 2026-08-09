@@ -86,13 +86,25 @@ keeps prompt responsibilities in this fixed order:
 2. `PURPOSE_GEOMETRY_TIME_CUTS`: one contiguous segment per compiled shot. Each
    segment names its narrative purpose, entry and exit state, subject anchor,
    camera side, axis relation, scale anchor, and the reason the camera moves.
-3. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+3. `CAMERA_STYLE_PROFILE`: a per-shot, genre-aware cultural camera-language
+   label with provenance. It identifies the movement grammar independently of
+   the later visual `STYLE` treatment.
+4. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-4. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+5. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-5. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+6. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
+
+Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
+好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a
+profile per shot using `PER_SHOT_GENRE_AWARE`, so the same narrative shot can
+select a different registered grammar when its genre changes. `EASTERN_WUXIA`
+and `EASTERN_KUNGFU` are reserved identifiers only: they remain blocked from
+production until separately licensed source material has completed adaptation,
+QA, and deployment. This prevents Hell Grind's Hollywood grammar from silently
+becoming a universal default or being mislabeled as an Eastern action style.
 
 For multi-cut scenes with persistent character, prop, spatial, or environment
 facts, add `cross_cut_state_ledger`. Each typed track must cover every compiled
@@ -116,6 +128,21 @@ focal length or camera move that merely repeats the previous action picture;
 each cut must add distinct story information. This generalizes the licensed
 Scene 70.2 pattern of moving from spatial orientation to contact diagnosis and
 durable consequence without copying its characters or imagery.
+
+When coverage changes subject, scale, or lens across an established axis, add
+`spatial_axis_ledger` with
+`PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND`. Every shot must bind a
+SHA-locked subject, its screen region, gaze direction and eyeline target, a
+SHA-locked background anchor and depth region, the camera side and axis
+relation already declared by the time-coded segment, and the exact segment
+entry/exit state. Each named axis starts with `ESTABLISH_AXIS`, stays on its
+declared side with `HOLD_AXIS`, and may change sides only through an explicit
+`DECLARED_AXIS_CROSS`. Adapter V10 rejects an undeclared 180-degree crossing,
+an unknown eyeline/background target, or a cut whose composition silently
+changes the scene geography. This generalizes the licensed Scene 70C practice
+of keeping opposing profiles, off-screen gazes, foreground/background anchors,
+and persistent physical contact readable across focal-length changes; it does
+not ship source characters, source imagery, or Seedance model weights.
 
 The segments must start at zero, remain contiguous, follow storyboard order,
 and cover the declared duration exactly. The compiler rejects unknown asset
