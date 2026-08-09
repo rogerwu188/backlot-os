@@ -457,6 +457,38 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "missing required evidence: embedded_reaction"):
                 compile_prompt(spec)
 
+    def test_combat_rejects_near_miss_without_armor_glancing_contact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "near_miss_armor_interception_recovery_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the attacker commits to a readable strike line",
+                "exit_state": "the body remains protected while armor damage and opposed recovery costs persist",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "attack_commitment", "last_moment_evasion_clearance",
+                        "body_protection_state", "fragment_consequence",
+                        "attacker_followthrough_imbalance", "defender_stance_recovery",
+                        "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "clearance", "value": 80, "unit": "cm"},
+                "promoted_state_id": "armor_damage_state_1",
+                "final_relational_frame": "both fighters, attack path, protected body and persistent armor damage remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove partial protective interception without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: armor_glancing_contact"):
+                compile_prompt(spec)
+
     def test_combat_rejects_continuous_perpetual_camera_motion(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

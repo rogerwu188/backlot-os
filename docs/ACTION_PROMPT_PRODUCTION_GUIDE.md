@@ -373,7 +373,8 @@ one final relational composition, and a camera resolution that must match an
 already declared camera segment. Contact must leave a visible consequence;
 damage, formation, props, distance, and recovery cannot reset between beats.
 
-The licensed Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, and Scene 69B.17 prompt/rule adapter exposes thirteen typed
+The licensed Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17,
+and Scene 69B.16 prompt/rule adapter exposes fourteen typed
 methods:
 
 - `causal_impact_aftermath_ladder`
@@ -389,6 +390,7 @@ methods:
 - `committed_miss_entrapment_counter_window`
 - `force_conversion_controlled_recovery_ladder`
 - `follow_through_exposure_penetration_extraction_ladder`
+- `near_miss_armor_interception_recovery_ladder`
 
 Each method has its own required evidence vocabulary. Spatial methods require a
 positive measurement in metres, centimetres, seconds, degrees, or body lengths;
@@ -430,6 +432,15 @@ closure, targeted penetration, an embedded interval that proves ownership and
 reaction, a distinct extraction consequence, durable cumulative damage, and a
 shared closing frame. Decorative whip-pans, repeated lens-stomps, perpetual
 handheld drift, and unmotivated slow motion are filtered out.
+
+`near_miss_armor_interception_recovery_ladder` preserves the difference between
+a body evasion, a complete miss, and a glancing hit on a named protective layer.
+It requires a measured last-moment clearance, visible armor contact, separate
+protected-body and damaged-protection states, a persistent fragment or
+deformation consequence, opposing attacker/defender recovery costs, and a
+shared closing frame. The damaged protection receives a durable state ID.
+Decorative whip-pans, impact zooms, perpetual handheld drift, unmotivated slow
+motion, and invented glow cannot replace physical contact evidence.
 
 ## Selective BGM flow
 

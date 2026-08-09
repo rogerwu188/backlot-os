@@ -158,6 +158,16 @@ COMBAT_CONTINUITY_METHODS = {
         },
         "measurement_required": True, "state_promotion_required": True,
     },
+    "near_miss_armor_interception_recovery_ladder": {
+        "label": "近失装甲截击恢复阶梯", "min_beats": 3,
+        "required_evidence": {
+            "attack_commitment", "last_moment_evasion_clearance",
+            "armor_glancing_contact", "body_protection_state",
+            "fragment_consequence", "attacker_followthrough_imbalance",
+            "defender_stance_recovery", "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
 }
 COMBAT_EVIDENCE_TYPES = set().union(
     *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
