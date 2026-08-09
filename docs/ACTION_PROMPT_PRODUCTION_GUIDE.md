@@ -94,11 +94,36 @@ keeps prompt responsibilities in this fixed order:
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
+For multi-cut scenes with persistent character, prop, spatial, or environment
+facts, add `cross_cut_state_ledger`. Each typed track must cover every compiled
+shot in order, bind to a SHA-locked descriptor, record visible entry/exit
+evidence, and make each next entry exactly equal the prior exit. Its terminal
+state must equal the final exit. Adapter V8 rejects a pristine prop after damage,
+a restored injury, a relocated witness, a cleared footprint/fire/snow trace, or
+any other undeclared reset before provider submission. This generalizes the
+licensed Scene 70 practice of separating cut purpose from durable state facts;
+it is a prompt/rule adapter, not trained Seedance model weights.
+
+When a cut sequence needs explicit information progression, add
+`shot_information_ladder` with `ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT`. Every
+compiled shot receives a unique information-unit ID, one typed job
+(`orientation`, `threat`, `action_setup`, `contact_detail`, `consequence`,
+`reaction`, or `resolution`), a visible evidence clause, one shot scale and
+numeric lens, and a plain-language camera role. Contact, consequence, and
+resolution shots must name the visible result. The ladder entry/exit states
+must match the time-coded segment exactly. Adapter V9 therefore rejects a new
+focal length or camera move that merely repeats the previous action picture;
+each cut must add distinct story information. This generalizes the licensed
+Scene 70.2 pattern of moving from spatial orientation to contact diagnosis and
+durable consequence without copying its characters or imagery.
+
 The segments must start at zero, remain contiguous, follow storyboard order,
 and cover the declared duration exactly. The compiler rejects unknown asset
 references, descriptor text whose SHA does not match, untested assets,
 decorative camera movement without motivation, timeline gaps, and unsupported
-dialogue policies before a paid generation call.
+dialogue policies before a paid generation call. When a cross-cut ledger is
+present, incomplete shot coverage, unknown descriptor bindings, duplicate
+tracks, state-handoff mismatches, and terminal-state mismatches also fail.
 
 Map writer fields deliberately: `shot_treatment.purpose` becomes
 `narrative_purpose`; blocking and scene-map data become `geometry`; the current
@@ -362,6 +387,104 @@ Edit-only techniques (`whip_pan_cut`, `detail_triple_cut`, and
 `shot_reverse_exchange`) require storyboard generation. Slow motion without a
 decisive contact, sustained shake, adjacent dynamic motion, decorative orbit,
 and continuous push/pull/roam fail before paid submission.
+
+### Causal combat-continuity ladders
+
+Camera grammar alone does not guarantee that an exchange remains physically
+legible. Every combat contract therefore includes one to three
+`continuity_ladders`. A ladder binds ordered action-beat indexes, an entry and
+exit state, persistent visible evidence, any required real-world measurement,
+one final relational composition, and a camera resolution that must match an
+already declared camera segment. Contact must leave a visible consequence;
+damage, formation, props, distance, and recovery cannot reset between beats.
+
+The licensed Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17,
+Scene 69B.16, and Scene 69B.15 prompt/rule adapter exposes fifteen typed
+methods:
+
+- `causal_impact_aftermath_ladder`
+- `occlusion_breach_threat_reveal`
+- `timed_emotional_reaction_microsequence`
+- `damage_accumulation_state_promotion`
+- `reversible_crowd_geometry_ceremonial_entrance`
+- `prop_geometric_anchor_momentum_recovery`
+- `reciprocal_charge_convergence_ladder`
+- `asymmetric_locked_clash_sustained_force`
+- `defense_rhythm_failure_combo_ladder`
+- `embodied_topology_traversal_damage_combo`
+- `committed_miss_entrapment_counter_window`
+- `force_conversion_controlled_recovery_ladder`
+- `follow_through_exposure_penetration_extraction_ladder`
+- `near_miss_armor_interception_recovery_ladder`
+- `low_profile_evasion_limb_failure_counterlaunch_recovery_ladder`
+
+Each method has its own required evidence vocabulary. Spatial methods require a
+positive measurement in metres, centimetres, seconds, degrees, or body lengths;
+damage promotion additionally requires a durable state ID. The final frame must
+show the relevant identities, force direction, path, and environmental result
+together. Missing evidence, unordered beat bindings, duplicate methods, invalid
+measurements, and camera resolutions outside the motivated plan fail before a
+paid submission. This is a licensed prompt/rule adapter, not trained Seedance
+model weights.
+
+When a contract composes two or three continuity ladders, adapter V7 treats the
+declared order as a causal state chain. Each later ladder must begin at or after
+the prior ladder's final bound beat, and its `entry_state` must exactly inherit
+the prior ladder's `exit_state`. The compiler emits the shared state and boundary
+beats into both adjacent manifest rows and into the prompt. A clean reset of
+character position, injury, prop condition, or spatial relation between ladders
+fails before provider submission.
+
+`embodied_topology_traversal_damage_combo` handles a large opponent, creature,
+vehicle, or structure as traversable terrain. It requires a load-bearing anchor,
+ordered footholds or grip transitions, a continuous route, distinct contact
+results, measured landing relation, and a shared closing frame containing the
+topology and cumulative damage. Source prompts that demand perpetual handheld
+motion, decorative whip moves, or slow motion are filtered out; camera movement
+may reveal the route but cannot replace physical evidence.
+
+`committed_miss_entrapment_counter_window` turns a missed committed strike into
+a readable initiative transfer. It requires an irreversible attack line, a
+measured evasion clearance, visible weapon contact and entrapment, a persistent
+extraction delay, and a counterlaunch that starts only after the opening is
+proved. The trapped state receives a durable state ID and must remain visible in
+the final shared composition. Continuous shake, decorative whip moves, and
+unmotivated slow motion are filtered from the source methodology.
+
+`force_conversion_controlled_recovery_ladder` handles a defender who blocks a
+heavier impact and converts its force into controlled displacement rather than
+resetting between contact and landing. It requires defensive contact, readable
+force transfer, measured displacement, deliberate body rotation, carried-prop
+continuity, landing absorption, residual stance cost, and a final shared frame
+showing the new distance. Decorative whip-pans, repeated lens-stomps, perpetual
+handheld drift, and unmotivated slow motion are filtered out.
+
+`follow_through_exposure_penetration_extraction_ladder` turns a committed
+follow-through into a physically legible counteroffensive opening. It requires
+the opponent's recovery state, a named exposed target zone, measured gap
+closure, targeted penetration, an embedded interval that proves ownership and
+reaction, a distinct extraction consequence, durable cumulative damage, and a
+shared closing frame. Decorative whip-pans, repeated lens-stomps, perpetual
+handheld drift, and unmotivated slow motion are filtered out.
+
+`near_miss_armor_interception_recovery_ladder` preserves the difference between
+a body evasion, a complete miss, and a glancing hit on a named protective layer.
+It requires a measured last-moment clearance, visible armor contact, separate
+protected-body and damaged-protection states, a persistent fragment or
+deformation consequence, opposing attacker/defender recovery costs, and a
+shared closing frame. The damaged protection receives a durable state ID.
+Decorative whip-pans, impact zooms, perpetual handheld drift, unmotivated slow
+motion, and invented glow cannot replace physical contact evidence.
+
+`low_profile_evasion_limb_failure_counterlaunch_recovery_ladder` organizes a
+low-profile evasion, targeted support-limb hit, visible load-bearing failure,
+opponent counterlaunch, measured airborne displacement, and prop-preserving
+landing as one causal exchange. The support-limb failure receives a durable
+state ID; the closing frame must retain the wound, both recovery costs, the
+carried prop, landing absorption, and any motivated witness-field reaction.
+Ground tracking may establish clearance and a stable impact frame may resolve
+the result, but repeated whip-pans, perpetual shake, decorative slow motion,
+and impact zooms cannot replace readable body mechanics.
 
 ## Selective BGM flow
 

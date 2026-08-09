@@ -2,6 +2,49 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V9 with a typed shot
+  information ladder for task2-1. Every cut must contribute one unique visible
+  information unit, bind its shot scale and numeric lens to a declared camera
+  role, preserve the time-coded entry/exit state, and expose contact or result
+  consequences instead of repeating an action picture through cosmetic camera
+  changes.
+- Upgrade the licensed Hell Grind prompt/rule adapter to V8 with a typed
+  cross-cut state ledger for task2-1 cinematic shot organization. Character,
+  prop, spatial, and environment tracks must cover every cut, preserve exact
+  entry/exit handoffs, retain visible evidence, and reject undeclared resets.
+- Upgrade the Hell Grind prompt/rule adapter to V7 by enforcing causal state
+  handoffs between composed continuity ladders; reject reversed ladder order or
+  any character, injury, prop, or spatial reset between adjacent methods.
+- Add the licensed Hell Grind Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17, Scene 69B.16, and Scene 69B.15 prompt/rule adapter with fifteen typed
+  combat-continuity methods that bind ordered beats, persistent visible
+  evidence, measured spatial change, and a final relational composition.
+- Add embodied-topology traversal for action that uses a larger opponent,
+  creature, vehicle, or structure as terrain; require load-bearing geometry,
+  foothold or grip transitions, distinct contacts, cumulative results, and a
+  measured landing relation while filtering perpetual camera drift.
+- Add a committed-miss entrapment counter window that requires an irreversible
+  attack line, measured dodge clearance, visible terrain entrapment, a durable
+  trapped-weapon state, extraction delay, and a causally timed counterlaunch.
+- Add controlled force conversion for blocked heavy impacts; require defensive
+  contact, measured displacement, deliberate rotation, retained-prop
+  continuity, landing absorption, residual stance cost, and relational closure.
+- Add a follow-through exposure penetration/extraction ladder that requires a
+  named target zone, measured gap closure, embedded-contact reaction, distinct
+  extraction consequence, durable cumulative damage, and relational closure.
+- Add a near-miss armor-interception recovery ladder that requires measured body
+  clearance, glancing protective contact, separate protected-body and damaged-
+  armor states, a persistent fragment or deformation consequence, opposed
+  recovery costs, and relational closure.
+- Add a low-profile evasion and limb-failure counterlaunch ladder that requires
+  measured strike-line clearance, a targeted support-limb wound, persistent
+  load-bearing failure, counterlaunch contact, measured airborne displacement,
+  carried-prop continuity, landing absorption, recovery stance, witness-field
+  reaction, and relational closure.
+- Require every combat continuity resolution to reuse an already motivated
+  camera segment; reject missing evidence, invalid measurements, state resets,
+  and decorative camera substitutions before provider spend. This adapter does
+  not claim Seedance model-weight training.
+
 ## 0.2.42
 
 - Reject provider/model resolution mismatches before any paid video POST; Giggle Seedance 2.0 Fast is now authoritatively limited to 720p or 480p.
