@@ -69,7 +69,8 @@ def evaluate_arrays(authority: np.ndarray, frames: list[np.ndarray]) -> dict[str
     authority_at_size = cv2.resize(authority, (frames[0].shape[1], frames[0].shape[0]), interpolation=cv2.INTER_LANCZOS4)
     frame0 = frame0_metrics(authority_at_size, frames[0])
     baseline = [pair_metrics(frames[index], frames[index + 1]) for index in range(1, 12)]
-    transition = pair_metrics(authority_at_size, frames[1])
+    transition = pair_metrics(frames[0], frames[1])
+    authority_to_frame1 = pair_metrics(authority_at_size, frames[1])
     median_mae = float(np.median([row["mae"] for row in baseline]))
     median_phash = int(np.median([row["phash_hamming"] for row in baseline]))
     median_luma = float(np.median([row["mean_luma_jump"] for row in baseline]))
@@ -94,10 +95,26 @@ def evaluate_arrays(authority: np.ndarray, frames: list[np.ndarray]) -> dict[str
         and float(transition["mean_luma_jump"]) <= thresholds["maximum_transition_luma_jump"]
         and float(transition["mean_optical_flow"]) <= thresholds["maximum_transition_mean_optical_flow"]
     )
+    authority_to_frame1_diagnostic_pass = (
+        float(authority_to_frame1["mae"]) <= thresholds["maximum_transition_mae"]
+        and int(authority_to_frame1["phash_hamming"]) <= thresholds["maximum_transition_phash_hamming"]
+        and float(authority_to_frame1["mean_luma_jump"]) <= thresholds["maximum_transition_luma_jump"]
+        and float(authority_to_frame1["mean_optical_flow"]) <= thresholds["maximum_transition_mean_optical_flow"]
+    )
     return {
         "status": "PASS" if frame0_pass and transition_pass else "FAIL",
         "frame0_authority": {"status": "PASS" if frame0_pass else "FAIL", "metrics": frame0},
-        "frame0_to_frame1_continuity": {"status": "PASS" if transition_pass else "FAIL", "metrics": transition},
+        "frame0_to_frame1_continuity": {
+            "status": "PASS" if transition_pass else "FAIL",
+            "operands": ["decoded_frame0", "decoded_frame1"],
+            "metrics": transition,
+        },
+        "authority_to_frame1_composite_diagnostic": {
+            "status": "PASS" if authority_to_frame1_diagnostic_pass else "FAIL",
+            "role": "DIAGNOSTIC_ONLY_DOES_NOT_AFFECT_GATE_STATUS",
+            "operands": ["authority_at_decoded_size", "decoded_frame1"],
+            "metrics": authority_to_frame1,
+        },
         "baseline_medians": {
             "mae": median_mae,
             "phash_hamming": median_phash,

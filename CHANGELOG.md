@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.2.48
+
+- Correct the exact-first-frame continuity operand to compare decoded frame 0
+  with decoded frame 1. Keep source-authority-to-frame-0 admission and every
+  threshold unchanged, and expose authority-to-frame-1 only as a named,
+  non-gating composite diagnostic. Regression coverage prevents provider
+  frame-0 drift from being counted twice while preserving the hard rejection.
+
+## 0.2.47
+
 - Protect continuous scheduler state with a single-writer lease, exact-SHA
   compare-and-swap, conflict-time reload and disjoint `task_id` merge, plus
   crash-durable temp-file `fsync` and atomic rename. Same-task conflicts now
