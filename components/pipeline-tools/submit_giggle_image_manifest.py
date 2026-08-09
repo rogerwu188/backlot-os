@@ -24,7 +24,8 @@ except ModuleNotFoundError:  # Imported as tools.submit_giggle_image_manifest.
     from tools.shot_space_camera_constraint_gate import evaluate_task as evaluate_spatial_task
 
 
-ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+ROOT = DEFAULT_ROOT
 
 
 def portable_path(path: Path) -> str:
@@ -103,6 +104,16 @@ def resolve(path: str | Path) -> Path:
     return value if value.is_absolute() else ROOT / value
 
 
+def configure_project_root(value: str | None) -> Path:
+    """Return an explicit production root, or preserve the installed default."""
+    if value is None:
+        return DEFAULT_ROOT
+    project_root = Path(value).expanduser().resolve()
+    if not project_root.is_dir():
+        raise ValueError(f"Project root is not an existing directory: {value}")
+    return project_root
+
+
 def validate_gate(path: str) -> dict[str, Any]:
     report_path = resolve(path)
     if not report_path.is_file():
@@ -169,6 +180,79 @@ def validate_mask_transport(task: dict[str, Any]) -> None:
     )
 
 
+def validate_reference_topology(task: dict[str, Any], bindings: list[dict[str, Any]]) -> None:
+    """Validate ordinary shot references separately from reusable character assets.
+
+    Ordinary shot generation always remains scene-bound.  The only exception is
+    an explicit ``asset_role_only`` task, whose single reference is identity
+    authority for a reusable character asset and must never be relabelled as a
+    scene or used directly as a shot start frame.
+    """
+    task_key = task.get("task_key", "UNKNOWN")
+    scene_bindings = [
+        row for row in bindings if row.get("role") in {"scene", "destination_scene"}
+    ]
+    character_bindings = [row for row in bindings if row.get("role") == "character"]
+
+    if task.get("asset_role_only") is not True:
+        if len(scene_bindings) != 1:
+            raise ValueError(f"{task_key} must have exactly one scene reference")
+        return
+
+    if len(bindings) != 1 or len(character_bindings) != 1 or scene_bindings:
+        raise ValueError(
+            f"{task_key} asset_role_only requires exactly one character reference "
+            "and zero scene references"
+        )
+    character = character_bindings[0]
+    if character.get("qa_status") != "PASS":
+        raise ValueError(f"{task_key} asset_role_only character reference is not verified")
+    if task.get("direct_shot_start_frame_use") is True:
+        raise ValueError(f"{task_key} asset_role_only cannot be used directly as a shot start frame")
+
+    owner_count_state = task.get("owner_count_state")
+    if not isinstance(owner_count_state, list) or not owner_count_state:
+        raise ValueError(f"{task_key} asset_role_only requires owner_count_state")
+    required_owner_fields = {"item", "owner", "count", "transfer", "state"}
+    seen_items: set[str] = set()
+    for row in owner_count_state:
+        if not isinstance(row, dict) or not required_owner_fields.issubset(row):
+            raise ValueError(f"{task_key} asset_role_only owner_count_state is incomplete")
+        if not all(str(row[field]).strip() for field in ("item", "owner", "transfer", "state")):
+            raise ValueError(f"{task_key} asset_role_only owner_count_state has blank values")
+        if not isinstance(row["count"], int) or isinstance(row["count"], bool) or row["count"] <= 0:
+            raise ValueError(f"{task_key} asset_role_only owner_count_state count must be positive")
+        item = str(row["item"]).strip()
+        if item in seen_items:
+            raise ValueError(f"{task_key} asset_role_only owner_count_state repeats item {item}")
+        seen_items.add(item)
+
+    reusable_scope = task.get("reusable_scope")
+    if not isinstance(reusable_scope, dict):
+        raise ValueError(f"{task_key} asset_role_only requires reusable_scope")
+    if reusable_scope.get("asset_role_only") is not True:
+        raise ValueError(f"{task_key} reusable_scope must preserve asset_role_only=true")
+    if reusable_scope.get("direct_shot_start_frame_use") is not False:
+        raise ValueError(
+            f"{task_key} reusable_scope must set direct_shot_start_frame_use=false"
+        )
+    if reusable_scope.get("per_unit_unified_camera_light_rebuild_required") is not True:
+        raise ValueError(
+            f"{task_key} reusable_scope must require per-unit camera/light rebuild"
+        )
+    authorized_units = reusable_scope.get("authorized_units")
+    if (
+        not isinstance(authorized_units, list)
+        or not authorized_units
+        or any(not isinstance(unit, str) or not unit.strip() for unit in authorized_units)
+        or len(set(authorized_units)) != len(authorized_units)
+    ):
+        raise ValueError(f"{task_key} reusable_scope authorized_units must be non-empty and unique")
+    threshold = reusable_scope.get("original_image_human_qa_threshold")
+    if not isinstance(threshold, int) or isinstance(threshold, bool) or threshold < 80:
+        raise ValueError(f"{task_key} reusable_scope human QA threshold must be at least 80")
+
+
 def validate_task(task: dict[str, Any]) -> None:
     for field in ("task_key", "prompt_file", "reference_images"):
         if not task.get(field):
@@ -204,8 +288,7 @@ def validate_task(task: dict[str, Any]) -> None:
         raise ValueError(f"{task['task_key']} visible-character/reference mismatch")
     if any(row.get("qa_status") != "PASS" for row in bindings if row.get("role") == "character"):
         raise ValueError(f"{task['task_key']} has an unverified character identity asset")
-    if len([row for row in bindings if row.get("role") in {"scene", "destination_scene"}]) != 1:
-        raise ValueError(f"{task['task_key']} must have exactly one scene reference")
+    validate_reference_topology(task, bindings)
     for binding in bindings:
         path = resolve(binding["path"])
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != binding.get("sha256"):
@@ -268,7 +351,7 @@ def submit_one(task: dict[str, Any], receipt_dir: Path, transaction_dir: Path) -
         "state": "SUBMITTED_TASK_ID_BOUND",
         "response_recorded_at": utc_now(),
         "task_id": task_id,
-        "receipt": str(receipt.relative_to(ROOT)),
+        "receipt": portable_path(receipt),
     })
     atomic_json(transaction, intent)
     return {
@@ -276,7 +359,7 @@ def submit_one(task: dict[str, Any], receipt_dir: Path, transaction_dir: Path) -
         "beat_id": task.get("beat_id"),
         "task_id": task_id,
         "status": "submitted",
-        "receipt": str(receipt.relative_to(ROOT)),
+        "receipt": portable_path(receipt),
         "transaction": portable_path(transaction),
         "recovered_from_transaction": False,
     }
@@ -355,13 +438,23 @@ def classify_ambiguous_failures(
 
 
 def main() -> int:
+    global ROOT
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument(
+        "--project-root",
+        help="Resolve project-relative manifests, assets, gates, reports, and transactions here",
+    )
     parser.add_argument("--concurrency", type=int, default=6)
     parser.add_argument("--precheck-only", action="store_true")
     parser.add_argument("--task-key", action="append", default=[], help="Submit only the named task key; repeat as needed")
     args = parser.parse_args()
+
+    try:
+        ROOT = configure_project_root(args.project_root)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
     manifest_path = resolve(args.manifest)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -457,7 +550,7 @@ def main() -> int:
     report = {
         "schema": "qingshan.giggle_image_batch_submit.v2",
         "episode": manifest.get("episode"),
-        "manifest": str(manifest_path.relative_to(ROOT)),
+        "manifest": portable_path(manifest_path),
         "recorded_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "precheck_only": args.precheck_only,
         "concurrency": max(1, args.concurrency),

@@ -51,6 +51,27 @@ reports, command arguments, or repository files.
 
 For Git checkouts, `scripts/update.sh` fetches the requested branch or tag and reinstalls the isolated environment. Set `BACKLOT_VERSION` to an immutable tag for production. To roll back, set it to the previous tag and rerun the script.
 
+After every update, run `scripts/doctor.sh` from the exact checkout used for
+installation. The doctor compares both the installed version record and the
+installed `submit_giggle_image_manifest.py` bytes with that checkout and fails
+closed on drift. A merged tag is not production-ready until this deployed-code
+parity check passes on the production machine.
+
+When the production project is outside the BacklotOS installation, image
+manifest prechecks and submissions must name it explicitly:
+
+```bash
+submit_giggle_image_manifest.py \
+  --project-root /absolute/path/to/production-project \
+  --manifest workflow/image_manifest.json \
+  --out qa/image_submit_report.json \
+  --precheck-only
+```
+
+All relative manifests, prompts, references, gate reports, output reports, and
+durable transaction paths resolve under that validated directory. Omitting
+`--project-root` preserves the installed-layout behavior for compatibility.
+
 Archive installations have no Git remote by design. Update them by downloading the next release archive, verifying the SHA-256 published on its release page, and running that archive's `scripts/install.sh` with the existing `BACKLOT_INSTALL_DIR`. Retain the previous archive until the new `scripts/doctor.sh` run passes.
 
 ## Cloud
