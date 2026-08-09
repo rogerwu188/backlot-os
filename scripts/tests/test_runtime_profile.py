@@ -128,6 +128,7 @@ class RuntimeProfileTests(unittest.TestCase):
                 "provider_video_capability_gate.py",
                 "provider_video_capabilities.json",
                 "continuous_task_lane_dispatcher.py",
+                "task_lane_global_wait_gate.py",
                 "task_lane_state_store.py",
             ):
                 shutil.copyfile(
