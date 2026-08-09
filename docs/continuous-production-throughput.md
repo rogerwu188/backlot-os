@@ -63,6 +63,15 @@ idempotent intent.  A successful dispatch then changes the task to RUNNING.
 Restarting the controller reuses the durable dispatch instead of duplicating
 work.
 
+Applied dispatch cycles hold a per-state-file single-writer lease across the
+journal claim and scheduler update. Scheduler persistence uses the exact input
+file SHA as a compare-and-swap precondition. If an unlocked writer changes the
+file meanwhile, the dispatcher reloads the latest state and merges only its
+own changed `task_id` records; a same-task conflict fails closed. Every state
+and journal write uses a same-directory temporary file, file `fsync`, atomic
+rename, and directory `fsync`, so neither concurrent agents nor a process crash
+can silently restore a stale whole-file snapshot.
+
 Example production loop:
 
 ```bash

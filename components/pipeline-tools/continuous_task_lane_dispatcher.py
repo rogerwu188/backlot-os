@@ -15,13 +15,19 @@ import hashlib
 import json
 import os
 import subprocess
-import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from task_lane_global_wait_gate import audit_scheduler_state
+from task_lane_state_store import (
+    SchedulerWriteLease,
+    commit_task_updates,
+    durable_atomic_json,
+    read_scheduler_snapshot,
+    scheduler_write_lease,
+)
 
 
 ACTIVE_LOCAL_STATES = frozenset({"RUNNING", "QA"})
@@ -37,21 +43,7 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def atomic_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
-    try:
-        with os.fdopen(handle, "w", encoding="utf-8") as stream:
-            json.dump(payload, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    except Exception:
-        try:
-            os.unlink(temporary)
-        except FileNotFoundError:
-            pass
-        raise
+    durable_atomic_json(path, payload)
 
 
 def _inside(root: Path, candidate: Path) -> Path:
@@ -137,17 +129,16 @@ def _journal_template() -> dict[str, Any]:
     return {"schema": "backlotos.continuous_task_lane_dispatch_journal.v1", "dispatches": {}}
 
 
-def dispatch_cycle(
+def _dispatch_cycle(
     state_path: Path,
     journal_path: Path,
     root: Path,
     capacity: int,
-    apply: bool = False,
+    apply: bool,
+    lease: SchedulerWriteLease | None,
 ) -> dict[str, Any]:
-    root = root.resolve()
-    state_path = _inside(root, state_path)
-    journal_path = _inside(root, journal_path)
-    payload = read_json(state_path)
+    snapshot = read_scheduler_snapshot(state_path)
+    payload = snapshot.payload
     selection = select_ready_tasks(payload, capacity)
     if selection["status"] != "PASS":
         return selection
@@ -157,6 +148,7 @@ def dispatch_cycle(
     tasks_by_id = {str(task.get("task_id") or ""): task for task in payload.get("tasks") or []}
     outcomes: list[dict[str, Any]] = []
     changed = False
+    changed_task_ids: set[str] = set()
 
     for task_id in selection["selected"]:
         task = tasks_by_id[task_id]
@@ -173,6 +165,7 @@ def dispatch_cycle(
                 task["dispatch_idempotency_key"] = key
                 task["dispatch_receipt"] = prior.get("receipt")
                 changed = True
+                changed_task_ids.add(task_id)
             outcomes.append({"task_id": task_id, "status": "REUSED_DURABLE_DISPATCH", "key": key})
             continue
         if not apply:
@@ -235,6 +228,7 @@ def dispatch_cycle(
         task["dispatch_idempotency_key"] = key
         task["dispatch_receipt"] = receipt
         changed = True
+        changed_task_ids.add(task_id)
         outcomes.append({"task_id": task_id, "status": "DISPATCHED", "key": key, "receipt": receipt})
 
     if changed:
@@ -243,12 +237,52 @@ def dispatch_cycle(
         payload["scheduler_decision"]["reason"] = (
             "Continuous dispatcher claimed READY work immediately; heartbeat is watchdog-only."
         )
-        atomic_json(state_path, payload)
+        state_commit = commit_task_updates(
+            state_path,
+            base_snapshot=snapshot,
+            task_updates={task_id: tasks_by_id[task_id] for task_id in changed_task_ids},
+            top_level_updates={
+                "recorded_at": payload["recorded_at"],
+                "scheduler_decision": {
+                    "global_wait": payload["scheduler_decision"]["global_wait"],
+                    "reason": payload["scheduler_decision"]["reason"],
+                },
+            },
+            writer_id=f"continuous-dispatcher:{os.getpid()}",
+            lease=lease,
+        )
+    else:
+        state_commit = None
 
     status = "PASS"
     if any(outcome["status"] in {"BLOCKED", "DISPATCH_FAILED"} for outcome in outcomes):
         status = "BLOCKED"
-    return {**selection, "status": status, "applied": apply, "outcomes": outcomes}
+    return {
+        **selection,
+        "status": status,
+        "applied": apply,
+        "outcomes": outcomes,
+        "state_commit": state_commit,
+    }
+
+
+def dispatch_cycle(
+    state_path: Path,
+    journal_path: Path,
+    root: Path,
+    capacity: int,
+    apply: bool = False,
+) -> dict[str, Any]:
+    root = root.resolve()
+    state_path = _inside(root, state_path)
+    journal_path = _inside(root, journal_path)
+    if not apply:
+        return _dispatch_cycle(state_path, journal_path, root, capacity, False, None)
+    with scheduler_write_lease(
+        state_path,
+        writer_id=f"continuous-dispatcher:{os.getpid()}",
+    ) as lease:
+        return _dispatch_cycle(state_path, journal_path, root, capacity, True, lease)
 
 
 def main() -> int:
