@@ -40,8 +40,8 @@ jobs:
         run: python -m pytest -q components/launcher/tests
       - name: Producer/Supervisor Agent tests
         run: python -m pytest -q components/producer-supervisor-agent/tests
-      - name: Prompt and BGM production-gate tests
-        run: python -m unittest discover -s components/pipeline-tools/tests -p 'test_action_prompt_pipeline_cli.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_bgm_authenticity_gate.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_dependency_lane_concurrency.py' -v && PYTHONPATH=components/pipeline-tools python -m unittest tests.test_local_lora_memory_sync tests.test_lora_memory_hub tests.test_seedance2_multi_keyframe_long_take tests.test_long_take_score_gate -v
+      - name: Prompt, image-submit, and BGM production-gate tests
+        run: python -m unittest discover -s components/pipeline-tools/tests -p 'test_action_prompt_pipeline_cli.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_bgm_authenticity_gate.py' -v && python -m unittest discover -s components/pipeline-tools/tests -p 'test_dependency_lane_concurrency.py' -v && PYTHONPATH=components/pipeline-tools python -m unittest tests.test_submit_giggle_image_manifest tests.test_local_lora_memory_sync tests.test_lora_memory_hub tests.test_seedance2_multi_keyframe_long_take tests.test_long_take_score_gate -v
       - name: Action prompt compatibility and root-cause gates
         working-directory: components/pipeline-tools
         run: python -m unittest -v tests.test_action_shot_design_gate tests.test_action_spatial_feasibility_gate tests.test_generation_prompt_optimizer tests.test_action_causal_chain_compiler tests.test_action_direction_contract_gate tests.test_action_actor_ownership_gate tests.test_shot_space_camera_constraint_gate tests.test_video_prompt_action_density_gate

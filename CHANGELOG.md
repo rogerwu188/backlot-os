@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.2.38
+
+- Allow a paid image manifest to omit a scene reference only when the task is
+  explicitly `asset_role_only=true`, binds exactly one verified character
+  reference, forbids direct shot-start use, and carries complete owner/count/
+  state plus reusable-scope controls. Ordinary shot images still require
+  exactly one scene reference, so relabelling a character asset as a scene is
+  not an accepted workaround.
+- Preserve durable image-submit intent, task-ID binding, response-loss
+  quarantine, and ledger-reconciliation behavior while adding regression
+  coverage for the new reusable-asset validation branch.
+- Make `doctor.sh` fail when the installed BacklotOS version or installed image
+  submit tool differs from the checked source, preventing a newer Git checkout
+  from concealing an older production runtime.
+- Add an explicit `--project-root` to the image manifest submitter so installed
+  BacklotOS can resolve another production repository's relative inputs,
+  reports, and durable transaction directory without importing the module and
+  mutating globals. The default root remains backward-compatible.
+
 ## 0.2.37
 
 - Add a persistent, idempotent task-lane dispatcher that claims READY work as
