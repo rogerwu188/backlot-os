@@ -3,7 +3,7 @@ import hashlib,importlib.util,json,os,subprocess,sys,tempfile,time,unittest
 from pathlib import Path
 PKG=Path(__file__).resolve().parents[1]
 def mod(n,f):s=importlib.util.spec_from_file_location(n,PKG/f);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
-W=mod('sem17_worker','file_worker.py');D=mod('sem17_disp','dispatcher.py');C=mod('sem17_commit','commit_step.py');ROLES=W.ROLES;KEYS=C.KEYS
+W=mod('sem17_worker','file_worker.py');D=mod('sem17_disp','dispatcher.py');C=mod('sem17_commit','commit_step.py');P=mod('portable_wakeup','portable_wakeup.py');ROLES=W.ROLES;KEYS=C.KEYS
 def canon(o):return json.dumps(o,ensure_ascii=False,sort_keys=True,separators=(',',':'))
 def task(role='producer',tid='t',**extra):
  o={'schema':'qingshan.task.v1','task_id':tid,'dispatch_id':'d','accepted_run_id':'r','recovery_fence':'f','role':role,'phase':'RUN','cursor':22 if role=='writer' else 0,'payload':{'evidence':['MARKER']}};o.update(extra);o['task_sha']=W.sha(W.canon({k:v for k,v in o.items() if k!='task_sha'}).encode());return o
@@ -68,4 +68,15 @@ class FileNative(unittest.TestCase):
  def test_28_producer_only_file_scheduler(self):self.assertIn('Producer only schedules files',(PKG/'PRODUCER_TOOL_RESULT_RECOVERY.md').read_text())
  def test_29_artifact_before_receipt(self):enqueue(self.root,task('audit','a'));W.tick(self.root,'audit');result(self.root,'audit','a');W.tick(self.root,'audit');rr=self.root/'queue_v2.0.17/audit';x=json.loads((rr/'receipts/a.done.json').read_text());self.assertEqual(W.sha(Path(x['artifact']).read_bytes()),x['artifact_sha'])
  def test_30_activation_manifest_forbidden(self):self.assertTrue(json.loads((PKG/'INSTALL_ACTIVATION.json').read_text())['activation_forbidden'])
+ def wake_config(self,command=None):
+  cfg={'schema':'backlotos.portable_wakeup.config.v1','agent_id':'test-line','interval_seconds':600,'state_dir':'wake-state','wake_command':command or [sys.executable,'-c','import os; print(os.environ["BACKLOTOS_WAKE_RUN_KEY"])'],'safety_policy':{'paid_submission_forbidden':True,'browser_and_platform_actions_forbidden':True}}
+  p=self.root/'wake.json';p.write_text(canon(cfg));return p
+ def test_31_portable_wakeup_same_slot_is_idempotent(self):
+  p=self.wake_config();a=P.run_once(p,now=1200);b=P.run_once(p,now=1201);self.assertEqual(a['status'],'PASS');self.assertEqual(b['status'],'NOOP_ALREADY_WOKEN');self.assertEqual(a['run_key'],b['run_key'])
+ def test_32_portable_wakeup_persists_intent_and_fence(self):
+  p=self.wake_config();a=P.run_once(p,now=1200);b=P.run_once(p,now=1800);state=json.loads((self.root/'wake-state/state.json').read_text());self.assertEqual((a['fencing_token'],b['fencing_token'],state['fencing_token']),(1,2,2));self.assertEqual(len(list((self.root/'wake-state/receipts').glob('*.json'))),2)
+ def test_33_portable_wakeup_failure_not_replayed_same_slot(self):
+  p=self.wake_config([sys.executable,'-c','raise SystemExit(7)']);a=P.run_once(p,now=1200);b=P.run_once(p,now=1202);self.assertEqual(a['status'],'FAIL');self.assertEqual(b['status'],'NOOP_ALREADY_WOKEN')
+ def test_34_portable_wakeup_requires_safety_policy(self):
+  p=self.wake_config();o=json.loads(p.read_text());o['safety_policy']['paid_submission_forbidden']=False;p.write_text(canon(o));self.assertRaises(ValueError,P.run_once,p,1200)
 if __name__=='__main__':unittest.main(verbosity=2)
