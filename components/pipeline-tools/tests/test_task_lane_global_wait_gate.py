@@ -3,12 +3,15 @@ import unittest
 from tools.task_lane_global_wait_gate import audit_scheduler_state
 
 
-def state(tasks, *, global_wait=False):
-    return {
+def state(tasks, *, global_wait=False, heartbeat=None):
+    payload = {
         "schema": "backlotos.task_lane_scheduler_state.v1",
         "scheduler_decision": {"global_wait": global_wait},
         "tasks": tasks,
     }
+    if heartbeat is not None:
+        payload["heartbeat_integration"] = heartbeat
+    return payload
 
 
 class TaskLaneGlobalWaitGateTests(unittest.TestCase):
@@ -104,6 +107,50 @@ class TaskLaneGlobalWaitGateTests(unittest.TestCase):
         result = audit_scheduler_state(payload)
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["liveness_state"], "LEGALLY_BLOCKED")
+
+    def test_heartbeat_return_fails_without_active_successor(self):
+        result = audit_scheduler_state(
+            state(
+                [{"task_id": "DONE", "lane_id": "ACTION", "state": "TERMINAL", "zero_cost": True}],
+                heartbeat={
+                    "require_active_successor_before_return": True,
+                    "episode_terminal": False,
+                },
+            )
+        )
+        self.assertEqual(result["status"], "FAIL")
+        self.assertFalse(result["heartbeat_return_allowed"])
+        self.assertIn(
+            "HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR",
+            {row["code"] for row in result["failures"]},
+        )
+
+    def test_heartbeat_return_passes_with_running_successor(self):
+        result = audit_scheduler_state(
+            state(
+                [{"task_id": "NEXT", "lane_id": "ACTION", "state": "RUNNING", "zero_cost": True}],
+                heartbeat={
+                    "require_active_successor_before_return": True,
+                    "episode_terminal": False,
+                },
+            )
+        )
+        self.assertEqual(result["status"], "PASS")
+        self.assertTrue(result["heartbeat_return_allowed"])
+        self.assertEqual(result["active_successor_task_ids"], ["NEXT"])
+
+    def test_terminal_episode_may_return_without_successor(self):
+        result = audit_scheduler_state(
+            state(
+                [{"task_id": "DONE", "lane_id": "ACTION", "state": "TERMINAL", "zero_cost": True}],
+                heartbeat={
+                    "require_active_successor_before_return": True,
+                    "episode_terminal": True,
+                },
+            )
+        )
+        self.assertEqual(result["status"], "PASS")
+        self.assertTrue(result["heartbeat_return_allowed"])
 
 
 if __name__ == "__main__":

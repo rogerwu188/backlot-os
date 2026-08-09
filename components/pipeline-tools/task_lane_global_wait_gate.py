@@ -155,6 +155,7 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
         )
 
     active_local = running + qa
+    active_successors = running + qa + remote_wait
     unfinished = ready + active_local + waiting_dependency + remote_wait
     legal_blocker = scheduler.get("legal_blocker") if isinstance(scheduler, dict) else None
     if unfinished and not ready and not active_local and not remote_wait:
@@ -175,6 +176,23 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
                     required_fields=["code", "evidence_ref", "next_recheck_at"],
                 )
             )
+
+    heartbeat = payload.get("heartbeat_integration")
+    if not isinstance(heartbeat, dict):
+        heartbeat = {}
+    continuation_required = heartbeat.get("require_active_successor_before_return") is True
+    episode_terminal = heartbeat.get("episode_terminal") is True
+    if continuation_required and not episode_terminal and not active_successors:
+        failures.append(
+            _failure(
+                "HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR",
+                required_states=["RUNNING", "REMOTE_WAIT", "QA"],
+                detail=(
+                    "A heartbeat is a checkpoint, not task completion. Dispatch a successor "
+                    "or preserve a task-local remote/QA lane before returning the heartbeat receipt."
+                ),
+            )
+        )
 
     if not unfinished:
         liveness_state = "COMPLETE"
@@ -198,6 +216,10 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
         "ready_zero_cost_task_ids": [task["task_id"] for task in ready_zero_cost],
         "qa_task_ids": [task["task_id"] for task in qa],
         "remote_wait_task_ids": [task["task_id"] for task in remote_wait],
+        "active_successor_task_ids": [task["task_id"] for task in active_successors],
+        "heartbeat_return_allowed": not any(
+            row["code"] == "HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR" for row in failures
+        ),
         "remote_wait_isolated_from_ready_lanes": bool(remote_wait and ready_other_lanes and global_wait is False),
         "liveness_state": liveness_state,
         "active_local_task_ids": [task["task_id"] for task in active_local],
@@ -210,6 +232,8 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
             "remote_wait_never_masks_ready_other_lane": True,
             "qa_is_active_work": True,
             "idle_unfinished_requires_legal_blocker_evidence": True,
+            "heartbeat_is_checkpoint_not_completion": True,
+            "active_successor_required_when_configured": continuation_required,
         },
     }
 
