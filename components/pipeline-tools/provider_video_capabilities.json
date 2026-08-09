@@ -5,6 +5,7 @@
     "giggle": {
       "status": "VERIFIED_FROM_OFFICIAL_API_DOCS",
       "source_url": "https://apidocs.giggle.pro/445520569e0",
+      "image_to_video_source_url": "https://apidocs.giggle.pro/445420658e0",
       "pricing_url": "https://apidocs.giggle.pro/8562698m0",
       "supported_models": [
         "seedance-2.0-pro",
@@ -29,6 +30,16 @@
       "unsupported_logical_models": [
         "seedance-2.0"
       ],
+      "transport_capabilities": {
+        "image_to_video": {
+          "start_frame": true,
+          "pixel_exact_output_guarantee": false
+        },
+        "omni_video": {
+          "images_are_ordinary_references": true,
+          "exact_first_frame": false
+        }
+      },
       "evidence": "The official Omni API model enum and pricing table list Pro and Fast only, and the request schema explicitly limits resolution to 720p or 480p. A live isolated standard request returned no task_id and failed before billing with model price record not found; an E40 Fast 1080p request returned an invalid-resolution failure and was fully refunded."
     }
   }

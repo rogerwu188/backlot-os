@@ -10,6 +10,7 @@ from typing import Any
 
 from performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
 from provider_video_capability_gate import evaluate_provider_capability
+from exact_first_frame_transport import evaluate_batch as evaluate_exact_first_frame_transport
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -95,7 +96,9 @@ def evaluate_manifest(
         tasks,
         registry_path=capability_registry_path,
     )
+    exact_first_frame_transport = evaluate_exact_first_frame_transport(tasks, root=root_path)
     failures.extend(provider_capability.get("failures") or [])
+    failures.extend(exact_first_frame_transport.get("failures") or [])
     failures.extend(tempo.get("failures") or [])
     failures.extend(_combat_causality_failures(tasks, tempo))
 
@@ -110,6 +113,7 @@ def evaluate_manifest(
     gate_path = Path(__file__).resolve()
     tempo_path = Path(__file__).with_name("performance_tempo_gate.py").resolve()
     provider_gate_path = Path(__file__).with_name("provider_video_capability_gate.py").resolve()
+    exact_transport_path = Path(__file__).with_name("exact_first_frame_transport.py").resolve()
     provider_registry_path = Path(
         capability_registry_path
         or Path(__file__).with_name("provider_video_capabilities.json")
@@ -122,6 +126,7 @@ def evaluate_manifest(
         "task_keys": [str(task.get("task_key") or "UNKNOWN") for task in tasks],
         "performance_tempo": tempo,
         "provider_capability": provider_capability,
+        "exact_first_frame_transport": exact_first_frame_transport,
         "failures": failures,
         "runtime_binding": {
             "gate_path": str(gate_path),
@@ -130,10 +135,12 @@ def evaluate_manifest(
             "performance_tempo_gate_sha256": _sha256_bytes(tempo_path.read_bytes()),
             "provider_video_capability_gate_path": str(provider_gate_path),
             "provider_video_capability_gate_sha256": _sha256_bytes(provider_gate_path.read_bytes()),
+            "exact_first_frame_transport_path": str(exact_transport_path),
+            "exact_first_frame_transport_sha256": _sha256_bytes(exact_transport_path.read_bytes()),
             "provider_video_capabilities_path": str(provider_registry_path),
             "provider_video_capabilities_sha256": (
                 _sha256_bytes(provider_registry_path.read_bytes()) if provider_registry_path.is_file() else None
             ),
         },
-        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require seedance-2.0-fast, and that model must also exist in the selected provider's verified capability registry. Pro, Mini, and the unpriced bare seedance-2.0 SKU are forbidden. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
+        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require seedance-2.0-fast at provider-native 720p. EXACT_FIRST_FRAME tasks must use image-to-video start_frame, never Omni images[], and harvested output must pass frame0 authority plus frame0-to-frame1 continuity without automatic prepend or replacement. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
     }

@@ -27,6 +27,28 @@ def http_error(code, body):
 
 
 class GiggleRetryTest(unittest.TestCase):
+    @mock.patch.object(client, "_b64", return_value="encoded-frame")
+    @mock.patch.object(client, "_request")
+    def test_image_to_video_uses_native_start_frame(self, request, _b64):
+        request.return_value = {"code": 200}
+        args = Namespace(
+            prompt="continue from authority",
+            start_frame="frame0.png",
+            end_frame=None,
+            count=1,
+            model="seedance-2.0-fast",
+            duration=4,
+            aspect_ratio="9:16",
+            resolution="720p",
+        )
+
+        client.generate_video(args)
+
+        endpoint, payload = request.call_args.args
+        self.assertEqual(endpoint, "/api/v1/generation/image-to-video")
+        self.assertEqual(payload["start_frame"], {"base64": "encoded-frame"})
+        self.assertNotIn("images", payload)
+
     @mock.patch.object(client, "_request")
     def test_image_without_references_uses_text_to_image(self, request):
         request.return_value = {"code": 200}
