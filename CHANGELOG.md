@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V9 with a typed shot
+  information ladder for task2-1. Every cut must contribute one unique visible
+  information unit, bind its shot scale and numeric lens to a declared camera
+  role, preserve the time-coded entry/exit state, and expose contact or result
+  consequences instead of repeating an action picture through cosmetic camera
+  changes.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V8 with a typed
   cross-cut state ledger for task2-1 cinematic shot organization. Character,
   prop, spatial, and environment tracks must cover every cut, preserve exact

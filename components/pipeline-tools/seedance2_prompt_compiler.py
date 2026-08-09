@@ -188,6 +188,114 @@ COMBAT_MEASUREMENT_UNITS = {"m", "cm", "s", "degrees", "body_lengths"}
 CROSS_CUT_CONTINUITY_CLASSES = {
     "character_state", "prop_state", "spatial_relation", "environment_state",
 }
+SHOT_INFORMATION_TYPES = {
+    "orientation", "threat", "action_setup", "contact_detail",
+    "consequence", "reaction", "resolution",
+}
+
+
+def compile_shot_information_ladder(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict | None]:
+    """Bind each cut to one distinct, visible information unit and camera job."""
+    ladder = contract.get("shot_information_ladder")
+    if not ladder:
+        return "", None
+    if ladder.get("coverage_policy") != "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT":
+        raise ValueError(
+            "shot_information_ladder coverage_policy must be "
+            "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT"
+        )
+    rows = require(ladder.get("shots"), "shot_information_ladder shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("shot_information_ladder must exactly cover all compiled shots")
+
+    compiled, unit_ids, information_types = [], set(), set()
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"shot information row {index} shot_index is required"
+        ))
+        if shot_index != index:
+            raise ValueError("shot_information_ladder shot_index must match compiled shot order")
+        unit_id = require(
+            row.get("information_unit_id"),
+            f"shot information row {index} information_unit_id is required",
+        )
+        if unit_id in unit_ids:
+            raise ValueError(f"duplicate shot information unit: {unit_id}")
+        unit_ids.add(unit_id)
+        information_type = require(
+            row.get("information_type"),
+            f"shot information row {index} information_type is required",
+        )
+        if information_type not in SHOT_INFORMATION_TYPES:
+            raise ValueError(f"unsupported shot information type: {information_type}")
+        information_types.add(information_type)
+        entry_state = require(
+            row.get("entry_state"), f"shot information row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"shot information row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"shot information row {index} entry/exit state must match cinematic segment"
+            )
+        lens_mm = int(require(
+            row.get("lens_mm"), f"shot information row {index} lens_mm is required"
+        ))
+        if not 14 <= lens_mm <= 200:
+            raise ValueError(f"shot information row {index} lens_mm must be between 14 and 200")
+        visible_consequence = row.get("visible_consequence")
+        if information_type in {"contact_detail", "consequence", "resolution"}:
+            require(
+                visible_consequence,
+                f"shot information row {index} {information_type} requires visible_consequence",
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "information_unit_id": unit_id,
+            "information_type": information_type,
+            "subject_action": require(
+                row.get("subject_action"), f"shot information row {index} subject_action is required"
+            ),
+            "visible_evidence": require(
+                row.get("visible_evidence"), f"shot information row {index} visible_evidence is required"
+            ),
+            "visible_consequence": visible_consequence,
+            "shot_scale": require(
+                row.get("shot_scale"), f"shot information row {index} shot_scale is required"
+            ),
+            "lens_mm": lens_mm,
+            "camera_role": require(
+                row.get("camera_role"), f"shot information row {index} camera_role is required"
+            ),
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+    if len(compiled) >= 3 and len(information_types) < 3:
+        raise ValueError("shot_information_ladder needs at least three information types for 3+ shots")
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['information_unit_id']}/{row['information_type']}]："
+        f"主体动作={row['subject_action']}；可见证据={row['visible_evidence']}；"
+        f"可见后果={row['visible_consequence'] or '本镜不新增后果'}；"
+        f"景别={row['shot_scale']}，镜头={row['lens_mm']}mm，机位职责={row['camera_role']}；"
+        f"入口={row['entry_state']}，出口={row['exit_state']}"
+        for row in compiled
+    ]
+    return (
+        "\n【SHOT INFORMATION LADDER｜一镜一信息】" + "。".join(prompt_rows) + "。"
+        "每镜只承担一个主要可见信息单元；不得用换景别、换焦段或装饰运镜重复上一镜动作画面。",
+        {
+            "version": "1.0.0",
+            "coverage_policy": "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT",
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "unique_information_units": True,
+            "adapter": "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9",
+        },
+    )
 
 
 def compile_cross_cut_state_ledger(
@@ -368,6 +476,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     state_ledger_prompt, state_ledger = compile_cross_cut_state_ledger(
         contract, shot_count, descriptor_ids
     )
+    information_ladder_prompt, information_ladder = compile_shot_information_ladder(
+        contract, compiled
+    )
     segment_rows = [
         f"{row['start_seconds']:g}-{row['end_seconds']:g}秒 / 镜头{row['shot_index']}：目的={row['narrative_purpose']}；"
         f"入口={row['entry_state']}；出口={row['exit_state']}；引用={','.join(row['descriptor_ids'])}；"
@@ -379,6 +490,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     prompt = (
         "\n\n【LOCKED DESCRIPTORS｜逐镜原文复用】" + "；".join(descriptor_rows)
         + "。\n【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】\n" + "\n".join(segment_rows)
+        + information_ladder_prompt
         + state_ledger_prompt
         + "\n【KEY RULES】" + "；".join(rules)
         + f"。\n【ATMOSPHERE STATE】{atmosphere}。\n【STYLE PREFIX】{style}。"
@@ -388,7 +500,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "shot_information_ladder": information_ladder,
+        "shot_information_gate": "PASS_UNIQUE_FULL_COVERAGE" if information_ladder else "NOT_APPLICABLE",
         "cross_cut_state_ledger": state_ledger,
         "cross_cut_state_gate": "PASS_EXACT_HANDOFF_AND_FULL_COVERAGE" if state_ledger else "NOT_APPLICABLE",
         "source_method": "HELL_GRIND_LICENSED_PRODUCTION_METHODOLOGY",

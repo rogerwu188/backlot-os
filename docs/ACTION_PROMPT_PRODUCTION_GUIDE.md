@@ -104,6 +104,19 @@ any other undeclared reset before provider submission. This generalizes the
 licensed Scene 70 practice of separating cut purpose from durable state facts;
 it is a prompt/rule adapter, not trained Seedance model weights.
 
+When a cut sequence needs explicit information progression, add
+`shot_information_ladder` with `ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT`. Every
+compiled shot receives a unique information-unit ID, one typed job
+(`orientation`, `threat`, `action_setup`, `contact_detail`, `consequence`,
+`reaction`, or `resolution`), a visible evidence clause, one shot scale and
+numeric lens, and a plain-language camera role. Contact, consequence, and
+resolution shots must name the visible result. The ladder entry/exit states
+must match the time-coded segment exactly. Adapter V9 therefore rejects a new
+focal length or camera move that merely repeats the previous action picture;
+each cut must add distinct story information. This generalizes the licensed
+Scene 70.2 pattern of moving from spatial orientation to contact diagnosis and
+durable consequence without copying its characters or imagery.
+
 The segments must start at zero, remain contiguous, follow storyboard order,
 and cover the declared duration exactly. The compiler rejects unknown asset
 references, descriptor text whose SHA does not match, untested assets,
