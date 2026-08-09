@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.49
+
 - Make task-lane liveness scoped and fail-closed: RUNNING now requires a live
   owner lease plus progress and next-due timestamps, stale rows are excluded
   from active successors, and observation-only watchdogs cannot keep an
