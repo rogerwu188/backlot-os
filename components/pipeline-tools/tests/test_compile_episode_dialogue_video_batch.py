@@ -17,7 +17,7 @@ class CompileEpisodeDialogueVideoBatchTests(unittest.TestCase):
             result = compile_batch(script, images, scene_state, Path(tmp))
             self.assertEqual(2, len(result["tasks"]))
             self.assertEqual("E99-DIA-001-VIDEO", result["tasks"][0]["task_key"])
-            self.assertTrue(all(task["model"] == "seedance-2.0" for task in result["tasks"]))
+            self.assertTrue(all(task["model"] == "seedance-2.0-fast" for task in result["tasks"]))
             prompt = Path(result["tasks"][0]["prompt_file"]).read_text(encoding="utf-8")
             self.assertNotIn("张夏", prompt)
             self.assertNotIn("market ambience", prompt)

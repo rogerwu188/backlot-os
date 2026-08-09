@@ -25,7 +25,7 @@ SUPPORTED_SCHEMAS = frozenset(
         "qingshan.shot_package_inventory.v1",
     }
 )
-STANDARD_VIDEO_MODEL = "seedance-2.0"
+PRODUCTION_VIDEO_MODEL = "seedance-2.0-fast"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$", re.IGNORECASE)
 PASS_STATUSES = frozenset({"PASS", "ADMITTED"})
 ADMITTED_QA_STATUSES = frozenset({"ADMITTED", "PASS_ADMITTED", "PASS_RELEASE_READY"})
@@ -218,12 +218,12 @@ def _precompile_failures(
     generation = package.get("generation")
     if not isinstance(generation, dict):
         failures.append(_failure("GENERATION_CONTRACT_MISSING", package_id=package_id))
-    elif generation.get("model") != STANDARD_VIDEO_MODEL:
+    elif generation.get("model") != PRODUCTION_VIDEO_MODEL:
         failures.append(
             _failure(
-                "NON_STANDARD_VIDEO_MODEL",
+                "NON_PRODUCTION_VIDEO_MODEL",
                 package_id=package_id,
-                expected=STANDARD_VIDEO_MODEL,
+                expected=PRODUCTION_VIDEO_MODEL,
                 actual=generation.get("model"),
             )
         )
@@ -495,7 +495,7 @@ def audit_shot_packages(payload: dict[str, Any]) -> dict[str, Any]:
         "failures": global_failures,
         "policy": {
             "complete_is_computed_not_declared": True,
-            "required_video_model": STANDARD_VIDEO_MODEL,
+            "required_video_model": PRODUCTION_VIDEO_MODEL,
             "precompiled_is_not_complete": True,
             "precompiled_counts_as_admitted_clip": False,
             "precompiled_counts_as_admitted_video_seconds": False,

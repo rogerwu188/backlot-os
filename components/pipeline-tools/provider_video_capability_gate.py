@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_ALLOWED_MODELS = ("seedance-2.0",)
+PRODUCTION_ALLOWED_MODELS = ("seedance-2.0-fast",)
 
 
 def _sha256(path: Path) -> str:
@@ -25,9 +25,20 @@ def evaluate_provider_capability(
     path = Path(registry_path) if registry_path else Path(__file__).with_name("provider_video_capabilities.json")
     failures: list[dict[str, Any]] = []
     provider = str(manifest.get("provider") or "giggle")
-    allowed_models = {
-        str(value) for value in (manifest.get("allowed_video_models") or DEFAULT_ALLOWED_MODELS) if str(value)
+    production_allowed_models = set(PRODUCTION_ALLOWED_MODELS)
+    requested_models = {
+        str(value)
+        for value in (manifest.get("allowed_video_models") or PRODUCTION_ALLOWED_MODELS)
+        if str(value)
     }
+    policy_expansion = requested_models - production_allowed_models
+    if policy_expansion:
+        failures.append({
+            "code": "PRODUCTION_MODEL_POLICY_EXPANSION_FORBIDDEN",
+            "requested_models": sorted(requested_models),
+            "production_allowed_models": sorted(production_allowed_models),
+        })
+    allowed_models = requested_models & production_allowed_models
     registry: dict[str, Any] = {}
     if not path.is_file():
         failures.append({"code": "PROVIDER_CAPABILITY_REGISTRY_MISSING", "path": str(path)})
@@ -76,6 +87,8 @@ def evaluate_provider_capability(
         "schema": "backlotos.provider_video_capability_gate.v1",
         "status": "PASS" if not failures else "FAIL",
         "provider": provider,
+        "production_allowed_models": sorted(production_allowed_models),
+        "requested_models": sorted(requested_models),
         "allowed_models": sorted(allowed_models),
         "supported_models": sorted(supported_models),
         "allowed_supported_intersection": sorted(intersection),
@@ -83,5 +96,5 @@ def evaluate_provider_capability(
         "registry_sha256": _sha256(path) if path.is_file() else None,
         "provider_evidence": provider_row if isinstance(provider_row, dict) else None,
         "failures": failures,
-        "policy": "Paid video preflight fails before provider POST unless the current task model is both production-allowed and verified as supported by the selected provider.",
+        "policy": "Paid video preflight fails before provider POST unless the current task model is seedance-2.0-fast, is requested by the manifest, and is verified as supported by the selected provider. Pro, Mini, and the unpriced bare seedance-2.0 SKU cannot be enabled by a manifest.",
     }

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 0.2.40
+
+- Enforce `seedance-2.0-fast` as the only production-allowed Seedance 2 video
+  SKU at the real paid submission gate. A manifest cannot expand the policy to
+  Pro, Mini, or the unpriced bare `seedance-2.0` identifier.
+- Align long-take compilation and shot-package completion accounting with the
+  same Fast-only policy, eliminating downstream gates that would accept the
+  paid request and then reject the resulting clip for using Fast.
+- Change the low-level Giggle HTTP client and generic episode compilers to Fast
+  as well, with a client-level regression test proving Pro, Mini, and the bare
+  model identifier cannot reach the network even if an upstream caller drifts.
+- Keep provider capability verification fail-closed, so Fast must be both the
+  production policy and a verified provider capability before any provider
+  POST.
+- Add regression coverage for Fast-only admission and attempted manifest-level
+  policy expansion to the required CI path, preserving the installed runtime
+  parity checks that prevent a newer GitHub checkout from concealing an older
+  production gate.
+
 ## 0.2.39
 
 - Add an installed provider-video capability registry and make the real paid

@@ -118,6 +118,9 @@ class RuntimeProfileTests(unittest.TestCase):
             installed_pipeline_tools.mkdir(parents=True)
             for artifact in (
                 "submit_giggle_image_manifest.py",
+                "giggle_api_client.py",
+                "seedance2_prompt_compiler.py",
+                "shot_package_completion_gate.py",
                 "production_video_submission_gate.py",
                 "provider_video_capability_gate.py",
                 "provider_video_capabilities.json",

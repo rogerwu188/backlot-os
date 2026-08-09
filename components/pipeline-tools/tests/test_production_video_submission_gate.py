@@ -17,7 +17,7 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             "prompt_sha256": hashlib.sha256(prompt.read_bytes()).hexdigest(),
             "duration_seconds": duration,
             "action_unit": action_unit,
-            "model": "seedance-2.0",
+            "model": "seedance-2.0-fast",
         }
         if contract is not None:
             task["performance_tempo_contract"] = contract
@@ -30,7 +30,7 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             "providers": {
                 "giggle": {
                     "status": "TEST_FIXTURE",
-                    "supported_models": supported_models or ["seedance-2.0"],
+                    "supported_models": supported_models or ["seedance-2.0-fast"],
                 }
             },
         }), encoding="utf-8")
@@ -69,7 +69,35 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             manifest = self.manifest(root)
             manifest["tasks"][0]["model"] = "seedance-2.0-pro"
             report = self.evaluate(manifest, root)
-            self.assertIn("STANDARD_SEEDANCE2_MODEL_REQUIRED", {row["code"] for row in report["failures"]})
+            self.assertIn("TASK_MODEL_OUTSIDE_PRODUCTION_ALLOWLIST", {row["code"] for row in report["failures"]})
+
+    def test_manifest_cannot_expand_production_policy_to_pro(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root)
+            manifest["allowed_video_models"] = ["seedance-2.0-fast", "seedance-2.0-pro"]
+            report = self.evaluate(manifest, root, supported_models=["seedance-2.0-fast", "seedance-2.0-pro"])
+            self.assertIn(
+                "PRODUCTION_MODEL_POLICY_EXPANSION_FORBIDDEN",
+                {row["code"] for row in report["failures"]},
+            )
+
+    def test_fast_only_manifest_passes_provider_model_gate(self):
+        contract = {
+            "playback_speed": "REAL_TIME_1X",
+            "primary_action_complete_by_seconds": 1.2,
+            "result_hold_seconds": 0.0,
+            "atomic_action_windows": [
+                {"start_seconds": 0.0, "end_seconds": 1.0, "action": "拦截"},
+                {"start_seconds": 1.0, "end_seconds": 2.0, "action": "扣腕"},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root, action_unit=True, contract=contract, duration=2)
+            manifest["allowed_video_models"] = ["seedance-2.0-fast"]
+            report = self.evaluate(manifest, root, supported_models=["seedance-2.0-fast", "seedance-2.0-pro"])
+            self.assertEqual(report["status"], "PASS", report)
 
     def test_atomic_real_time_task_passes(self):
         contract = {
@@ -137,24 +165,21 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
             report = self.evaluate(
                 manifest,
                 root,
-                supported_models=["seedance-2.0-pro", "seedance-2.0-fast"],
+                supported_models=["seedance-2.0-pro"],
             )
             codes = {row["code"] for row in report["failures"]}
             self.assertEqual(report["status"], "FAIL")
             self.assertIn("PROVIDER_ALLOWED_MODEL_INTERSECTION_EMPTY", codes)
             self.assertIn("TASK_MODEL_UNSUPPORTED_BY_PROVIDER", codes)
 
-    def test_bundled_giggle_registry_rejects_unpriced_standard_model(self):
+    def test_bundled_giggle_registry_accepts_fast_model(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             report = evaluate_manifest(self.manifest(root), root=root)
             capability = report["provider_capability"]
             self.assertEqual(capability["provider"], "giggle")
-            self.assertEqual(capability["allowed_supported_intersection"], [])
-            self.assertIn(
-                "PROVIDER_ALLOWED_MODEL_INTERSECTION_EMPTY",
-                {row["code"] for row in capability["failures"]},
-            )
+            self.assertEqual(capability["allowed_supported_intersection"], ["seedance-2.0-fast"])
+            self.assertEqual(capability["status"], "PASS")
 
 
 if __name__ == "__main__":
