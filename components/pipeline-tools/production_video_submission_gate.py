@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from performance_tempo_gate import evaluate_batch as evaluate_performance_tempo
+from provider_video_capability_gate import evaluate_provider_capability
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -83,13 +84,25 @@ def _combat_causality_failures(tasks: list[dict[str, Any]], tempo: dict[str, Any
     return failures
 
 
-def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_path: str | Path | None = None) -> dict[str, Any]:
+def evaluate_manifest(
+    manifest: dict[str, Any],
+    *,
+    root: str | Path,
+    manifest_path: str | Path | None = None,
+    capability_registry_path: str | Path | None = None,
+) -> dict[str, Any]:
     """Evaluate the current manifest itself; historical PASS receipts cannot substitute."""
     root_path = Path(root).resolve()
     tasks, failures = _hydrated_tasks(manifest, root_path)
     if not tasks:
         failures.append({"code": "CURRENT_MANIFEST_TASKS_MISSING"})
     tempo = evaluate_performance_tempo(tasks)
+    provider_capability = evaluate_provider_capability(
+        manifest,
+        tasks,
+        registry_path=capability_registry_path,
+    )
+    failures.extend(provider_capability.get("failures") or [])
     failures.extend(tempo.get("failures") or [])
     failures.extend(_combat_causality_failures(tasks, tempo))
 
@@ -103,6 +116,11 @@ def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_pa
 
     gate_path = Path(__file__).resolve()
     tempo_path = Path(__file__).with_name("performance_tempo_gate.py").resolve()
+    provider_gate_path = Path(__file__).with_name("provider_video_capability_gate.py").resolve()
+    provider_registry_path = Path(
+        capability_registry_path
+        or Path(__file__).with_name("provider_video_capabilities.json")
+    ).resolve()
     return {
         "schema": "backlotos.production_video_submission_gate.v1",
         "status": "PASS" if not failures else "FAIL",
@@ -110,12 +128,19 @@ def evaluate_manifest(manifest: dict[str, Any], *, root: str | Path, manifest_pa
         "task_contract_sha256": _sha256_bytes(_canonical_json(manifest.get("tasks") or [])),
         "task_keys": [str(task.get("task_key") or "UNKNOWN") for task in tasks],
         "performance_tempo": tempo,
+        "provider_capability": provider_capability,
         "failures": failures,
         "runtime_binding": {
             "gate_path": str(gate_path),
             "gate_sha256": _sha256_bytes(gate_path.read_bytes()),
             "performance_tempo_gate_path": str(tempo_path),
             "performance_tempo_gate_sha256": _sha256_bytes(tempo_path.read_bytes()),
+            "provider_video_capability_gate_path": str(provider_gate_path),
+            "provider_video_capability_gate_sha256": _sha256_bytes(provider_gate_path.read_bytes()),
+            "provider_video_capabilities_path": str(provider_registry_path),
+            "provider_video_capabilities_sha256": (
+                _sha256_bytes(provider_registry_path.read_bytes()) if provider_registry_path.is_file() else None
+            ),
         },
-        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require the standard seedance-2.0 model; Pro is forbidden. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
+        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require the standard seedance-2.0 model, and that model must also exist in the selected provider's verified capability registry. Pro is forbidden. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
     }

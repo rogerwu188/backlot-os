@@ -114,12 +114,18 @@ class RuntimeProfileTests(unittest.TestCase):
             installed_version = install_dir / "source" / "version"
             installed_version.parent.mkdir(parents=True)
             shutil.copyfile(ROOT / "VERSION", installed_version)
-            installed_image_submit = install_dir / "share" / "pipeline-tools" / "submit_giggle_image_manifest.py"
-            installed_image_submit.parent.mkdir(parents=True)
-            shutil.copyfile(
-                ROOT / "components" / "pipeline-tools" / "submit_giggle_image_manifest.py",
-                installed_image_submit,
-            )
+            installed_pipeline_tools = install_dir / "share" / "pipeline-tools"
+            installed_pipeline_tools.mkdir(parents=True)
+            for artifact in (
+                "submit_giggle_image_manifest.py",
+                "production_video_submission_gate.py",
+                "provider_video_capability_gate.py",
+                "provider_video_capabilities.json",
+            ):
+                shutil.copyfile(
+                    ROOT / "components" / "pipeline-tools" / artifact,
+                    installed_pipeline_tools / artifact,
+                )
             for name in ("git", "ffmpeg", "ffprobe", "node"):
                 target = command_dir / name
                 target.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
