@@ -373,7 +373,7 @@ one final relational composition, and a camera resolution that must match an
 already declared camera segment. Contact must leave a visible consequence;
 damage, formation, props, distance, and recovery cannot reset between beats.
 
-The licensed Scene 69, Scene 69B.20, and Scene 69B.19 prompt/rule adapter exposes eleven typed
+The licensed Scene 69, Scene 69B.20, Scene 69B.19, and Scene 69B.18 prompt/rule adapter exposes twelve typed
 methods:
 
 - `causal_impact_aftermath_ladder`
@@ -387,6 +387,7 @@ methods:
 - `defense_rhythm_failure_combo_ladder`
 - `embodied_topology_traversal_damage_combo`
 - `committed_miss_entrapment_counter_window`
+- `force_conversion_controlled_recovery_ladder`
 
 Each method has its own required evidence vocabulary. Spatial methods require a
 positive measurement in metres, centimetres, seconds, degrees, or body lengths;
@@ -412,6 +413,14 @@ extraction delay, and a counterlaunch that starts only after the opening is
 proved. The trapped state receives a durable state ID and must remain visible in
 the final shared composition. Continuous shake, decorative whip moves, and
 unmotivated slow motion are filtered from the source methodology.
+
+`force_conversion_controlled_recovery_ladder` handles a defender who blocks a
+heavier impact and converts its force into controlled displacement rather than
+resetting between contact and landing. It requires defensive contact, readable
+force transfer, measured displacement, deliberate body rotation, carried-prop
+continuity, landing absorption, residual stance cost, and a final shared frame
+showing the new distance. Decorative whip-pans, repeated lens-stomps, perpetual
+handheld drift, and unmotivated slow motion are filtered out.
 
 ## Selective BGM flow
 

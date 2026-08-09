@@ -273,7 +273,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["combat_choreography_contract"]["continuity_adapter"],
-                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V3",
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V4",
             )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
             self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
@@ -395,6 +395,35 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             }]
             spec["combat_choreography_contract"] = contract
             with self.assertRaisesRegex(ValueError, "missing required evidence: obstacle_entrapment"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_force_conversion_without_controlled_rotation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "force_conversion_controlled_recovery_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the defender braces against a heavier incoming strike",
+                "exit_state": "the defender regains stance at a measured new distance",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "defensive_contact", "force_transfer", "carried_prop_continuity",
+                        "landing_absorption", "stance_recovery", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 3, "unit": "m"},
+                "final_relational_frame": "both fighters, retained prop and new distance remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove force transfer without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: controlled_rotation"):
                 compile_prompt(spec)
 
     def test_combat_rejects_continuous_perpetual_camera_motion(self):

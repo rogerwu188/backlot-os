@@ -126,7 +126,7 @@ time range, subject anchor, axis relation, and narrative purpose. Unplanned time
 defaults to a locked camera, so tracking, arcs, pushes, pulls, cranes, shake, and
 slow motion cannot accumulate into continuous drift.
 
-Combat contracts also require one of eleven causal continuity ladders. It binds ordered
+Combat contracts also require one of twelve causal continuity ladders. It binds ordered
 action beats to persistent contact, environment, recovery, damage, formation,
 prop, or distance evidence and closes on one relational composition. The
 resolving camera must be one of the motivated segments already declared in the
@@ -138,6 +138,9 @@ must visibly clear the attack line, the weapon must remain trapped in measured
 terrain contact, and the counter may start only after the extraction delay is
 readable. It is explicitly a
 portable prompt/rule adapter; it does not claim Seedance model-weight training.
+The force-conversion method additionally preserves a defender's prop, body
+orientation, measured displacement, landing absorption, and residual stance
+cost when a blocked heavy impact becomes controlled aerial recovery.
 
 When several short clips cannot preserve one continuous physical event, use
 `multi_keyframe_long_take` instead of adding more edit seams. This mode compiles

@@ -139,6 +139,15 @@ COMBAT_CONTINUITY_METHODS = {
         },
         "measurement_required": True, "state_promotion_required": True,
     },
+    "force_conversion_controlled_recovery_ladder": {
+        "label": "受力转化受控恢复阶梯", "min_beats": 3,
+        "required_evidence": {
+            "defensive_contact", "force_transfer", "controlled_rotation",
+            "carried_prop_continuity", "landing_absorption", "stance_recovery",
+            "relational_close",
+        },
+        "measurement_required": True,
+    },
 }
 COMBAT_EVIDENCE_TYPES = set().union(
     *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
@@ -655,7 +664,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
         "continuity_ladders": continuity_ladders,
-        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V3",
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V4",
     }
 
 
