@@ -82,6 +82,39 @@ def evaluate_provider_capability(
                 "model": model,
                 "supported_models": sorted(supported_models),
             })
+        model_capabilities = provider_row.get("model_capabilities") if isinstance(provider_row, dict) else None
+        capability = model_capabilities.get(model) if isinstance(model_capabilities, dict) else None
+        if model and model in supported_models and not isinstance(capability, dict):
+            failures.append({
+                "code": "PROVIDER_MODEL_CAPABILITY_MISSING",
+                "task_key": task.get("task_key"),
+                "provider": provider,
+                "model": model,
+            })
+            continue
+        allowed_resolutions = {
+            str(value).lower()
+            for value in ((capability or {}).get("resolutions") or [])
+            if str(value)
+        }
+        resolution = str(task.get("resolution") or "").lower()
+        if isinstance(capability, dict) and not resolution:
+            failures.append({
+                "code": "TASK_RESOLUTION_MISSING",
+                "task_key": task.get("task_key"),
+                "provider": provider,
+                "model": model,
+                "allowed_resolutions": sorted(allowed_resolutions),
+            })
+        elif resolution and allowed_resolutions and resolution not in allowed_resolutions:
+            failures.append({
+                "code": "TASK_RESOLUTION_UNSUPPORTED_BY_PROVIDER_MODEL",
+                "task_key": task.get("task_key"),
+                "provider": provider,
+                "model": model,
+                "resolution": resolution,
+                "allowed_resolutions": sorted(allowed_resolutions),
+            })
 
     return {
         "schema": "backlotos.provider_video_capability_gate.v1",
@@ -96,5 +129,5 @@ def evaluate_provider_capability(
         "registry_sha256": _sha256(path) if path.is_file() else None,
         "provider_evidence": provider_row if isinstance(provider_row, dict) else None,
         "failures": failures,
-        "policy": "Paid video preflight fails before provider POST unless the current task model is seedance-2.0-fast, is requested by the manifest, and is verified as supported by the selected provider. Pro, Mini, and the unpriced bare seedance-2.0 SKU cannot be enabled by a manifest.",
+        "policy": "Paid video preflight fails before provider POST unless the current task model is seedance-2.0-fast, is requested by the manifest, is verified as supported by the selected provider, and uses a resolution explicitly allowed for that provider/model. Pro, Mini, and the unpriced bare seedance-2.0 SKU cannot be enabled by a manifest.",
     }
