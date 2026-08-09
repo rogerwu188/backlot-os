@@ -212,6 +212,9 @@ CAMERA_ACTION_RESPONSE_TYPES = {
     "LOCKED_FRAME", "HANDHELD_BREATHING", "PAN", "TILT", "TRACK", "DOLLY",
     "CRANE", "HANDHELD_FOLLOW", "RACK_FOCUS", "BOUNDED_ORBIT",
 }
+SHOT_BOUNDARY_STATE_POLICY = "FIRST_FRAME_PROVES_ENTRY_FINAL_FRAME_PROVES_EXIT"
+SHOT_BOUNDARY_ENTRY_POLICY = "ALREADY_ESTABLISHED_NO_REPLAY"
+SHOT_BOUNDARY_RESET_POLICY = "NO_UNDECLARED_REPLAY_OR_RESET_AT_CUT"
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -225,6 +228,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
             "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
             "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
+            "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -763,6 +767,115 @@ def compile_shot_information_ladder(
     )
 
 
+def compile_shot_boundary_state_ledger(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict | None]:
+    """Prove each shot's declared entry on frame one and exit at the cut."""
+    ledger = contract.get("shot_boundary_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != SHOT_BOUNDARY_STATE_POLICY:
+        raise ValueError(
+            "shot_boundary_state_ledger policy must be "
+            f"{SHOT_BOUNDARY_STATE_POLICY}"
+        )
+    if ledger.get("reset_policy") != SHOT_BOUNDARY_RESET_POLICY:
+        raise ValueError(
+            "shot_boundary_state_ledger reset_policy must be "
+            f"{SHOT_BOUNDARY_RESET_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "shot_boundary_state_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "shot_boundary_state_ledger must exactly cover all compiled shots"
+        )
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"shot boundary row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "shot_boundary_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"shot boundary row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"shot boundary row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"shot boundary row {index} entry/exit state must match cinematic segment"
+            )
+        if row.get("entry_policy") != SHOT_BOUNDARY_ENTRY_POLICY:
+            raise ValueError(
+                f"shot boundary row {index} entry_policy must be "
+                f"{SHOT_BOUNDARY_ENTRY_POLICY}"
+            )
+        hold_seconds = float(require(
+            row.get("final_result_hold_seconds"),
+            f"shot boundary row {index} final_result_hold_seconds is required",
+        ))
+        shot_duration = segment["end_seconds"] - segment["start_seconds"]
+        if hold_seconds < 0.5 or hold_seconds > shot_duration:
+            raise ValueError(
+                f"shot boundary row {index} final result hold must be between 0.5s and shot duration"
+            )
+        handoff = row.get("handoff_target_shot_index")
+        expected_handoff = index + 1 if index < len(segments) else None
+        if handoff != expected_handoff:
+            raise ValueError(
+                f"shot boundary row {index} handoff target must be the next compiled shot or null"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "entry_state": entry_state,
+            "first_frame_evidence": require(
+                row.get("first_frame_evidence"),
+                f"shot boundary row {index} first_frame_evidence is required",
+            ),
+            "entry_policy": SHOT_BOUNDARY_ENTRY_POLICY,
+            "exit_state": exit_state,
+            "final_frame_evidence": require(
+                row.get("final_frame_evidence"),
+                f"shot boundary row {index} final_frame_evidence is required",
+            ),
+            "final_result_hold_seconds": hold_seconds,
+            "handoff_target_shot_index": handoff,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}：首帧入口={row['entry_state']}；"
+        f"首帧证据={row['first_frame_evidence']}；入口策略={row['entry_policy']}；"
+        f"末帧出口={row['exit_state']}；末帧证据={row['final_frame_evidence']}；"
+        f"结果至少保持{row['final_result_hold_seconds']:g}秒；"
+        f"交接={('镜头' + str(row['handoff_target_shot_index'])) if row['handoff_target_shot_index'] else '终镜'}"
+        for row in compiled
+    ]
+    return (
+        "\n【SHOT BOUNDARY STATE LOCK｜首帧既定状态、末帧结果与交接】"
+        + "。".join(prompt_rows)
+        + "。每次切入必须直接呈现已声明入口，不得重演起势或重置人物、道具、环境；"
+        "切出前必须让出口结果保持可读，并只交接到已声明的下一镜。",
+        {
+            "version": "1.0.0",
+            "policy": SHOT_BOUNDARY_STATE_POLICY,
+            "reset_policy": SHOT_BOUNDARY_RESET_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height", "depth_layers"
+            ],
+            "adapter": "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -1128,6 +1241,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     offscreen_prompt, offscreen_ledger = compile_offscreen_relationship_ledger(
         contract, compiled, descriptor_ids, spatial_axis_ledger
     )
+    boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
+        contract, compiled
+    )
     camera_style_prompt, camera_style_plan = compile_camera_style_plan(contract, compiled)
     coupling_prompt, coupling_ledger = compile_camera_action_coupling_ledger(
         contract, compiled
@@ -1147,6 +1263,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + coupling_prompt
         + spatial_axis_prompt
         + offscreen_prompt
+        + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
         + "\n【KEY RULES】" + "；".join(rules)
@@ -1157,7 +1274,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -1166,6 +1283,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "spatial_axis_gate": "PASS_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND_COVERAGE" if spatial_axis_ledger else "NOT_APPLICABLE",
         "offscreen_relationship_ledger": offscreen_ledger,
         "offscreen_relationship_gate": "PASS_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY" if offscreen_ledger else "NOT_APPLICABLE",
+        "shot_boundary_state_ledger": boundary_ledger,
+        "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
         "shot_information_gate": "PASS_UNIQUE_FULL_COVERAGE" if information_ladder else "NOT_APPLICABLE",
         "cross_cut_state_ledger": state_ledger,

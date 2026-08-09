@@ -10,6 +10,7 @@ from tools.seedance2_prompt_compiler import (
     compile_camera_style_plan,
     compile_offscreen_relationship_ledger,
     compile_prompt,
+    compile_shot_boundary_state_ledger,
     default_local_lora_memory,
     load_local_lora_memory,
 )
@@ -102,6 +103,14 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
                         {"shot_index": 2, "coupling_type": "SUBJECT_TRIGGERED_MOVE", "physical_trigger": "同伴支撑起身并迈出第一步", "trigger_seconds": 0.5, "subject_change": "伏地姿态转为朝落点奔跑", "camera_response_type": "TRACK", "camera_response": "从支撑手跟到连续脚印和奔跑路径", "movement_start_seconds": 0.5, "movement_end_seconds": 2.3, "camera_motivation": "读清起身到奔跑的连续路径", "stop_condition": "人物进入稳定奔跑线", "visible_result": "负伤姿态、脚印与落点方向保持同框", "result_hold_until_seconds": 3, "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
                     ],
                 },
+                "shot_boundary_state_ledger": {
+                    "policy": "FIRST_FRAME_PROVES_ENTRY_FINAL_FRAME_PROVES_EXIT",
+                    "reset_policy": "NO_UNDECLARED_REPLAY_OR_RESET_AT_CUT",
+                    "shots": [
+                        {"shot_index": 1, "entry_state": "人物已在坠落", "first_frame_evidence": "首帧人物已离地并沿既定坠落轴下落", "entry_policy": "ALREADY_ESTABLISHED_NO_REPLAY", "exit_state": "雪柱与碎片形成可见结果", "final_frame_evidence": "末帧冲击坑、雪柱与回落碎片同时保留", "final_result_hold_seconds": 0.6, "handoff_target_shot_index": 2},
+                        {"shot_index": 2, "entry_state": "同伴负伤伏地", "first_frame_evidence": "首帧伤肩、支撑手与伏地姿态已经成立", "entry_policy": "ALREADY_ESTABLISHED_NO_REPLAY", "exit_state": "同伴向落点奔跑", "final_frame_evidence": "末帧负伤奔跑线、连续脚印与落点方向同框", "final_result_hold_seconds": 0.5, "handoff_target_shot_index": None},
+                    ],
+                },
                 "spatial_axis_ledger": {
                     "coverage_policy": "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND",
                     "shots": [
@@ -135,6 +144,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("【CAMERA STYLE PROFILE｜运镜文化风格标签】", prompt)
         self.assertIn("运镜风格=美式好莱坞[AMERICAN_HOLLYWOOD]", prompt)
         self.assertIn("【CAMERA-ACTION COUPLING LEDGER", prompt)
+        self.assertIn("【SHOT BOUNDARY STATE LOCK", prompt)
         self.assertIn("【SHOT INFORMATION LADDER｜一镜一信息】", prompt)
         self.assertIn("【SPATIAL AXIS LEDGER｜屏幕方位、视线与背景锚点】", prompt)
         self.assertIn("【CROSS-CUT STATE LEDGER｜跨镜状态账本】", prompt)
@@ -152,6 +162,15 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertEqual(
             manifest["cinematic_shot_language_contract"]["camera_action_coupling_gate"],
             "PASS_TRIGGER_RESPONSE_RESULT_HOLD",
+        )
+        boundary = manifest["cinematic_shot_language_contract"]["shot_boundary_state_ledger"]
+        self.assertEqual(
+            boundary["adapter"],
+            "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
+        )
+        self.assertEqual(
+            manifest["cinematic_shot_language_contract"]["shot_boundary_state_gate"],
+            "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE",
         )
         style_plan = manifest["cinematic_shot_language_contract"]["camera_style_plan"]
         self.assertEqual(style_plan["selection_policy"], "PER_SHOT_GENRE_AWARE")
@@ -173,6 +192,60 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "not adapted for production"):
             compile_camera_style_plan(contract, segments)
+
+    def shot_boundary_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1,
+            "start_seconds": 0.0,
+            "end_seconds": 3.0,
+            "entry_state": "人物已在奔跑",
+            "exit_state": "人物越过门槛后停住",
+        }]
+        row = {
+            "shot_index": 1,
+            "entry_state": "人物已在奔跑",
+            "first_frame_evidence": "首帧双脚处于连续跑动步态且衣摆向后",
+            "entry_policy": "ALREADY_ESTABLISHED_NO_REPLAY",
+            "exit_state": "人物越过门槛后停住",
+            "final_frame_evidence": "末帧双脚落定且门槛已在身后",
+            "final_result_hold_seconds": 0.5,
+            "handoff_target_shot_index": None,
+        }
+        row.update(overrides)
+        return {
+            "shot_boundary_state_ledger": {
+                "policy": "FIRST_FRAME_PROVES_ENTRY_FINAL_FRAME_PROVES_EXIT",
+                "reset_policy": "NO_UNDECLARED_REPLAY_OR_RESET_AT_CUT",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_shot_boundary_state_binds_first_and_final_frame_evidence(self):
+        contract, segments = self.shot_boundary_fixture()
+        prompt, manifest = compile_shot_boundary_state_ledger(contract, segments)
+        self.assertIn("【SHOT BOUNDARY STATE LOCK", prompt)
+        self.assertIn("ALREADY_ESTABLISHED_NO_REPLAY", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
+        )
+        self.assertTrue(manifest["video_side_only"])
+        self.assertIn("composition", manifest["forbidden_keyframe_fields"])
+
+    def test_shot_boundary_state_rejects_replayed_entry_transition(self):
+        contract, segments = self.shot_boundary_fixture(entry_policy="REPLAY_SETUP")
+        with self.assertRaisesRegex(ValueError, "entry_policy must be"):
+            compile_shot_boundary_state_ledger(contract, segments)
+
+    def test_shot_boundary_state_rejects_missing_result_hold(self):
+        contract, segments = self.shot_boundary_fixture(final_result_hold_seconds=0.25)
+        with self.assertRaisesRegex(ValueError, "final result hold must be"):
+            compile_shot_boundary_state_ledger(contract, segments)
+
+    def test_shot_boundary_state_rejects_wrong_handoff_target(self):
+        contract, segments = self.shot_boundary_fixture(handoff_target_shot_index=2)
+        with self.assertRaisesRegex(ValueError, "handoff target must be"):
+            compile_shot_boundary_state_ledger(contract, segments)
 
     def offscreen_fixture(self, **overrides):
         segments = [{

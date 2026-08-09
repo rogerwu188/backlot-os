@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V13 with a typed
+  shot-boundary state lock for task2-1 video prompts. Every cut must prove its
+  already-established entry state on the first frame, preserve visible exit
+  evidence for at least 0.5 seconds, and hand off only to the declared next
+  shot. Replayed setup, silent state resets, short result holds, and skipped
+  handoffs fail before generation. Keyframe composition remains separate and
+  the adapter retains the `AMERICAN_HOLLYWOOD` cultural label.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V12 with a typed
   offscreen-relationship ledger for task2-1 video prompts. Every eyeline target
   must declare whether it is visible or offscreen, preserve a stable offscreen

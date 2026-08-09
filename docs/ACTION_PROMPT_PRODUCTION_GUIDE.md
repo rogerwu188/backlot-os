@@ -98,15 +98,18 @@ keeps prompt responsibilities in this fixed order:
 6. `OFFSCREEN_RELATIONSHIP_LEDGER`: target visibility, offscreen side, presence
    evidence, exit visibility, and explicit stay-visible/stay-hidden/re-entry
    policy. It contains video continuity only, never keyframe composition.
-7. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+7. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
+   entry state, final-frame evidence for the exit state, a readable result hold,
+   and the declared next-shot handoff. It forbids replaying setup at a cut.
+8. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
    job per cut.
-8. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+9. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
    state handoffs across cuts.
-9. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+10. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-10. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+11. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-11. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+12. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
@@ -118,6 +121,17 @@ target cannot appear before the trigger, and an on-screen target cannot carry
 offscreen fields. Composition, shot scale, focal length, camera height, and the
 actor's current pose remain keyframe responsibilities and are rejected from the
 V12 adapter contract.
+
+The shot-boundary state lock is also video-side only. Every cut must open on
+visible evidence that its segment entry state is already established, rather
+than replaying the setup or silently resetting a person, prop, or environment.
+Before the next cut, the declared exit state must remain visibly readable for
+at least 0.5 seconds and name the exact next-shot handoff (or terminal shot).
+Adapter V13 cross-checks both states against the time-coded segment and rejects
+missing evidence, short result holds, replayed entrances, and skipped handoffs.
+Composition, shot scale, focal length, camera height, and depth remain keyframe
+responsibilities. This remains an `AMERICAN_HOLLYWOOD` prompt/rule adapter, not
+model weights and not an Eastern wuxia or kung-fu grammar.
 
 Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a
