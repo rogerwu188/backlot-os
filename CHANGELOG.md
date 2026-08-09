@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.2.41
+
+- Change the installed Producer/Supervisor Giggle provider default and model
+  allowlist to `seedance-2.0-fast`; v0.2.40 already protected the paid gate and
+  HTTP client, but the runtime health/default path still exposed the old bare
+  identifier.
+- Bump the Producer/Supervisor component to 0.2.2 and make `doctor.sh` fail
+  unless the actually installed pipeline adapter reports Fast as its video
+  default. This turns checkout/runtime agreement into an executable deployment
+  assertion instead of a release-note claim.
+
 ## 0.2.40
 
 - Enforce `seedance-2.0-fast` as the only production-allowed Seedance 2 video

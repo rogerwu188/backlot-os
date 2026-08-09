@@ -17,7 +17,7 @@ def test_health_fails_closed_without_key_and_reports_defaults(monkeypatch):
     monkeypatch.delenv("GIGGLE_API_KEY", raising=False)
     result = health()
     assert result["ok"] is False and result["status"] == "ADAPTER_REQUIRED"
-    assert result["defaults"] == {"video_model": "seedance-2.0", "image_model": "gpt2img"}
+    assert result["defaults"] == {"video_model": "seedance-2.0-fast", "image_model": "gpt2img"}
 
 
 def test_image_defaults_to_gpt2img_and_does_not_echo_key(monkeypatch):
@@ -36,8 +36,8 @@ def test_video_defaults_to_seedance2_and_selects_endpoint(monkeypatch):
     captured = {}
     result = generate_video({"prompt": "hero enters", "duration": 5}, transport=_capture(captured))
     assert captured["url"].endswith("/api/v1/generation/text-to-video")
-    assert captured["body"]["model"] == "seedance-2.0"
-    assert result["model"] == "seedance-2.0"
+    assert captured["body"]["model"] == "seedance-2.0-fast"
+    assert result["model"] == "seedance-2.0-fast"
     captured = {}
     generate_video({"prompt": "hero enters", "duration": 5, "start_frame": {"url": "https://example.invalid/a.png"}}, transport=_capture(captured))
     assert captured["url"].endswith("/api/v1/generation/image-to-video")

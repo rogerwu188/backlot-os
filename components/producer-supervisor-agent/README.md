@@ -99,4 +99,5 @@ report from the real pytest/junitxml run.
 ## Build
 
 `python -m build components/producer-supervisor-agent` produces the wheel and
-sdist. Version 0.2.1 includes the parallel QA fan-out and aggregate barrier.
+sdist. Version 0.2.2 includes the parallel QA fan-out, aggregate barrier, and
+the production `seedance-2.0-fast` provider default.
