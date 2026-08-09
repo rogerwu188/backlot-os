@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable
 
-from PIL import Image
+import cv2
 
 
 EXACT_FIRST_FRAME_ROLE = "EXACT_FIRST_FRAME"
@@ -30,10 +30,12 @@ def _sha256(path: Path) -> str:
 
 def raw_rgb_sha256(path: str | Path) -> str:
     """Hash decoded RGB pixels plus dimensions before provider encoding."""
-    with Image.open(path) as image:
-        rgb = image.convert("RGB")
-        width, height = rgb.size
-        authority = width.to_bytes(8, "big") + height.to_bytes(8, "big") + rgb.tobytes()
+    bgr = cv2.imread(str(path), cv2.IMREAD_COLOR)
+    if bgr is None:
+        raise ValueError(f"Cannot decode exact first frame: {path}")
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    height, width = rgb.shape[:2]
+    authority = width.to_bytes(8, "big") + height.to_bytes(8, "big") + rgb.tobytes()
     return hashlib.sha256(authority).hexdigest()
 
 

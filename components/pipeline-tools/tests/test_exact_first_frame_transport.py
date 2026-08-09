@@ -5,7 +5,6 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image
 
 from exact_first_frame_post_harvest_gate import evaluate_arrays
 from exact_first_frame_transport import (
@@ -23,7 +22,7 @@ class ExactFirstFrameTransportTests(unittest.TestCase):
         pixels = np.zeros((96, 54, 3), dtype=np.uint8)
         pixels[:, :, 0] = np.arange(54, dtype=np.uint8)
         pixels[:, :, 1] = np.arange(96, dtype=np.uint8)[:, None]
-        Image.fromarray(pixels, "RGB").save(image)
+        self.assertTrue(cv2.imwrite(str(image), cv2.cvtColor(pixels, cv2.COLOR_RGB2BGR)))
         source_sha = hashlib.sha256(image.read_bytes()).hexdigest()
         return {
             "task_key": "U03-R2",

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.2.44
+
+- Make the immutable release workflow install the declared media-review runtime before running exact-frame verification, matching pull-request CI and production dependencies.
+- Remove the exact-frame gate's undeclared Pillow dependency and use the already-declared OpenCV runtime for decoded RGB authority hashing.
+
 ## 0.2.43
 
 - Route every `EXACT_FIRST_FRAME` task through the provider's native image-to-video `start_frame` field; ordinary Omni `images[]` references can no longer satisfy this contract.
