@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.42
+
+- Reject provider/model resolution mismatches before any paid video POST; Giggle Seedance 2.0 Fast is now authoritatively limited to 720p or 480p.
+- Compile Fast long-take prompts at provider-native 720p and require an explicit deterministic 1080p delivery transform instead of falsely labeling an upscale as native generation.
+- Add regression coverage for the exact 1080p failure that caused a fully refunded E40 U01 request.
+
 ## 0.2.41
 
 - Change the installed Producer/Supervisor Giggle provider default and model
