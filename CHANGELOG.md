@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.2.39
+
+- Add an installed provider-video capability registry and make the real paid
+  video submission gate require a non-empty intersection between production-
+  allowed models and provider-supported models before any provider POST.
+- Record Giggle's current official Omni API model set (`seedance-2.0-pro` and
+  `seedance-2.0-fast`) so a standard-only `seedance-2.0` manifest fails during
+  zero-cost precheck instead of reaching the provider's unpriced-model error.
+- Preserve the standard-only production policy: the new gate reports the
+  empty intersection and does not silently substitute Pro, Fast, or Mini.
+
 ## 0.2.38
 
 - Allow a paid image manifest to omit a scene reference only when the task is

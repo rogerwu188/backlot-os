@@ -20,14 +20,20 @@ else
   failed=1
 fi
 
-source_image_submit="$repo_root/components/pipeline-tools/submit_giggle_image_manifest.py"
-installed_image_submit="$install_root/share/pipeline-tools/submit_giggle_image_manifest.py"
-if [[ -f "$installed_image_submit" ]] && cmp -s "$source_image_submit" "$installed_image_submit"; then
-  echo "PASS installed-artifact:submit_giggle_image_manifest.py"
-else
-  echo "FAIL installed-artifact:submit_giggle_image_manifest.py differs-from-source"
-  failed=1
-fi
+for parity_artifact in \
+  submit_giggle_image_manifest.py \
+  production_video_submission_gate.py \
+  provider_video_capability_gate.py \
+  provider_video_capabilities.json; do
+  source_artifact="$repo_root/components/pipeline-tools/$parity_artifact"
+  installed_artifact="$install_root/share/pipeline-tools/$parity_artifact"
+  if [[ -f "$installed_artifact" ]] && cmp -s "$source_artifact" "$installed_artifact"; then
+    echo "PASS installed-artifact:$parity_artifact"
+  else
+    echo "FAIL installed-artifact:$parity_artifact differs-from-source"
+    failed=1
+  fi
+done
 
 check_command() {
   if command -v "$1" >/dev/null 2>&1; then
@@ -106,6 +112,9 @@ for production_gate in \
   submit_giggle_image_manifest.py \
   retry_strategy_change_gate.py \
   task_lane_global_wait_gate.py \
+  provider_video_capability_gate.py \
+  provider_video_capabilities.json \
+  production_video_submission_gate.py \
   local_lora_memory_sync.py; do
   if [[ -f "$repo_root/components/pipeline-tools/$production_gate" ]]; then
     echo "PASS production-gate:$production_gate"
