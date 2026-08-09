@@ -94,11 +94,23 @@ keeps prompt responsibilities in this fixed order:
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
+For multi-cut scenes with persistent character, prop, spatial, or environment
+facts, add `cross_cut_state_ledger`. Each typed track must cover every compiled
+shot in order, bind to a SHA-locked descriptor, record visible entry/exit
+evidence, and make each next entry exactly equal the prior exit. Its terminal
+state must equal the final exit. Adapter V8 rejects a pristine prop after damage,
+a restored injury, a relocated witness, a cleared footprint/fire/snow trace, or
+any other undeclared reset before provider submission. This generalizes the
+licensed Scene 70 practice of separating cut purpose from durable state facts;
+it is a prompt/rule adapter, not trained Seedance model weights.
+
 The segments must start at zero, remain contiguous, follow storyboard order,
 and cover the declared duration exactly. The compiler rejects unknown asset
 references, descriptor text whose SHA does not match, untested assets,
 decorative camera movement without motivation, timeline gaps, and unsupported
-dialogue policies before a paid generation call.
+dialogue policies before a paid generation call. When a cross-cut ledger is
+present, incomplete shot coverage, unknown descriptor bindings, duplicate
+tracks, state-handoff mismatches, and terminal-state mismatches also fail.
 
 Map writer fields deliberately: `shot_treatment.purpose` becomes
 `narrative_purpose`; blocking and scene-map data become `geometry`; the current

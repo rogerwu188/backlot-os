@@ -185,6 +185,109 @@ COMBAT_EVIDENCE_TYPES = set().union(
 )
 COMBAT_MEASUREMENT_KINDS = {"distance", "displacement", "clearance", "gap", "timing_interval", "angle"}
 COMBAT_MEASUREMENT_UNITS = {"m", "cm", "s", "degrees", "body_lengths"}
+CROSS_CUT_CONTINUITY_CLASSES = {
+    "character_state", "prop_state", "spatial_relation", "environment_state",
+}
+
+
+def compile_cross_cut_state_ledger(
+    contract: dict, shot_count: int, descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Compile exact per-shot state handoffs so cuts cannot silently reset facts."""
+    ledger = contract.get("cross_cut_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("reset_policy") != "NO_UNDECLARED_RESET_ACROSS_CUTS":
+        raise ValueError(
+            "cross_cut_state_ledger reset_policy must be NO_UNDECLARED_RESET_ACROSS_CUTS"
+        )
+    tracks = require(ledger.get("tracks"), "cross_cut_state_ledger tracks are required")
+    if not isinstance(tracks, list) or not 1 <= len(tracks) <= 8:
+        raise ValueError("cross_cut_state_ledger must contain 1 to 8 tracks")
+
+    compiled, track_ids = [], set()
+    for track_index, track in enumerate(tracks, start=1):
+        track_id = require(track.get("track_id"), f"state track {track_index} track_id is required")
+        if track_id in track_ids:
+            raise ValueError(f"duplicate cross-cut state track: {track_id}")
+        track_ids.add(track_id)
+        continuity_class = require(
+            track.get("continuity_class"), f"state track {track_id} continuity_class is required"
+        )
+        if continuity_class not in CROSS_CUT_CONTINUITY_CLASSES:
+            raise ValueError(f"unsupported cross-cut continuity class: {continuity_class}")
+        subject_id = require(
+            track.get("subject_descriptor_id"),
+            f"state track {track_id} subject_descriptor_id is required",
+        )
+        if subject_id not in descriptor_ids:
+            raise ValueError(f"state track {track_id} references unknown descriptor: {subject_id}")
+        states = require(track.get("segment_states"), f"state track {track_id} segment_states are required")
+        if not isinstance(states, list) or len(states) != shot_count:
+            raise ValueError(f"state track {track_id} must exactly cover all compiled shots")
+
+        compiled_states, previous_exit = [], None
+        for state_index, state in enumerate(states, start=1):
+            shot_index = int(require(
+                state.get("shot_index"), f"state track {track_id} row {state_index} shot_index is required"
+            ))
+            if shot_index != state_index:
+                raise ValueError(f"state track {track_id} shot_index must match compiled shot order")
+            entry_state = require(
+                state.get("entry_state"), f"state track {track_id} shot {shot_index} entry_state is required"
+            )
+            exit_state = require(
+                state.get("exit_state"), f"state track {track_id} shot {shot_index} exit_state is required"
+            )
+            if previous_exit is not None and entry_state != previous_exit:
+                raise ValueError(
+                    f"cross-cut state handoff mismatch for {track_id}: "
+                    f"shot {shot_index - 1} exits {previous_exit} but shot {shot_index} enters {entry_state}"
+                )
+            compiled_states.append({
+                "shot_index": shot_index,
+                "entry_state": entry_state,
+                "exit_state": exit_state,
+                "visible_evidence": require(
+                    state.get("visible_evidence"),
+                    f"state track {track_id} shot {shot_index} visible_evidence is required",
+                ),
+            })
+            previous_exit = exit_state
+        terminal_state = require(
+            track.get("terminal_state"), f"state track {track_id} terminal_state is required"
+        )
+        if terminal_state != previous_exit:
+            raise ValueError(f"state track {track_id} terminal_state must match its final exit_state")
+        compiled.append({
+            "track_id": track_id,
+            "continuity_class": continuity_class,
+            "subject_descriptor_id": subject_id,
+            "segment_states": compiled_states,
+            "terminal_state": terminal_state,
+        })
+
+    track_rows = []
+    for track in compiled:
+        states = "；".join(
+            f"镜头{state['shot_index']}入口={state['entry_state']}，可见证据={state['visible_evidence']}，出口={state['exit_state']}"
+            for state in track["segment_states"]
+        )
+        track_rows.append(
+            f"{track['track_id']}[{track['continuity_class']}]绑定{track['subject_descriptor_id']}："
+            f"{states}；终态={track['terminal_state']}"
+        )
+    prompt = (
+        "\n【CROSS-CUT STATE LEDGER｜跨镜状态账本】" + "。".join(track_rows) + "。"
+        "相邻镜头必须原样继承上一镜出口状态；角色、伤势、道具、空间关系和环境结果均不得未声明复原。"
+    )
+    return prompt, {
+        "version": "1.0.0",
+        "reset_policy": "NO_UNDECLARED_RESET_ACROSS_CUTS",
+        "tracks": compiled,
+        "full_shot_coverage": True,
+        "adapter": "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8",
+    }
 
 
 def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tuple[str, dict | None]:
@@ -262,6 +365,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     negatives = require(contract.get("negative_constraints"), "cinematic negative_constraints are required")
     if not isinstance(negatives, list) or not negatives:
         raise ValueError("cinematic negative_constraints must be a non-empty list")
+    state_ledger_prompt, state_ledger = compile_cross_cut_state_ledger(
+        contract, shot_count, descriptor_ids
+    )
     segment_rows = [
         f"{row['start_seconds']:g}-{row['end_seconds']:g}秒 / 镜头{row['shot_index']}：目的={row['narrative_purpose']}；"
         f"入口={row['entry_state']}；出口={row['exit_state']}；引用={','.join(row['descriptor_ids'])}；"
@@ -273,6 +379,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     prompt = (
         "\n\n【LOCKED DESCRIPTORS｜逐镜原文复用】" + "；".join(descriptor_rows)
         + "。\n【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】\n" + "\n".join(segment_rows)
+        + state_ledger_prompt
         + "\n【KEY RULES】" + "；".join(rules)
         + f"。\n【ATMOSPHERE STATE】{atmosphere}。\n【STYLE PREFIX】{style}。"
         + "\n【NEGATIVE CONSTRAINTS】" + " / ".join(negatives) + "。"
@@ -281,7 +388,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "cross_cut_state_ledger": state_ledger,
+        "cross_cut_state_gate": "PASS_EXACT_HANDOFF_AND_FULL_COVERAGE" if state_ledger else "NOT_APPLICABLE",
         "source_method": "HELL_GRIND_LICENSED_PRODUCTION_METHODOLOGY",
     }
 

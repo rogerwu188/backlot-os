@@ -81,6 +81,19 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
                     {"shot_index": 1, "start_seconds": 0, "end_seconds": 5, "narrative_purpose": "用远距离冲击证明尺度", "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果", "descriptor_ids": ["@snow_battlefield"], "camera_motivation": "让冲击尺度可读", "geometry": {"subject_anchor": "人物占画面高度不足十分之一", "camera_side": "战场外侧", "axis_relation": "沿坠落轴", "scale_anchor": "雪柱高于人物五倍"}, "audio": {"diegetic": "风啸、撞击、碎片落雪", "dialogue_policy": "NO_DIALOGUE"}},
                     {"shot_index": 2, "start_seconds": 5, "end_seconds": 8, "narrative_purpose": "将旁观者转为行动者", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑", "descriptor_ids": ["@hero_wounded", "@snow_battlefield"], "camera_motivation": "读清起身到奔跑的连续路径", "geometry": {"subject_anchor": "伤肩与支撑手", "camera_side": "人物左侧", "axis_relation": "保持奔跑方向", "scale_anchor": "人物与脚印路径同框"}, "audio": {"diegetic": "喘息、踏雪、衣料", "dialogue_policy": "NO_DIALOGUE"}},
                 ],
+                "cross_cut_state_ledger": {
+                    "reset_policy": "NO_UNDECLARED_RESET_ACROSS_CUTS",
+                    "tracks": [{
+                        "track_id": "blizzard-direction-and-ground-trace",
+                        "continuity_class": "environment_state",
+                        "subject_descriptor_id": "@snow_battlefield",
+                        "segment_states": [
+                            {"shot_index": 1, "entry_state": "wind-right-to-left-with-unbroken-snow", "exit_state": "wind-right-to-left-with-impact-trace", "visible_evidence": "雪柱向左偏移并留下连续落雪"},
+                            {"shot_index": 2, "entry_state": "wind-right-to-left-with-impact-trace", "exit_state": "wind-right-to-left-with-impact-and-footprint-traces", "visible_evidence": "旧雪柱仍在后景，新增脚印沿同一风向延伸"},
+                        ],
+                        "terminal_state": "wind-right-to-left-with-impact-and-footprint-traces",
+                    }],
+                },
                 "key_rules": ["复杂动作从已经发生的起势进入", "一次只改变一个可验证变量"],
                 "atmosphere_state": "暴雪、地雾和风向在每镜连续",
                 "style_prefix": "写实24fps，克制手持，只在动作需要时移动",
@@ -91,9 +104,46 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("【LOCKED DESCRIPTORS｜逐镜原文复用】", prompt)
         self.assertIn("【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】", prompt)
         self.assertIn("0-5秒 / 镜头1", prompt)
+        self.assertIn("【CROSS-CUT STATE LEDGER｜跨镜状态账本】", prompt)
         self.assertIn(hero, prompt)
         self.assertEqual(manifest["cinematic_shot_language_gate"], "PASS_SECTIONED_AND_TIME_CODED")
         self.assertTrue(manifest["cinematic_shot_language_contract"]["full_duration_coverage"])
+        ledger = manifest["cinematic_shot_language_contract"]["cross_cut_state_ledger"]
+        self.assertEqual(ledger["adapter"], "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8")
+
+    def test_cinematic_shot_language_rejects_cross_cut_state_reset(self):
+        hero = "角色锁定描述"
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard", "duration_seconds": 8,
+            "shots": [
+                {"framing": "远景", "camera": "固定", "action": "A", "expression_arc": "A到B", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "B", "expression_arc": "B到C", "cut_reason": "视线接"},
+            ],
+            "cinematic_shot_language_contract": {
+                "version": "1.0.0",
+                "locked_descriptors": [{"id": "@hero", "kind": "character", "text": hero, "text_sha256": hashlib.sha256(hero.encode()).hexdigest(), "paste_policy": "VERBATIM_EVERY_SHOT", "stress_test_status": "PASS"}],
+                "segments": [
+                    {"shot_index": 1, "start_seconds": 0, "end_seconds": 4, "narrative_purpose": "A", "entry_state": "A", "exit_state": "B", "descriptor_ids": ["@hero"], "camera_motivation": "A", "geometry": {"subject_anchor": "A", "camera_side": "A", "axis_relation": "A", "scale_anchor": "A"}, "audio": {"diegetic": "A", "dialogue_policy": "NO_DIALOGUE"}},
+                    {"shot_index": 2, "start_seconds": 4, "end_seconds": 8, "narrative_purpose": "B", "entry_state": "B", "exit_state": "C", "descriptor_ids": ["@hero"], "camera_motivation": "B", "geometry": {"subject_anchor": "B", "camera_side": "B", "axis_relation": "B", "scale_anchor": "B"}, "audio": {"diegetic": "B", "dialogue_policy": "NO_DIALOGUE"}},
+                ],
+                "cross_cut_state_ledger": {
+                    "reset_policy": "NO_UNDECLARED_RESET_ACROSS_CUTS",
+                    "tracks": [{
+                        "track_id": "hero-prop-state", "continuity_class": "prop_state",
+                        "subject_descriptor_id": "@hero",
+                        "segment_states": [
+                            {"shot_index": 1, "entry_state": "prop-raised", "exit_state": "prop-damaged", "visible_evidence": "裂口可见"},
+                            {"shot_index": 2, "entry_state": "prop-pristine", "exit_state": "prop-lowered", "visible_evidence": "道具仍在手中"},
+                        ],
+                        "terminal_state": "prop-lowered",
+                    }],
+                },
+                "key_rules": ["一镜一目的"], "atmosphere_state": "连续", "style_prefix": "写实", "negative_constraints": ["跳切"],
+            },
+        })
+        with self.assertRaisesRegex(ValueError, "cross-cut state handoff mismatch"):
+            compile_prompt(spec)
 
     def test_cinematic_shot_language_rejects_timeline_gap(self):
         hero = "角色锁定描述"

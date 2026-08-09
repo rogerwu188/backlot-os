@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V8 with a typed
+  cross-cut state ledger for task2-1 cinematic shot organization. Character,
+  prop, spatial, and environment tracks must cover every cut, preserve exact
+  entry/exit handoffs, retain visible evidence, and reject undeclared resets.
 - Upgrade the Hell Grind prompt/rule adapter to V7 by enforcing causal state
   handoffs between composed continuity ladders; reject reversed ladder order or
   any character, injury, prop, or spatial reset between adjacent methods.
