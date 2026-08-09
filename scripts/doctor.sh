@@ -79,6 +79,10 @@ for production_gate in \
   action_spatial_feasibility_gate.py \
   generation_prompt_optimizer.py \
   bgm_authenticity_gate.py \
+  continuous_task_lane_dispatcher.py \
+  shot_package_completion_gate.py \
+  retry_strategy_change_gate.py \
+  task_lane_global_wait_gate.py \
   local_lora_memory_sync.py; do
   if [[ -f "$repo_root/components/pipeline-tools/$production_gate" ]]; then
     echo "PASS production-gate:$production_gate"

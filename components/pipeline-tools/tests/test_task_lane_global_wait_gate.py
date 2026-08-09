@@ -56,6 +56,55 @@ class TaskLaneGlobalWaitGateTests(unittest.TestCase):
         self.assertIn("REMOTE_WAIT_MASKS_READY_OTHER_LANES", codes)
         self.assertIn("GLOBAL_WAIT_MASKS_READY_ZERO_COST_TASKS", codes)
 
+    def test_idle_unfinished_work_requires_legal_blocker_evidence(self):
+        payload = state([
+            {
+                "task_id": "U19",
+                "lane_id": "ACTION",
+                "state": "WAITING_DEPENDENCY",
+                "zero_cost": False,
+                "exact_predecessor_task_id": "U18",
+            },
+            {
+                "task_id": "U18",
+                "lane_id": "ACTION",
+                "state": "TERMINAL",
+                "zero_cost": False,
+            },
+        ])
+        result = audit_scheduler_state(payload)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["liveness_state"], "FALSE_IDLE")
+        self.assertIn(
+            "IDLE_WITH_UNFINISHED_WORK_AND_NO_LEGAL_BLOCKER",
+            {row["code"] for row in result["failures"]},
+        )
+
+    def test_evidenced_legal_blocker_is_not_false_idle(self):
+        payload = state([
+            {
+                "task_id": "U18",
+                "lane_id": "ACTION",
+                "state": "TERMINAL",
+                "zero_cost": False,
+            },
+            {
+                "task_id": "U19",
+                "lane_id": "ACTION",
+                "state": "WAITING_DEPENDENCY",
+                "zero_cost": False,
+                "exact_predecessor_task_id": "U18",
+            },
+        ])
+        payload["scheduler_decision"]["legal_blocker"] = {
+            "code": "PREDECESSOR_QA_FAILED",
+            "evidence_ref": "qa/u18.json",
+            "next_recheck_at": "2026-08-09T00:00:00Z",
+        }
+        result = audit_scheduler_state(payload)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["liveness_state"], "LEGALLY_BLOCKED")
+
 
 if __name__ == "__main__":
     unittest.main()
