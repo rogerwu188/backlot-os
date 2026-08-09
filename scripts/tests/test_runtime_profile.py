@@ -142,7 +142,14 @@ class RuntimeProfileTests(unittest.TestCase):
                 "backlotos-pipeline-command",
             ):
                 target = bin_dir / name
-                target.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+                if name == "backlotos-pipeline-command":
+                    target.write_text(
+                        "#!/usr/bin/env bash\n"
+                        "printf '%s\\n' '{\"media_provider\":{\"defaults\":{\"video_model\":\"seedance-2.0-fast\"}}}'\n",
+                        encoding="utf-8",
+                    )
+                else:
+                    target.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
                 target.chmod(0o755)
             python_target = bin_dir / "python"
             python_target.write_text(

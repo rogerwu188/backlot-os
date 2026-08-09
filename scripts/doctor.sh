@@ -94,8 +94,15 @@ fi
 
 if [[ -x "$install_root/venv/bin/backlotos-pipeline-command" ]]; then
   echo "PASS pipeline-semantic-adapter"
-  printf '%s\n' '{"verb":"health"}' | \
-    BACKLOT_PIPELINE_TOOLS_DIR="$install_root/share/pipeline-tools" "$install_root/venv/bin/backlotos-pipeline-command"
+  pipeline_health="$(printf '%s\n' '{"verb":"health"}' | \
+    BACKLOT_PIPELINE_TOOLS_DIR="$install_root/share/pipeline-tools" "$install_root/venv/bin/backlotos-pipeline-command")"
+  printf '%s\n' "$pipeline_health"
+  if printf '%s\n' "$pipeline_health" | grep -Eq '"video_model"[[:space:]]*:[[:space:]]*"seedance-2\.0-fast"'; then
+    echo "PASS installed-provider-default:seedance-2.0-fast"
+  else
+    echo "FAIL installed-provider-default:expected=seedance-2.0-fast"
+    failed=1
+  fi
 else
   echo "FAIL pipeline-semantic-adapter"
   failed=1

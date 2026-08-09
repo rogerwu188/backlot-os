@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "backlotos-producer-supervisor-agent"
-version = "0.2.1"
+version = "0.2.2"
 description = "Producer / Supervisor agent for BacklotOS: episode planning, idempotent dispatch, cross-stage evidence supervision, cost aggregation, and the BACKLOT_PRODUCER_COMMAND / BACKLOT_PIPELINE_COMMAND external-command adapters. Generic, stdlib-only core (no project-specific content)."
 readme = "README.md"
 requires-python = ">=3.9"
