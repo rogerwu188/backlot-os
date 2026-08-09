@@ -20,14 +20,23 @@ else
   failed=1
 fi
 
-source_image_submit="$repo_root/components/pipeline-tools/submit_giggle_image_manifest.py"
-installed_image_submit="$install_root/share/pipeline-tools/submit_giggle_image_manifest.py"
-if [[ -f "$installed_image_submit" ]] && cmp -s "$source_image_submit" "$installed_image_submit"; then
-  echo "PASS installed-artifact:submit_giggle_image_manifest.py"
-else
-  echo "FAIL installed-artifact:submit_giggle_image_manifest.py differs-from-source"
-  failed=1
-fi
+for parity_artifact in \
+  submit_giggle_image_manifest.py \
+  giggle_api_client.py \
+  seedance2_prompt_compiler.py \
+  shot_package_completion_gate.py \
+  production_video_submission_gate.py \
+  provider_video_capability_gate.py \
+  provider_video_capabilities.json; do
+  source_artifact="$repo_root/components/pipeline-tools/$parity_artifact"
+  installed_artifact="$install_root/share/pipeline-tools/$parity_artifact"
+  if [[ -f "$installed_artifact" ]] && cmp -s "$source_artifact" "$installed_artifact"; then
+    echo "PASS installed-artifact:$parity_artifact"
+  else
+    echo "FAIL installed-artifact:$parity_artifact differs-from-source"
+    failed=1
+  fi
+done
 
 check_command() {
   if command -v "$1" >/dev/null 2>&1; then
@@ -85,8 +94,15 @@ fi
 
 if [[ -x "$install_root/venv/bin/backlotos-pipeline-command" ]]; then
   echo "PASS pipeline-semantic-adapter"
-  printf '%s\n' '{"verb":"health"}' | \
-    BACKLOT_PIPELINE_TOOLS_DIR="$install_root/share/pipeline-tools" "$install_root/venv/bin/backlotos-pipeline-command"
+  pipeline_health="$(printf '%s\n' '{"verb":"health"}' | \
+    BACKLOT_PIPELINE_TOOLS_DIR="$install_root/share/pipeline-tools" "$install_root/venv/bin/backlotos-pipeline-command")"
+  printf '%s\n' "$pipeline_health"
+  if printf '%s\n' "$pipeline_health" | grep -Eq '"video_model"[[:space:]]*:[[:space:]]*"seedance-2\.0-fast"'; then
+    echo "PASS installed-provider-default:seedance-2.0-fast"
+  else
+    echo "FAIL installed-provider-default:expected=seedance-2.0-fast"
+    failed=1
+  fi
 else
   echo "FAIL pipeline-semantic-adapter"
   failed=1
@@ -106,6 +122,9 @@ for production_gate in \
   submit_giggle_image_manifest.py \
   retry_strategy_change_gate.py \
   task_lane_global_wait_gate.py \
+  provider_video_capability_gate.py \
+  provider_video_capabilities.json \
+  production_video_submission_gate.py \
   local_lora_memory_sync.py; do
   if [[ -f "$repo_root/components/pipeline-tools/$production_gate" ]]; then
     echo "PASS production-gate:$production_gate"

@@ -973,8 +973,8 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
     duration = require(spec.get("duration_seconds"), "duration_seconds is required")
     if duration != 15:
         raise ValueError("multi_keyframe_long_take requires exactly 15 seconds")
-    if spec.get("model") != "seedance-2.0":
-        raise ValueError("multi_keyframe_long_take requires seedance-2.0 (standard)")
+    if spec.get("model") != "seedance-2.0-fast":
+        raise ValueError("multi_keyframe_long_take requires seedance-2.0-fast")
     if spec.get("resolution") != "1080p":
         raise ValueError("multi_keyframe_long_take requires native 1080p")
     if spec.get("real_time_1x") is not True:
@@ -1089,7 +1089,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
             f"{row['sample_id']}：{row['compiler_guard_clause']}" for row in memory_rows
         ) + "。"
     prompt = (
-        f"15秒一镜到底，Seedance 2.0 Pro，原生1080p，实时1倍速。{subject_lock}\n"
+        f"15秒一镜到底，Seedance 2.0 Fast，原生1080p，实时1倍速。{subject_lock}\n"
         f"动作轴：{action_axis}。空间连续硬锁：{spatial_lock}。\n" + "\n".join(timeline)
         + memory_clause
         + character_prompt

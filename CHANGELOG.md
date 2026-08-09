@@ -32,6 +32,47 @@
   and decorative camera substitutions before provider spend. This adapter does
   not claim Seedance model-weight training.
 
+## 0.2.41
+
+- Change the installed Producer/Supervisor Giggle provider default and model
+  allowlist to `seedance-2.0-fast`; v0.2.40 already protected the paid gate and
+  HTTP client, but the runtime health/default path still exposed the old bare
+  identifier.
+- Bump the Producer/Supervisor component to 0.2.2 and make `doctor.sh` fail
+  unless the actually installed pipeline adapter reports Fast as its video
+  default. This turns checkout/runtime agreement into an executable deployment
+  assertion instead of a release-note claim.
+
+## 0.2.40
+
+- Enforce `seedance-2.0-fast` as the only production-allowed Seedance 2 video
+  SKU at the real paid submission gate. A manifest cannot expand the policy to
+  Pro, Mini, or the unpriced bare `seedance-2.0` identifier.
+- Align long-take compilation and shot-package completion accounting with the
+  same Fast-only policy, eliminating downstream gates that would accept the
+  paid request and then reject the resulting clip for using Fast.
+- Change the low-level Giggle HTTP client and generic episode compilers to Fast
+  as well, with a client-level regression test proving Pro, Mini, and the bare
+  model identifier cannot reach the network even if an upstream caller drifts.
+- Keep provider capability verification fail-closed, so Fast must be both the
+  production policy and a verified provider capability before any provider
+  POST.
+- Add regression coverage for Fast-only admission and attempted manifest-level
+  policy expansion to the required CI path, preserving the installed runtime
+  parity checks that prevent a newer GitHub checkout from concealing an older
+  production gate.
+
+## 0.2.39
+
+- Add an installed provider-video capability registry and make the real paid
+  video submission gate require a non-empty intersection between production-
+  allowed models and provider-supported models before any provider POST.
+- Record Giggle's current official Omni API model set (`seedance-2.0-pro` and
+  `seedance-2.0-fast`) so a standard-only `seedance-2.0` manifest fails during
+  zero-cost precheck instead of reaching the provider's unpriced-model error.
+- Preserve the standard-only production policy: the new gate reports the
+  empty intersection and does not silently substitute Pro, Fast, or Mini.
+
 ## 0.2.38
 
 - Allow a paid image manifest to omit a scene reference only when the task is

@@ -14,9 +14,9 @@ import urllib.request
 from typing import Any, Callable
 
 DEFAULT_BASE_URL = "https://giggle.pro"
-DEFAULT_VIDEO_MODEL = "seedance-2.0"
+DEFAULT_VIDEO_MODEL = "seedance-2.0-fast"
 DEFAULT_IMAGE_MODEL = "gpt2img"
-VIDEO_MODELS = {"seedance-2.0"}
+VIDEO_MODELS = {"seedance-2.0-fast"}
 
 
 class GiggleError(RuntimeError):

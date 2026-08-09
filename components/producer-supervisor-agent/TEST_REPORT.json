@@ -1,14 +1,14 @@
 {
   "schema": "backlotos.test-report/1.0",
   "package": "backlotos-producer-supervisor-agent",
-  "version": "0.2.1",
-  "generated_at": "2026-08-05T21:26:39.446074Z",
+  "version": "0.2.2",
+  "generated_at": "2026-08-09T06:18:00Z",
   "test_count": 94,
   "passed": 94,
   "failed": 0,
   "errors": 0,
   "skipped": 0,
-  "duration_sec": 0.904,
+  "duration_sec": 1.18,
   "status": "PASS",
   "cases": [
     {
