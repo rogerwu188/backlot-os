@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 
 from tools.task_lane_global_wait_gate import audit_scheduler_state
 
@@ -12,6 +13,24 @@ def state(tasks, *, global_wait=False, heartbeat=None):
     if heartbeat is not None:
         payload["heartbeat_integration"] = heartbeat
     return payload
+
+
+CHECKED_AT = datetime(2026, 8, 9, 21, 40, tzinfo=timezone.utc)
+
+
+def live_running(task_id="NEXT", *, role="PRODUCING", deliverable="SHOT_PACKAGE"):
+    return {
+        "task_id": task_id,
+        "lane_id": "ACTION",
+        "state": "RUNNING",
+        "zero_cost": True,
+        "deliverable_type": deliverable,
+        "liveness_role": role,
+        "lease_owner": "worker:test",
+        "lease_expires_at": "2026-08-09T21:45:00Z",
+        "last_progress_at": "2026-08-09T21:39:30Z",
+        "next_due_at": "2026-08-09T21:41:00Z",
+    }
 
 
 class TaskLaneGlobalWaitGateTests(unittest.TestCase):
@@ -128,16 +147,93 @@ class TaskLaneGlobalWaitGateTests(unittest.TestCase):
     def test_heartbeat_return_passes_with_running_successor(self):
         result = audit_scheduler_state(
             state(
-                [{"task_id": "NEXT", "lane_id": "ACTION", "state": "RUNNING", "zero_cost": True}],
+                [live_running()],
                 heartbeat={
                     "require_active_successor_before_return": True,
                     "episode_terminal": False,
                 },
-            )
+            ),
+            now=CHECKED_AT,
         )
         self.assertEqual(result["status"], "PASS")
         self.assertTrue(result["heartbeat_return_allowed"])
         self.assertEqual(result["active_successor_task_ids"], ["NEXT"])
+
+    def test_running_without_scoped_lease_fails_closed(self):
+        result = audit_scheduler_state(
+            state(
+                [{"task_id": "ORPHAN", "lane_id": "ACTION", "state": "RUNNING"}],
+                heartbeat={"require_active_successor_before_return": True, "episode_terminal": False},
+            ),
+            now=CHECKED_AT,
+        )
+        codes = {row["code"] for row in result["failures"]}
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("RUNNING_LEASE_FIELDS_MISSING", codes)
+        self.assertIn("HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR", codes)
+        self.assertEqual(result["stale_running_task_ids"], ["ORPHAN"])
+
+    def test_expired_running_watchdog_is_not_active_successor(self):
+        watchdog = live_running("WATCHDOG", role="OBSERVATION", deliverable="PIPELINE_GATE")
+        watchdog["lease_expires_at"] = "2026-08-09T21:39:59Z"
+        result = audit_scheduler_state(
+            state(
+                [watchdog],
+                heartbeat={"require_active_successor_before_return": True, "episode_terminal": False},
+            ),
+            now=CHECKED_AT,
+        )
+        codes = {row["code"] for row in result["failures"]}
+        self.assertIn("RUNNING_LEASE_EXPIRED", codes)
+        self.assertIn("HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR", codes)
+        self.assertEqual(result["active_successor_task_ids"], [])
+
+    def test_overdue_running_progress_is_not_active_successor(self):
+        producing = live_running()
+        producing["next_due_at"] = "2026-08-09T21:39:59Z"
+        result = audit_scheduler_state(
+            state(
+                [producing],
+                heartbeat={"require_active_successor_before_return": True, "episode_terminal": False},
+            ),
+            now=CHECKED_AT,
+        )
+        codes = {row["code"] for row in result["failures"]}
+        self.assertIn("RUNNING_PROGRESS_OVERDUE", codes)
+        self.assertIn("HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR", codes)
+        self.assertEqual(result["active_successor_task_ids"], [])
+
+    def test_live_observation_only_cannot_satisfy_continuity(self):
+        result = audit_scheduler_state(
+            state(
+                [live_running("WATCH", role="OBSERVATION", deliverable="QA_RECEIPT")],
+                heartbeat={"require_active_successor_before_return": True, "episode_terminal": False},
+            ),
+            now=CHECKED_AT,
+        )
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["observation_task_ids"], ["WATCH"])
+        self.assertEqual(result["active_successor_task_ids"], [])
+        self.assertIn(
+            "HEARTBEAT_RETURN_WITHOUT_ACTIVE_SUCCESSOR",
+            {row["code"] for row in result["failures"]},
+        )
+
+    def test_task_local_remote_wait_satisfies_continuity(self):
+        result = audit_scheduler_state(
+            state(
+                [{
+                    "task_id": "REMOTE",
+                    "lane_id": "ACTION",
+                    "state": "REMOTE_WAIT",
+                    "wait_scope": "TASK_LOCAL",
+                }],
+                heartbeat={"require_active_successor_before_return": True, "episode_terminal": False},
+            ),
+            now=CHECKED_AT,
+        )
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["active_successor_task_ids"], ["REMOTE"])
 
     def test_terminal_episode_may_return_without_successor(self):
         result = audit_scheduler_state(

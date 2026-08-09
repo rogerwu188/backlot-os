@@ -16,7 +16,7 @@ import json
 import os
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +36,28 @@ SHOT_DELIVERABLES = frozenset({"SHOT_PACKAGE", "ADMITTED_VIDEO", "ASSEMBLY_READY
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _running_lease_fields(task: dict[str, Any], owner: str) -> dict[str, str]:
+    descriptor = task.get("dispatch") or {}
+    try:
+        lease_seconds = int(descriptor.get("lease_seconds", 300))
+    except (TypeError, ValueError):
+        lease_seconds = 300
+    lease_seconds = min(max(30, lease_seconds), 86400)
+    try:
+        progress_seconds = int(descriptor.get("progress_interval_seconds", 30))
+    except (TypeError, ValueError):
+        progress_seconds = 30
+    progress_seconds = min(max(1, progress_seconds), lease_seconds)
+    started = datetime.now(timezone.utc)
+    stamp = lambda value: value.isoformat().replace("+00:00", "Z")
+    return {
+        "lease_owner": owner,
+        "lease_expires_at": stamp(started + timedelta(seconds=lease_seconds)),
+        "last_progress_at": stamp(started),
+        "next_due_at": stamp(started + timedelta(seconds=progress_seconds)),
+    }
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -164,6 +186,7 @@ def _dispatch_cycle(
                 task["state"] = "RUNNING"
                 task["dispatch_idempotency_key"] = key
                 task["dispatch_receipt"] = prior.get("receipt")
+                task.update(_running_lease_fields(task, f"dispatch-recovery:{key}"))
                 changed = True
                 changed_task_ids.add(task_id)
             outcomes.append({"task_id": task_id, "status": "REUSED_DURABLE_DISPATCH", "key": key})
@@ -227,6 +250,12 @@ def _dispatch_cycle(
         task["dispatch_started_at"] = now()
         task["dispatch_idempotency_key"] = key
         task["dispatch_receipt"] = receipt
+        lease_owner = (
+            f"worker-pid:{receipt['pid']}"
+            if receipt["kind"] == "command"
+            else f"event-dispatch:{key}"
+        )
+        task.update(_running_lease_fields(task, lease_owner))
         changed = True
         changed_task_ids.add(task_id)
         outcomes.append({"task_id": task_id, "status": "DISPATCHED", "key": key, "receipt": receipt})

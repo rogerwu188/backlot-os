@@ -88,8 +88,8 @@ cron remains useful only to detect and recover a missing dispatcher.
 ## Legal blockers and false idle
 
 `task_lane_global_wait_gate.py` rejects an unfinished scheduler that has no
-READY, RUNNING, QA, or REMOTE_WAIT task unless `scheduler_decision` carries a
-typed `legal_blocker` with:
+READY, live producing/QA work, or task-local REMOTE_WAIT unless
+`scheduler_decision` carries a typed `legal_blocker` with:
 
 - `code`;
 - `evidence_ref`;
@@ -97,6 +97,15 @@ typed `legal_blocker` with:
 
 This prevents a queue containing only WAITING_DEPENDENCY tasks from being
 reported as healthy while production has silently stopped.
+
+A persisted `RUNNING` label is not proof of a live worker. Every RUNNING task
+must bind `lease_owner`, `lease_expires_at`, `last_progress_at`, and
+`next_due_at`; an expired lease or missed progress deadline is excluded from
+active-successor accounting. Tasks marked `liveness_role=OBSERVATION`,
+`observation_only=true`, or represented by watchdog/monitor receipt
+deliverables remain useful for diagnostics but cannot by themselves satisfy
+episode continuity. The continuous dispatcher writes an initial bounded lease;
+the owning worker must renew progress and due timestamps while it runs.
 
 ## Retry strategy changes
 
