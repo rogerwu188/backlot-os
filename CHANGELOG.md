@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Upgrade the Hell Grind prompt/rule adapter to V7 by enforcing causal state
+  handoffs between composed continuity ladders; reject reversed ladder order or
+  any character, injury, prop, or spatial reset between adjacent methods.
 - Add the licensed Hell Grind Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17, Scene 69B.16, and Scene 69B.15 prompt/rule adapter with fifteen typed
   combat-continuity methods that bind ordered beats, persistent visible
   evidence, measured spatial change, and a final relational composition.

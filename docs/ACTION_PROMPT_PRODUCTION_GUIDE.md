@@ -402,6 +402,14 @@ measurements, and camera resolutions outside the motivated plan fail before a
 paid submission. This is a licensed prompt/rule adapter, not trained Seedance
 model weights.
 
+When a contract composes two or three continuity ladders, adapter V7 treats the
+declared order as a causal state chain. Each later ladder must begin at or after
+the prior ladder's final bound beat, and its `entry_state` must exactly inherit
+the prior ladder's `exit_state`. The compiler emits the shared state and boundary
+beats into both adjacent manifest rows and into the prompt. A clean reset of
+character position, injury, prop condition, or spatial relation between ladders
+fails before provider submission.
+
 `embodied_topology_traversal_damage_combo` handles a large opponent, creature,
 vehicle, or structure as traversable terrain. It requires a load-bearing anchor,
 ordered footholds or grip transitions, a continuous route, distinct contact

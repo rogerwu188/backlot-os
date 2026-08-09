@@ -479,6 +479,31 @@ def compile_combat_continuity_ladders(
             },
         })
 
+    handoffs = []
+    for previous, current in zip(compiled, compiled[1:]):
+        previous_last_beat = previous["beat_indexes"][-1]
+        current_first_beat = current["beat_indexes"][0]
+        if current_first_beat < previous_last_beat:
+            raise ValueError(
+                "combat continuity ladders must be ordered by their causal handoff beats"
+            )
+        if previous["exit_state"] != current["entry_state"]:
+            raise ValueError(
+                "combat continuity ladder state handoff mismatch: "
+                f"{previous['method_id']} exits {previous['exit_state']} but "
+                f"{current['method_id']} enters {current['entry_state']}"
+            )
+        handoff = {
+            "from_method_id": previous["method_id"],
+            "to_method_id": current["method_id"],
+            "shared_state": previous["exit_state"],
+            "from_action_beat_index": previous_last_beat,
+            "to_action_beat_index": current_first_beat,
+        }
+        previous["handoff_to_next"] = handoff
+        current["handoff_from_previous"] = handoff
+        handoffs.append(handoff)
+
     rows = []
     for row in compiled:
         evidence = "、".join(
@@ -502,6 +527,13 @@ def compile_combat_continuity_ladders(
         "每个接触必须留下可见后果，证据跨拍保留，量化空间变化不得凭空重置；"
         "最后一帧必须恢复人物、受力方向、路径与环境结果的关系读取。"
     )
+    if handoffs:
+        prompt += "跨阶梯状态交接：" + "；".join(
+            f"{row['from_method_id']}@动作拍{row['from_action_beat_index']}"
+            f"→{row['to_method_id']}@动作拍{row['to_action_beat_index']}"
+            f"共享状态={row['shared_state']}"
+            for row in handoffs
+        ) + "。后续阶梯必须继承上一阶梯出口状态，禁止人物、伤势、道具或空间关系重置。"
     return prompt, compiled
 
 
@@ -695,7 +727,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
         "continuity_ladders": continuity_ladders,
-        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V6",
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V7",
     }
 
 

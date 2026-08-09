@@ -273,7 +273,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["combat_choreography_contract"]["continuity_adapter"],
-                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V6",
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V7",
             )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
             self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
@@ -301,6 +301,86 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             contract["continuity_ladders"][0]["camera_resolution"]["technique_id"] = "crash_pull"
             spec["combat_choreography_contract"] = contract
             with self.assertRaisesRegex(ValueError, "must match a declared camera segment"):
+                compile_prompt(spec)
+
+    def test_combat_compiles_cross_ladder_state_handoff(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            first = contract["continuity_ladders"][0]
+            first["beat_indexes"] = [1, 2, 3]
+            first["exit_state"] = "weapon remains trapped while the defender owns the opening"
+            first["evidence_beats"] = [
+                {"action_beat_index": 1, "evidence_type": "contact", "visible_result": "weapon contact remains loaded"},
+                {"action_beat_index": 2, "evidence_type": "environment", "visible_result": "table edge preserves the force path"},
+                {"action_beat_index": 3, "evidence_type": "recovery", "visible_result": "defender settles without resetting distance"},
+                {"action_beat_index": 3, "evidence_type": "relational_close", "visible_result": "both identities and trapped weapon remain readable"},
+            ]
+            first["camera_resolution"] = {
+                "technique_id": "tracking_follow", "action_beat_index": 1,
+                "narrative_purpose": "preserve the opening contact and route",
+            }
+            second = {
+                "method_id": "timed_emotional_reaction_microsequence",
+                "beat_indexes": [3, 4],
+                "entry_state": first["exit_state"],
+                "exit_state": "the reaction resolves while the trapped weapon remains visible",
+                "evidence_beats": [
+                    {"action_beat_index": 3, "evidence_type": "stimulus", "visible_result": "the trapped weapon creates the opening"},
+                    {"action_beat_index": 3, "evidence_type": "objective_evidence", "visible_result": "the weapon remains visibly trapped"},
+                    {"action_beat_index": 4, "evidence_type": "performance_transition", "visible_result": "the defender commits to the opening"},
+                    {"action_beat_index": 4, "evidence_type": "relational_close", "visible_result": "both identities and inherited state share the frame"},
+                ],
+                "final_relational_frame": "both identities and inherited trapped-weapon state remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "show the inherited state without camera substitution",
+                },
+            }
+            contract["continuity_ladders"] = [first, second]
+            spec["combat_choreography_contract"] = contract
+            prompt, manifest = compile_prompt(spec)
+            ladders = manifest["combat_choreography_contract"]["continuity_ladders"]
+            self.assertIn("跨阶梯状态交接", prompt)
+            self.assertEqual(ladders[0]["handoff_to_next"]["shared_state"], first["exit_state"])
+            self.assertEqual(ladders[1]["handoff_from_previous"]["from_action_beat_index"], 3)
+
+    def test_combat_rejects_cross_ladder_state_reset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            first = contract["continuity_ladders"][0]
+            first["beat_indexes"] = [1, 2, 3]
+            first["evidence_beats"] = [
+                {**row, "action_beat_index": min(index, 3)}
+                for index, row in enumerate(first["evidence_beats"], start=1)
+            ]
+            first["camera_resolution"] = {
+                "technique_id": "tracking_follow", "action_beat_index": 1,
+                "narrative_purpose": "preserve the opening contact and route",
+            }
+            second = dict(first)
+            second["method_id"] = "timed_emotional_reaction_microsequence"
+            second["beat_indexes"] = [3, 4]
+            second["entry_state"] = "a clean reset with no inherited damage or prop state"
+            second["evidence_beats"] = [
+                {"action_beat_index": 3, "evidence_type": "stimulus", "visible_result": "prior contact triggers the reaction"},
+                {"action_beat_index": 3, "evidence_type": "objective_evidence", "visible_result": "the prior result remains visible"},
+                {"action_beat_index": 4, "evidence_type": "performance_transition", "visible_result": "the defender commits"},
+                {"action_beat_index": 4, "evidence_type": "relational_close", "visible_result": "both identities share the frame"},
+            ]
+            second.pop("spatial_measurement", None)
+            second["camera_resolution"] = {
+                "technique_id": "locked_impact", "action_beat_index": 4,
+                "narrative_purpose": "show the reaction in one stable relation",
+            }
+            contract["continuity_ladders"] = [first, second]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "state handoff mismatch"):
                 compile_prompt(spec)
 
     def test_combat_compiles_all_licensed_continuity_methods(self):
