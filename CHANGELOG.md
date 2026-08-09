@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Protect continuous scheduler state with a single-writer lease, exact-SHA
+  compare-and-swap, conflict-time reload and disjoint `task_id` merge, plus
+  crash-durable temp-file `fsync` and atomic rename. Same-task conflicts now
+  fail closed, with a three-concurrent-writer regression preventing stale
+  whole-file overwrites. CI and the installed-runtime doctor now verify both
+  the dispatcher and its state-store dependency so a current GitHub version
+  cannot conceal stale production scheduler code.
+
 ## 0.2.44
 
 - Make the immutable release workflow install the declared media-review runtime before running exact-frame verification, matching pull-request CI and production dependencies.

@@ -30,7 +30,9 @@ for parity_artifact in \
   exact_first_frame_post_harvest_gate.py \
   production_video_submission_gate.py \
   provider_video_capability_gate.py \
-  provider_video_capabilities.json; do
+  provider_video_capabilities.json \
+  continuous_task_lane_dispatcher.py \
+  task_lane_state_store.py; do
   source_artifact="$repo_root/components/pipeline-tools/$parity_artifact"
   installed_artifact="$install_root/share/pipeline-tools/$parity_artifact"
   if [[ -f "$installed_artifact" ]] && cmp -s "$source_artifact" "$installed_artifact"; then
@@ -121,6 +123,7 @@ for production_gate in \
   generation_prompt_optimizer.py \
   bgm_authenticity_gate.py \
   continuous_task_lane_dispatcher.py \
+  task_lane_state_store.py \
   shot_package_completion_gate.py \
   submit_giggle_image_manifest.py \
   retry_strategy_change_gate.py \
