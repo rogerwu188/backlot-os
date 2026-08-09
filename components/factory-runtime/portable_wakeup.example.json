@@ -1,0 +1,19 @@
+{
+  "schema": "backlotos.portable_wakeup.config.v1",
+  "agent_id": "qingshan-production-line",
+  "interval_seconds": 600,
+  "state_dir": "runtime/wakeup",
+  "wake_command": [
+    "python3",
+    "tools/production_line_agent_tick.py",
+    "--checkpoint"
+  ],
+  "workdir": "/srv/qingshan",
+  "timeout_seconds": 540,
+  "safety_policy": {
+    "paid_submission_forbidden": true,
+    "browser_and_platform_actions_forbidden": true,
+    "wake_is_checkpoint_not_completion": true,
+    "provider_submit_requires_separate_durable_transaction": true
+  }
+}
