@@ -89,11 +89,15 @@ keeps prompt responsibilities in this fixed order:
 3. `CAMERA_STYLE_PROFILE`: a per-shot, genre-aware cultural camera-language
    label with provenance. It identifies the movement grammar independently of
    the later visual `STYLE` treatment.
-4. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+4. `CAMERA_ACTION_COUPLING_LEDGER`: video-side timing only. It binds a visible
+   subject or physical trigger to the camera response, the exact movement
+   window, a stop condition, and a readable result hold. It must not carry the
+   keyframe's composition, focal length, camera height, or current-pose duties.
+5. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-5. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+6. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-6. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+7. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
@@ -143,6 +147,27 @@ changes the scene geography. This generalizes the licensed Scene 70C practice
 of keeping opposing profiles, off-screen gazes, foreground/background anchors,
 and persistent physical contact readable across focal-length changes; it does
 not ship source characters, source imagery, or Seedance model weights.
+
+When the camera changes position, angle, focus, or follow behavior inside a
+shot, add `camera_action_coupling_ledger` with
+`SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD`. Every shot declares the
+physical trigger and subject change first. A moving response cannot begin
+before that trigger, must stop on a named visible condition, and must leave a
+readable result hold before the shot ends. Locked shots use `LOCKED_HOLD` and
+cannot smuggle in movement timing. Adapter V11 rejects anticipatory or
+decorative drift, a follow move that outlives its subject action, and a cut that
+abandons the result immediately after motion. This generalizes the licensed
+Scene 70C pattern of following a head raise only after it begins, stopping when
+the face settles, and holding the changed expression. It remains an
+`AMERICAN_HOLLYWOOD` prompt/rule adapter, not model weights and not an Eastern
+wuxia or kung-fu grammar.
+
+The D-L pipeline keeps keyframe references and video references separate.
+Keyframes own composition, shot size, focal length, camera height, depth, and
+the action's current state. Video prompts own timeline, motivated movement,
+action physics, axis, continuity, rhythm, and result state. Stage E SHA-binds
+both artifacts plus the reference registry and prompt/rule adapter; AgentCut
+later assembles only those frozen SHAs and never reselects cultural style.
 
 The segments must start at zero, remain contiguous, follow storyboard order,
 and cover the declared duration exactly. The compiler rejects unknown asset

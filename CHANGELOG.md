@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V11 with a typed
+  camera-action coupling ledger for task2-1 video prompts. Camera movement must
+  follow a visible subject or physical trigger, remain inside its declared time
+  window, stop on a named condition, and hold the readable result to shot end;
+  anticipatory motion, decorative drift, and missing result holds fail before
+  generation. Keep keyframe composition duties separate and preserve the
+  `AMERICAN_HOLLYWOOD` cultural label.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V10 with a typed
   spatial-axis ledger for task2-1. Every cut binds screen region, eyeline target,
   background depth anchor, camera side, axis relation, and exact state handoff;

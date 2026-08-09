@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools.seedance2_prompt_compiler import (
+    compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
     compile_prompt,
     default_local_lora_memory,
@@ -93,6 +94,13 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
                         {"shot_index": 2, "information_unit_id": "witness-activation", "information_type": "reaction", "subject_action": "负伤同伴起身奔向落点", "visible_evidence": "伤肩、支撑手和连续脚印同框", "shot_scale": "中景", "lens_mm": 50, "camera_role": "读取旁观者转为行动者", "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
                     ],
                 },
+                "camera_action_coupling_ledger": {
+                    "policy": "SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD",
+                    "shots": [
+                        {"shot_index": 1, "coupling_type": "LOCKED_HOLD", "physical_trigger": "人物撞击雪地", "trigger_seconds": 0, "subject_change": "雪柱与碎片向外扩张", "camera_response_type": "LOCKED_FRAME", "camera_response": "固定远景读取完整冲击尺度", "movement_start_seconds": None, "movement_end_seconds": None, "camera_motivation": "让冲击尺度可读", "stop_condition": "碎片开始回落", "visible_result": "冲击坑、雪柱与落雪同时可见", "result_hold_until_seconds": 5, "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果"},
+                        {"shot_index": 2, "coupling_type": "SUBJECT_TRIGGERED_MOVE", "physical_trigger": "同伴支撑起身并迈出第一步", "trigger_seconds": 0.5, "subject_change": "伏地姿态转为朝落点奔跑", "camera_response_type": "TRACK", "camera_response": "从支撑手跟到连续脚印和奔跑路径", "movement_start_seconds": 0.5, "movement_end_seconds": 2.3, "camera_motivation": "读清起身到奔跑的连续路径", "stop_condition": "人物进入稳定奔跑线", "visible_result": "负伤姿态、脚印与落点方向保持同框", "result_hold_until_seconds": 3, "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
+                    ],
+                },
                 "spatial_axis_ledger": {
                     "coverage_policy": "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND",
                     "shots": [
@@ -125,6 +133,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("0-5秒 / 镜头1", prompt)
         self.assertIn("【CAMERA STYLE PROFILE｜运镜文化风格标签】", prompt)
         self.assertIn("运镜风格=美式好莱坞[AMERICAN_HOLLYWOOD]", prompt)
+        self.assertIn("【CAMERA-ACTION COUPLING LEDGER", prompt)
         self.assertIn("【SHOT INFORMATION LADDER｜一镜一信息】", prompt)
         self.assertIn("【SPATIAL AXIS LEDGER｜屏幕方位、视线与背景锚点】", prompt)
         self.assertIn("【CROSS-CUT STATE LEDGER｜跨镜状态账本】", prompt)
@@ -137,6 +146,12 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertEqual(information["adapter"], "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9")
         spatial = manifest["cinematic_shot_language_contract"]["spatial_axis_ledger"]
         self.assertEqual(spatial["adapter"], "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10")
+        coupling = manifest["cinematic_shot_language_contract"]["camera_action_coupling_ledger"]
+        self.assertEqual(coupling["adapter"], "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11")
+        self.assertEqual(
+            manifest["cinematic_shot_language_contract"]["camera_action_coupling_gate"],
+            "PASS_TRIGGER_RESPONSE_RESULT_HOLD",
+        )
         style_plan = manifest["cinematic_shot_language_contract"]["camera_style_plan"]
         self.assertEqual(style_plan["selection_policy"], "PER_SHOT_GENRE_AWARE")
         self.assertEqual(style_plan["shots"][0]["style_profile_id"], "AMERICAN_HOLLYWOOD")
@@ -157,6 +172,72 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "not adapted for production"):
             compile_camera_style_plan(contract, segments)
+
+    def camera_coupling_segment(self):
+        return [{
+            "shot_index": 1,
+            "start_seconds": 0.0,
+            "end_seconds": 5.0,
+            "entry_state": "人物低头静止",
+            "exit_state": "人物抬头后目光锁定",
+            "camera_motivation": "随抬头揭示眼神变化",
+        }]
+
+    def camera_coupling_contract(self, **overrides):
+        row = {
+            "shot_index": 1,
+            "coupling_type": "SUBJECT_TRIGGERED_MOVE",
+            "physical_trigger": "人物开始抬头",
+            "trigger_seconds": 1.0,
+            "subject_change": "下巴和视线同步抬升",
+            "camera_response_type": "HANDHELD_FOLLOW",
+            "camera_response": "镜头跟随面部上升并略微后退",
+            "movement_start_seconds": 1.0,
+            "movement_end_seconds": 3.5,
+            "camera_motivation": "随抬头揭示眼神变化",
+            "stop_condition": "双眼进入极近景中心",
+            "visible_result": "抬头完成后的冷静目光保持可读",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": "人物低头静止",
+            "exit_state": "人物抬头后目光锁定",
+        }
+        row.update(overrides)
+        return {
+            "camera_action_coupling_ledger": {
+                "policy": "SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD",
+                "shots": [row],
+            },
+        }
+
+    def test_camera_action_coupling_binds_trigger_response_and_result_hold(self):
+        prompt, manifest = compile_camera_action_coupling_ledger(
+            self.camera_coupling_contract(), self.camera_coupling_segment()
+        )
+        self.assertIn("【CAMERA-ACTION COUPLING LEDGER", prompt)
+        self.assertIn("镜头不得早于主体物理触发启动", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
+        )
+        self.assertEqual(
+            manifest["policy"],
+            "SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD",
+        )
+
+    def test_camera_action_coupling_rejects_move_before_subject_trigger(self):
+        contract = self.camera_coupling_contract(movement_start_seconds=0.5)
+        with self.assertRaisesRegex(ValueError, "movement cannot start before its trigger"):
+            compile_camera_action_coupling_ledger(contract, self.camera_coupling_segment())
+
+    def test_camera_action_coupling_rejects_missing_terminal_result_hold(self):
+        contract = self.camera_coupling_contract(result_hold_until_seconds=4.5)
+        with self.assertRaisesRegex(ValueError, "hold the visible result to shot end"):
+            compile_camera_action_coupling_ledger(contract, self.camera_coupling_segment())
+
+    def test_camera_action_coupling_rejects_segment_motivation_mismatch(self):
+        contract = self.camera_coupling_contract(camera_motivation="装饰性环绕")
+        with self.assertRaisesRegex(ValueError, "camera_motivation must match its segment"):
+            compile_camera_action_coupling_ledger(contract, self.camera_coupling_segment())
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
         hero = "角色锁定描述"

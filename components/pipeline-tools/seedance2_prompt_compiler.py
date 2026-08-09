@@ -198,6 +198,12 @@ SPATIAL_BACKGROUND_REGIONS = {
 }
 SPATIAL_GAZE_DIRECTIONS = {"screen_left", "screen_right", "camera", "up", "down", "none"}
 SPATIAL_AXIS_TRANSITIONS = {"ESTABLISH_AXIS", "HOLD_AXIS", "DECLARED_AXIS_CROSS"}
+CAMERA_ACTION_COUPLING_POLICY = "SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD"
+CAMERA_ACTION_COUPLING_TYPES = {"LOCKED_HOLD", "SUBJECT_TRIGGERED_MOVE"}
+CAMERA_ACTION_RESPONSE_TYPES = {
+    "LOCKED_FRAME", "HANDHELD_BREATHING", "PAN", "TILT", "TRACK", "DOLLY",
+    "CRANE", "HANDHELD_FOLLOW", "RACK_FOCUS", "BOUNDED_ORBIT",
+}
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -209,6 +215,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8",
             "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9",
             "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
+            "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -554,6 +561,184 @@ def compile_shot_information_ladder(
     )
 
 
+def compile_camera_action_coupling_ledger(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict | None]:
+    """Bind camera response timing to subject change and a readable result hold."""
+    ledger = contract.get("camera_action_coupling_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != CAMERA_ACTION_COUPLING_POLICY:
+        raise ValueError(
+            "camera_action_coupling_ledger policy must be "
+            f"{CAMERA_ACTION_COUPLING_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "camera_action_coupling_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "camera_action_coupling_ledger must exactly cover all compiled shots"
+        )
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"camera coupling row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "camera_action_coupling_ledger shot_index must match compiled shot order"
+            )
+        coupling_type = require(
+            row.get("coupling_type"),
+            f"camera coupling shot {shot_index} coupling_type is required",
+        )
+        if coupling_type not in CAMERA_ACTION_COUPLING_TYPES:
+            raise ValueError(f"unsupported camera coupling type: {coupling_type}")
+        response_type = require(
+            row.get("camera_response_type"),
+            f"camera coupling shot {shot_index} camera_response_type is required",
+        )
+        if response_type not in CAMERA_ACTION_RESPONSE_TYPES:
+            raise ValueError(f"unsupported camera response type: {response_type}")
+        motivation = require(
+            row.get("camera_motivation"),
+            f"camera coupling shot {shot_index} camera_motivation is required",
+        )
+        if motivation != segment["camera_motivation"]:
+            raise ValueError(
+                f"camera coupling shot {shot_index} camera_motivation must match its segment"
+            )
+        entry_state = require(
+            row.get("entry_state"),
+            f"camera coupling shot {shot_index} entry_state is required",
+        )
+        exit_state = require(
+            row.get("exit_state"),
+            f"camera coupling shot {shot_index} exit_state is required",
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"camera coupling shot {shot_index} entry/exit state must match its segment"
+            )
+        shot_duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"camera coupling shot {shot_index} trigger_seconds is required",
+        ))
+        result_hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"camera coupling shot {shot_index} result_hold_until_seconds is required",
+        ))
+        if not 0 <= trigger_seconds < shot_duration:
+            raise ValueError(
+                f"camera coupling shot {shot_index} trigger_seconds must be inside the shot"
+            )
+        if abs(result_hold_until - shot_duration) > 0.01:
+            raise ValueError(
+                f"camera coupling shot {shot_index} must hold the visible result to shot end"
+            )
+
+        movement_start = row.get("movement_start_seconds")
+        movement_end = row.get("movement_end_seconds")
+        if coupling_type == "LOCKED_HOLD":
+            if response_type not in {"LOCKED_FRAME", "HANDHELD_BREATHING"}:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} LOCKED_HOLD needs a locked response"
+                )
+            if movement_start is not None or movement_end is not None:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} LOCKED_HOLD cannot declare movement timing"
+                )
+        else:
+            if response_type in {"LOCKED_FRAME", "HANDHELD_BREATHING"}:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} SUBJECT_TRIGGERED_MOVE needs movement"
+                )
+            movement_start = float(require(
+                movement_start,
+                f"camera coupling shot {shot_index} movement_start_seconds is required",
+            ))
+            movement_end = float(require(
+                movement_end,
+                f"camera coupling shot {shot_index} movement_end_seconds is required",
+            ))
+            if movement_start < trigger_seconds:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} movement cannot start before its trigger"
+                )
+            if not movement_start < movement_end <= shot_duration:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} movement timing must stay inside the shot"
+                )
+            if result_hold_until - movement_end < 0.5:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} needs at least 0.5s result hold"
+                )
+
+        compiled.append({
+            "shot_index": shot_index,
+            "coupling_type": coupling_type,
+            "physical_trigger": require(
+                row.get("physical_trigger"),
+                f"camera coupling shot {shot_index} physical_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "subject_change": require(
+                row.get("subject_change"),
+                f"camera coupling shot {shot_index} subject_change is required",
+            ),
+            "camera_response_type": response_type,
+            "camera_response": require(
+                row.get("camera_response"),
+                f"camera coupling shot {shot_index} camera_response is required",
+            ),
+            "movement_start_seconds": movement_start,
+            "movement_end_seconds": movement_end,
+            "camera_motivation": motivation,
+            "stop_condition": require(
+                row.get("stop_condition"),
+                f"camera coupling shot {shot_index} stop_condition is required",
+            ),
+            "visible_result": require(
+                row.get("visible_result"),
+                f"camera coupling shot {shot_index} visible_result is required",
+            ),
+            "result_hold_until_seconds": result_hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = []
+    for row in compiled:
+        movement = (
+            "全镜保持构图"
+            if row["coupling_type"] == "LOCKED_HOLD"
+            else f"{row['movement_start_seconds']:g}-{row['movement_end_seconds']:g}秒执行"
+        )
+        prompt_rows.append(
+            f"镜头{row['shot_index']}[{row['coupling_type']}]：{row['trigger_seconds']:g}秒"
+            f"主体触发={row['physical_trigger']}，主体变化={row['subject_change']}；"
+            f"镜头响应={row['camera_response_type']}({row['camera_response']})，{movement}；"
+            f"动机={row['camera_motivation']}；停止条件={row['stop_condition']}；"
+            f"可见结果={row['visible_result']}并保持到{row['result_hold_until_seconds']:g}秒；"
+            f"入口={row['entry_state']}，出口={row['exit_state']}"
+        )
+    return (
+        "\n【CAMERA-ACTION COUPLING LEDGER｜主体触发、镜头响应、结果停留】"
+        + "。".join(prompt_rows)
+        + "。镜头不得早于主体物理触发启动；到达停止条件后必须停住，并把可见结果保留到本镜结束。",
+        {
+            "version": "1.0.0",
+            "policy": CAMERA_ACTION_COUPLING_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "adapter": "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
+        },
+    )
+
+
 def compile_cross_cut_state_ledger(
     contract: dict, shot_count: int, descriptor_ids: set[str]
 ) -> tuple[str, dict | None]:
@@ -739,6 +924,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         contract, compiled, descriptor_ids
     )
     camera_style_prompt, camera_style_plan = compile_camera_style_plan(contract, compiled)
+    coupling_prompt, coupling_ledger = compile_camera_action_coupling_ledger(
+        contract, compiled
+    )
     segment_rows = [
         f"{row['start_seconds']:g}-{row['end_seconds']:g}秒 / 镜头{row['shot_index']}：目的={row['narrative_purpose']}；"
         f"入口={row['entry_state']}；出口={row['exit_state']}；引用={','.join(row['descriptor_ids'])}；"
@@ -751,6 +939,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "\n\n【LOCKED DESCRIPTORS｜逐镜原文复用】" + "；".join(descriptor_rows)
         + "。\n【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】\n" + "\n".join(segment_rows)
         + camera_style_prompt
+        + coupling_prompt
         + spatial_axis_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -762,9 +951,11 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "SPATIAL_AXIS_LEDGER", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
+        "camera_action_coupling_ledger": coupling_ledger,
+        "camera_action_coupling_gate": "PASS_TRIGGER_RESPONSE_RESULT_HOLD" if coupling_ledger else "NOT_APPLICABLE",
         "spatial_axis_ledger": spatial_axis_ledger,
         "spatial_axis_gate": "PASS_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND_COVERAGE" if spatial_axis_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
