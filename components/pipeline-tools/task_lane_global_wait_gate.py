@@ -123,6 +123,8 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
     ready = [task for task in normalized if task["state"] == "READY"]
     ready_zero_cost = [task for task in ready if task["zero_cost"]]
     qa = [task for task in normalized if task["state"] == "QA"]
+    running = [task for task in normalized if task["state"] == "RUNNING"]
+    waiting_dependency = [task for task in normalized if task["state"] == "WAITING_DEPENDENCY"]
     remote_wait = [task for task in normalized if task["state"] == "REMOTE_WAIT"]
     if global_wait is True and ready_zero_cost:
         failures.append(
@@ -152,6 +154,39 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
             )
         )
 
+    active_local = running + qa
+    unfinished = ready + active_local + waiting_dependency + remote_wait
+    legal_blocker = scheduler.get("legal_blocker") if isinstance(scheduler, dict) else None
+    if unfinished and not ready and not active_local and not remote_wait:
+        valid_legal_blocker = (
+            isinstance(legal_blocker, dict)
+            and isinstance(legal_blocker.get("code"), str)
+            and bool(legal_blocker["code"].strip())
+            and isinstance(legal_blocker.get("evidence_ref"), str)
+            and bool(legal_blocker["evidence_ref"].strip())
+            and isinstance(legal_blocker.get("next_recheck_at"), str)
+            and bool(legal_blocker["next_recheck_at"].strip())
+        )
+        if not valid_legal_blocker:
+            failures.append(
+                _failure(
+                    "IDLE_WITH_UNFINISHED_WORK_AND_NO_LEGAL_BLOCKER",
+                    waiting_dependency_task_ids=[task["task_id"] for task in waiting_dependency],
+                    required_fields=["code", "evidence_ref", "next_recheck_at"],
+                )
+            )
+
+    if not unfinished:
+        liveness_state = "COMPLETE"
+    elif ready or active_local:
+        liveness_state = "ACTIVE"
+    elif remote_wait:
+        liveness_state = "REMOTE_WAIT_TASK_LOCAL"
+    elif isinstance(legal_blocker, dict):
+        liveness_state = "LEGALLY_BLOCKED"
+    else:
+        liveness_state = "FALSE_IDLE"
+
     counts = Counter(task["state"] for task in normalized)
     return {
         "schema": "backlotos.task_lane_global_wait_gate.v1",
@@ -164,6 +199,9 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
         "qa_task_ids": [task["task_id"] for task in qa],
         "remote_wait_task_ids": [task["task_id"] for task in remote_wait],
         "remote_wait_isolated_from_ready_lanes": bool(remote_wait and ready_other_lanes and global_wait is False),
+        "liveness_state": liveness_state,
+        "active_local_task_ids": [task["task_id"] for task in active_local],
+        "legal_blocker": legal_blocker,
         "failures": failures,
         "policy": {
             "ready_zero_cost_blocks_global_wait": True,
@@ -171,6 +209,7 @@ def audit_scheduler_state(payload: dict[str, Any]) -> dict[str, Any]:
             "remote_wait_scope": "TASK_LOCAL",
             "remote_wait_never_masks_ready_other_lane": True,
             "qa_is_active_work": True,
+            "idle_unfinished_requires_legal_blocker_evidence": True,
         },
     }
 

@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 0.2.37
+
+- Add a persistent, idempotent task-lane dispatcher that claims READY work as
+  soon as a local slot opens. Shot deliverables outrank precompile work,
+  task-local remote waits do not consume local capacity, argv commands never
+  use a shell, and durable dispatch intents prevent duplicate execution after
+  restart. Heartbeats are now watchdogs rather than the primary production
+  driver.
+- Compute episode throughput from admitted evidence instead of authored status
+  labels. Prompt-only work is reported separately and contributes zero admitted
+  seconds; a completed shot package requires exact canonical, manifest, first
+  frame, ordered reference, applicable asset, dialogue, output, and QA SHA
+  bindings under standard `seedance-2.0`.
+- Reject false-idle schedulers that have unfinished dependency work but no
+  READY, RUNNING, QA, task-local remote wait, or evidenced legal blocker with a
+  bounded recheck time.
+- Require VERIFIED_ZERO or a full refund before paid retry. After two failures
+  in one failure family and representation, a third attempt must change prompt
+  and input SHAs and carry validated evidence for shot splitting, transport
+  change, deterministic compositing, or asset isolation.
+
 ## 0.2.36
 
 - Make paid Giggle image submission durable and idempotent without reducing
