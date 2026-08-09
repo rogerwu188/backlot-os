@@ -373,7 +373,8 @@ one final relational composition, and a camera resolution that must match an
 already declared camera segment. Contact must leave a visible consequence;
 damage, formation, props, distance, and recovery cannot reset between beats.
 
-The licensed Scene 69 prompt/rule adapter exposes nine typed methods:
+The licensed Scene 69 and Scene 69B.20 prompt/rule adapter exposes ten typed
+methods:
 
 - `causal_impact_aftermath_ladder`
 - `occlusion_breach_threat_reveal`
@@ -384,6 +385,7 @@ The licensed Scene 69 prompt/rule adapter exposes nine typed methods:
 - `reciprocal_charge_convergence_ladder`
 - `asymmetric_locked_clash_sustained_force`
 - `defense_rhythm_failure_combo_ladder`
+- `embodied_topology_traversal_damage_combo`
 
 Each method has its own required evidence vocabulary. Spatial methods require a
 positive measurement in metres, centimetres, seconds, degrees, or body lengths;
@@ -393,6 +395,14 @@ together. Missing evidence, unordered beat bindings, duplicate methods, invalid
 measurements, and camera resolutions outside the motivated plan fail before a
 paid submission. This is a licensed prompt/rule adapter, not trained Seedance
 model weights.
+
+`embodied_topology_traversal_damage_combo` handles a large opponent, creature,
+vehicle, or structure as traversable terrain. It requires a load-bearing anchor,
+ordered footholds or grip transitions, a continuous route, distinct contact
+results, measured landing relation, and a shared closing frame containing the
+topology and cumulative damage. Source prompts that demand perpetual handheld
+motion, decorative whip moves, or slow motion are filtered out; camera movement
+may reveal the route but cannot replace physical evidence.
 
 ## Selective BGM flow
 

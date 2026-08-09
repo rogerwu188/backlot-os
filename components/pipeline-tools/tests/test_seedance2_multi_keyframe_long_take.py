@@ -271,6 +271,10 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
                 manifest["combat_choreography_contract"]["continuity_ladders"][0]["method_id"],
                 "causal_impact_aftermath_ladder",
             )
+            self.assertEqual(
+                manifest["combat_choreography_contract"]["continuity_adapter"],
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V2",
+            )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
             self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
 
@@ -333,6 +337,35 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
                     manifest["combat_choreography_contract"]["continuity_ladders"][0]["method_id"],
                     method_id,
                 )
+
+    def test_combat_rejects_topology_traversal_without_load_bearing_anchor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "embodied_topology_traversal_damage_combo",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the larger body is established as an inclined route",
+                "exit_state": "lead lands behind the larger opponent",
+                "evidence_beats": [
+                    {"action_beat_index": 3, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "foothold_sequence", "traversal_path", "distinct_contacts",
+                        "landing_relation", "cumulative_result", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 1.5, "unit": "m"},
+                "final_relational_frame": "route, damage and landing side remain in one frame",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "show the route without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: topology_anchor"):
+                compile_prompt(spec)
 
     def test_combat_rejects_continuous_perpetual_camera_motion(self):
         with tempfile.TemporaryDirectory() as directory:

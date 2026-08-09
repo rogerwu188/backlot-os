@@ -123,6 +123,14 @@ COMBAT_CONTINUITY_METHODS = {
         "required_evidence": {"successful_defense", "interval_compression", "failed_defense", "damage", "relational_close"},
         "measurement_required": True,
     },
+    "embodied_topology_traversal_damage_combo": {
+        "label": "实体拓扑穿越累积打击", "min_beats": 3,
+        "required_evidence": {
+            "topology_anchor", "foothold_sequence", "traversal_path", "distinct_contacts",
+            "landing_relation", "cumulative_result", "relational_close",
+        },
+        "measurement_required": True,
+    },
 }
 COMBAT_EVIDENCE_TYPES = set().union(
     *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
@@ -639,7 +647,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
         "continuity_ladders": continuity_ladders,
-        "continuity_adapter": "HELL_GRIND_SCENE69_LICENSED_PROMPT_RULE_ADAPTER_V1",
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V2",
     }
 
 
