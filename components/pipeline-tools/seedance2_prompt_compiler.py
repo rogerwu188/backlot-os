@@ -131,6 +131,14 @@ COMBAT_CONTINUITY_METHODS = {
         },
         "measurement_required": True,
     },
+    "committed_miss_entrapment_counter_window": {
+        "label": "承诺落空卡陷反击窗口", "min_beats": 3,
+        "required_evidence": {
+            "attack_commitment", "evasion_clearance", "obstacle_entrapment",
+            "extraction_delay", "counterlaunch", "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
 }
 COMBAT_EVIDENCE_TYPES = set().union(
     *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
@@ -647,7 +655,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
         "continuity_ladders": continuity_ladders,
-        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V2",
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V3",
     }
 
 

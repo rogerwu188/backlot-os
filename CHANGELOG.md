@@ -2,13 +2,16 @@
 
 ## Unreleased
 
-- Add the licensed Hell Grind Scene 69 and Scene 69B.20 prompt/rule adapter with ten typed
+- Add the licensed Hell Grind Scene 69, Scene 69B.20, and Scene 69B.19 prompt/rule adapter with eleven typed
   combat-continuity methods that bind ordered beats, persistent visible
   evidence, measured spatial change, and a final relational composition.
 - Add embodied-topology traversal for action that uses a larger opponent,
   creature, vehicle, or structure as terrain; require load-bearing geometry,
   foothold or grip transitions, distinct contacts, cumulative results, and a
   measured landing relation while filtering perpetual camera drift.
+- Add a committed-miss entrapment counter window that requires an irreversible
+  attack line, measured dodge clearance, visible terrain entrapment, a durable
+  trapped-weapon state, extraction delay, and a causally timed counterlaunch.
 - Require every combat continuity resolution to reuse an already motivated
   camera segment; reject missing evidence, invalid measurements, state resets,
   and decorative camera substitutions before provider spend. This adapter does

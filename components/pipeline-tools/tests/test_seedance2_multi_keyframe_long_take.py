@@ -273,7 +273,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["combat_choreography_contract"]["continuity_adapter"],
-                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V2",
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V3",
             )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
             self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
@@ -365,6 +365,36 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             }]
             spec["combat_choreography_contract"] = contract
             with self.assertRaisesRegex(ValueError, "missing required evidence: topology_anchor"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_committed_miss_without_entrapment_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "committed_miss_entrapment_counter_window",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the attacker commits to an irreversible downward strike",
+                "exit_state": "the defender launches while the weapon remains trapped",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "attack_commitment", "evasion_clearance", "extraction_delay",
+                        "counterlaunch", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "clearance", "value": 40, "unit": "cm"},
+                "promoted_state_id": "weapon_trapped_state_1",
+                "final_relational_frame": "both fighters and the trapped weapon remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove the exposure window without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: obstacle_entrapment"):
                 compile_prompt(spec)
 
     def test_combat_rejects_continuous_perpetual_camera_motion(self):

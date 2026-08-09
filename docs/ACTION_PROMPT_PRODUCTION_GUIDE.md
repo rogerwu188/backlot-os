@@ -373,7 +373,7 @@ one final relational composition, and a camera resolution that must match an
 already declared camera segment. Contact must leave a visible consequence;
 damage, formation, props, distance, and recovery cannot reset between beats.
 
-The licensed Scene 69 and Scene 69B.20 prompt/rule adapter exposes ten typed
+The licensed Scene 69, Scene 69B.20, and Scene 69B.19 prompt/rule adapter exposes eleven typed
 methods:
 
 - `causal_impact_aftermath_ladder`
@@ -386,6 +386,7 @@ methods:
 - `asymmetric_locked_clash_sustained_force`
 - `defense_rhythm_failure_combo_ladder`
 - `embodied_topology_traversal_damage_combo`
+- `committed_miss_entrapment_counter_window`
 
 Each method has its own required evidence vocabulary. Spatial methods require a
 positive measurement in metres, centimetres, seconds, degrees, or body lengths;
@@ -403,6 +404,14 @@ results, measured landing relation, and a shared closing frame containing the
 topology and cumulative damage. Source prompts that demand perpetual handheld
 motion, decorative whip moves, or slow motion are filtered out; camera movement
 may reveal the route but cannot replace physical evidence.
+
+`committed_miss_entrapment_counter_window` turns a missed committed strike into
+a readable initiative transfer. It requires an irreversible attack line, a
+measured evasion clearance, visible weapon contact and entrapment, a persistent
+extraction delay, and a counterlaunch that starts only after the opening is
+proved. The trapped state receives a durable state ID and must remain visible in
+the final shared composition. Continuous shake, decorative whip moves, and
+unmotivated slow motion are filtered from the source methodology.
 
 ## Selective BGM flow
 

@@ -126,14 +126,17 @@ time range, subject anchor, axis relation, and narrative purpose. Unplanned time
 defaults to a locked camera, so tracking, arcs, pushes, pulls, cranes, shake, and
 slow motion cannot accumulate into continuous drift.
 
-Combat contracts also require one of ten causal continuity ladders. It binds ordered
+Combat contracts also require one of eleven causal continuity ladders. It binds ordered
 action beats to persistent contact, environment, recovery, damage, formation,
 prop, or distance evidence and closes on one relational composition. The
 resolving camera must be one of the motivated segments already declared in the
 camera plan. The embodied-topology method additionally requires load-bearing
 geometry, ordered footholds or grips, distinct contacts, and a measured landing
 relation when a fighter traverses a larger body or structure. This licensed Hell
-Grind integration is explicitly a
+Grind integration also supports a committed-miss counter window: the defender
+must visibly clear the attack line, the weapon must remain trapped in measured
+terrain contact, and the counter may start only after the extraction delay is
+readable. It is explicitly a
 portable prompt/rule adapter; it does not claim Seedance model-weight training.
 
 When several short clips cannot preserve one continuous physical event, use
