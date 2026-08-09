@@ -17,8 +17,11 @@ Native `start_frame` preserves semantic intent, but the provider does not
 promise that the decoded output frame is pixel-identical. Every harvested clip
 must therefore run `exact_first_frame_post_harvest_gate.py`. It compares decoded
 frame 0 to the source authority and compares the frame-0-to-frame-1 transition
-against the clip's following motion baseline. Human review still owns duplicate
-silhouette, flash, pose/crop jump, and prop owner/count/transfer judgments.
+using decoded frame 0 and decoded frame 1 against the clip's following motion
+baseline. Authority-to-decoded-frame-1 is retained only as a separately named
+composite diagnostic; it cannot replace either hard gate or affect the gate's
+overall status. Human review still owns duplicate silhouette, flash, pose/crop
+jump, and prop owner/count/transfer judgments.
 
 The gate is read-only. A failed clip is retained as failed evidence. Prepending
 or replacing one frame is forbidden as an automatic repair because it can hide

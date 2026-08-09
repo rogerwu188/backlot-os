@@ -111,7 +111,74 @@ class ExactFirstFrameTransportTests(unittest.TestCase):
         frames = [np.roll(authority, shift=index, axis=1) for index in range(13)]
         report = evaluate_arrays(authority, frames)
         self.assertEqual(report["status"], "PASS", report)
+        self.assertEqual(
+            report["frame0_to_frame1_continuity"]["operands"],
+            ["decoded_frame0", "decoded_frame1"],
+        )
+        self.assertEqual(
+            report["authority_to_frame1_composite_diagnostic"]["operands"],
+            ["authority_at_decoded_size", "decoded_frame1"],
+        )
         self.assertEqual(report["automatic_repair"], "FORBIDDEN_NO_PREPEND_NO_REPLACEMENT")
+
+    def test_provider_like_frame0_drift_still_fails_authority_but_not_true_continuity(self):
+        y, x = np.mgrid[:320, :180]
+        authority = np.stack(
+            (
+                (3 * x + y) % 256,
+                (x + 2 * y) % 256,
+                (5 * x + 3 * y) % 256,
+            ),
+            axis=2,
+        ).astype(np.uint8)
+        transform = cv2.getRotationMatrix2D((90, 160), 0.0, 1.021)
+        transform[:, 2] += (-7.25, -13.1)
+        drifted = cv2.warpAffine(
+            authority,
+            transform,
+            (180, 320),
+            flags=cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_REPLICATE,
+        )
+        drifted = np.clip(drifted.astype(np.int16) - 4, 0, 255).astype(np.uint8)
+        frames = [drifted.copy() for _ in range(13)]
+
+        report = evaluate_arrays(authority, frames)
+
+        self.assertEqual(report["status"], "FAIL", report)
+        self.assertEqual(report["frame0_authority"]["status"], "FAIL")
+        self.assertEqual(report["frame0_to_frame1_continuity"]["status"], "PASS")
+        self.assertEqual(report["authority_to_frame1_composite_diagnostic"]["status"], "FAIL")
+        self.assertEqual(
+            report["authority_to_frame1_composite_diagnostic"]["role"],
+            "DIAGNOSTIC_ONLY_DOES_NOT_AFFECT_GATE_STATUS",
+        )
+        self.assertEqual(report["thresholds"]["minimum_frame0_ssim"], 0.98)
+        self.assertEqual(report["thresholds"]["maximum_frame0_mae"], 3.0)
+        self.assertEqual(report["thresholds"]["maximum_frame0_phash_hamming"], 3)
+        self.assertEqual(report["thresholds"]["maximum_transition_mae"], 3.0)
+        self.assertEqual(report["thresholds"]["maximum_transition_phash_hamming"], 3)
+        self.assertEqual(report["thresholds"]["maximum_transition_luma_jump"], 3.0)
+        self.assertEqual(report["thresholds"]["maximum_transition_mean_optical_flow"], 1.0)
+
+    def test_true_decoded_frame0_to_frame1_jump_fails_continuity(self):
+        y, x = np.mgrid[:320, :180]
+        authority = np.stack(
+            (
+                (3 * x + y) % 256,
+                (x + 2 * y) % 256,
+                (5 * x + 3 * y) % 256,
+            ),
+            axis=2,
+        ).astype(np.uint8)
+        jumped = np.roll(authority, shift=30, axis=1)
+        frames = [authority.copy()] + [jumped.copy() for _ in range(12)]
+
+        report = evaluate_arrays(authority, frames)
+
+        self.assertEqual(report["frame0_authority"]["status"], "PASS")
+        self.assertEqual(report["frame0_to_frame1_continuity"]["status"], "FAIL")
+        self.assertEqual(report["status"], "FAIL")
 
     def test_post_harvest_gate_rejects_wrong_frame0_and_flash_jump(self):
         authority = np.full((320, 180, 3), 64, dtype=np.uint8)
