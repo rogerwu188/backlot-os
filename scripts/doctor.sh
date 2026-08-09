@@ -25,6 +25,9 @@ for parity_artifact in \
   giggle_api_client.py \
   seedance2_prompt_compiler.py \
   shot_package_completion_gate.py \
+  submit_giggle_video_manifest_v2.py \
+  exact_first_frame_transport.py \
+  exact_first_frame_post_harvest_gate.py \
   production_video_submission_gate.py \
   provider_video_capability_gate.py \
   provider_video_capabilities.json; do
@@ -124,6 +127,9 @@ for production_gate in \
   task_lane_global_wait_gate.py \
   provider_video_capability_gate.py \
   provider_video_capabilities.json \
+  submit_giggle_video_manifest_v2.py \
+  exact_first_frame_transport.py \
+  exact_first_frame_post_harvest_gate.py \
   production_video_submission_gate.py \
   local_lora_memory_sync.py; do
   if [[ -f "$repo_root/components/pipeline-tools/$production_gate" ]]; then

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.43
+
+- Route every `EXACT_FIRST_FRAME` task through the provider's native image-to-video `start_frame` field; ordinary Omni `images[]` references can no longer satisfy this contract.
+- Bind the source bytes and decoded pre-encode RGB authority into the durable submission transaction, then require a read-only harvested frame-0 and frame-0-to-frame-1 continuity gate.
+- Forbid automatic one-frame prepend or replacement repair, preserve Fast-only 720p admission, and extend installed-runtime parity checks to the exact-frame submitter and QA gates.
+
 ## 0.2.42
 
 - Reject provider/model resolution mismatches before any paid video POST; Giggle Seedance 2.0 Fast is now authoritatively limited to 720p or 480p.
