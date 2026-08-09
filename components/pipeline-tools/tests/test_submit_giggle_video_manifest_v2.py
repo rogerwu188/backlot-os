@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 import numpy as np
-from PIL import Image
+import cv2
 
 import submit_giggle_video_manifest_v2 as submitter
 from exact_first_frame_transport import IMAGE_TO_VIDEO_ENDPOINT, raw_rgb_sha256
@@ -19,7 +19,7 @@ class SubmitGiggleVideoManifestV2Tests(unittest.TestCase):
             prompt = root / "prompt.txt"
             prompt.write_text("人物呼吸，烛火自然摇曳，真实一倍速", encoding="utf-8")
             frame = root / "frame0.png"
-            Image.fromarray(np.full((96, 54, 3), 70, dtype=np.uint8), "RGB").save(frame)
+            self.assertTrue(cv2.imwrite(str(frame), np.full((96, 54, 3), 70, dtype=np.uint8)))
             frame_sha = hashlib.sha256(frame.read_bytes()).hexdigest()
             gate = root / "machine-gate.json"
             gate.write_text(json.dumps({"schema": "fixture", "status": "PASS"}), encoding="utf-8")
