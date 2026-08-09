@@ -148,6 +148,16 @@ COMBAT_CONTINUITY_METHODS = {
         },
         "measurement_required": True,
     },
+    "follow_through_exposure_penetration_extraction_ladder": {
+        "label": "收势暴露刺入拔出阶梯", "min_beats": 3,
+        "required_evidence": {
+            "opponent_follow_through", "exposed_target_zone", "gap_closure",
+            "targeted_penetration_contact", "embedded_reaction",
+            "extraction_consequence", "cumulative_damage_state",
+            "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
 }
 COMBAT_EVIDENCE_TYPES = set().union(
     *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
@@ -664,7 +674,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
         "continuity_ladders": continuity_ladders,
-        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V4",
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V5",
     }
 
 

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add the licensed Hell Grind Scene 69, Scene 69B.20, Scene 69B.19, and Scene 69B.18 prompt/rule adapter with twelve typed
+- Add the licensed Hell Grind Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, and Scene 69B.17 prompt/rule adapter with thirteen typed
   combat-continuity methods that bind ordered beats, persistent visible
   evidence, measured spatial change, and a final relational composition.
 - Add embodied-topology traversal for action that uses a larger opponent,
@@ -15,6 +15,9 @@
 - Add controlled force conversion for blocked heavy impacts; require defensive
   contact, measured displacement, deliberate rotation, retained-prop
   continuity, landing absorption, residual stance cost, and relational closure.
+- Add a follow-through exposure penetration/extraction ladder that requires a
+  named target zone, measured gap closure, embedded-contact reaction, distinct
+  extraction consequence, durable cumulative damage, and relational closure.
 - Require every combat continuity resolution to reuse an already motivated
   camera segment; reject missing evidence, invalid measurements, state resets,
   and decorative camera substitutions before provider spend. This adapter does

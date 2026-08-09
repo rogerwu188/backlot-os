@@ -273,7 +273,7 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["combat_choreography_contract"]["continuity_adapter"],
-                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V4",
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V5",
             )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
             self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
@@ -424,6 +424,37 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             }]
             spec["combat_choreography_contract"] = contract
             with self.assertRaisesRegex(ValueError, "missing required evidence: controlled_rotation"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_penetration_extraction_without_embedded_reaction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "follow_through_exposure_penetration_extraction_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the opponent remains committed in a visible follow-through",
+                "exit_state": "the attacker withdraws with the promoted wound state still visible",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "opponent_follow_through", "exposed_target_zone", "gap_closure",
+                        "targeted_penetration_contact", "extraction_consequence",
+                        "cumulative_damage_state", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "distance", "value": 2, "unit": "m"},
+                "promoted_state_id": "target_wound_state_2",
+                "final_relational_frame": "both fighters, target zone, weapon and promoted wound remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove embedded contact and extraction without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: embedded_reaction"):
                 compile_prompt(spec)
 
     def test_combat_rejects_continuous_perpetual_camera_motion(self):
