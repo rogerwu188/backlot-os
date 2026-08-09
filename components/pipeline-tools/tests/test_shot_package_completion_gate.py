@@ -33,7 +33,7 @@ def package(*, dialogue=False):
             "manifest_sha256": SHA["manifest"],
         },
         "prompt": {"status": "PRECOMPILED", "sha256": SHA["prompt"]},
-        "generation": {"model": "seedance-2.0", "status": "COMPLETED"},
+        "generation": {"model": "seedance-2.0-fast", "status": "COMPLETED"},
         "first_frame": {"exact": True, "sha256": SHA["first"]},
         "ordered_references": [
             {"order": 1, "role": "FIRST_FRAME", "sha256": SHA["first"]},
@@ -119,15 +119,15 @@ class ShotPackageCompletionGateTests(unittest.TestCase):
         self.assertEqual(result["throughput"]["admitted_video_seconds"], 0.0)
         self.assertEqual(result["throughput"]["precompile_only"], 0)
 
-    def test_pro_fast_and_mini_models_fail_closed(self):
-        for model in ("seedance-2.0-pro", "seedance-2.0-fast", "seedance-2.0-mini"):
+    def test_pro_bare_and_mini_models_fail_closed(self):
+        for model in ("seedance-2.0-pro", "seedance-2.0", "seedance-2.0-mini"):
             with self.subTest(model=model):
                 value = package()
                 value["generation"]["model"] = model
                 result = audit_shot_packages(inventory(value))
                 self.assertEqual(result["packages"][0]["computed_state"], "BLOCKED")
                 self.assertIn(
-                    "NON_STANDARD_VIDEO_MODEL",
+                    "NON_PRODUCTION_VIDEO_MODEL",
                     {row["code"] for row in result["packages"][0]["failures"]},
                 )
 

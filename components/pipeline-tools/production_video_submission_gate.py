@@ -30,13 +30,6 @@ def _hydrated_tasks(manifest: dict[str, Any], root: Path) -> tuple[list[dict[str
     failures: list[dict[str, Any]] = []
     for original in manifest.get("tasks") or []:
         task = dict(original)
-        if task.get("model") != "seedance-2.0":
-            failures.append({
-                "code": "STANDARD_SEEDANCE2_MODEL_REQUIRED",
-                "task_key": task.get("task_key"),
-                "actual_model": task.get("model"),
-                "required_model": "seedance-2.0",
-            })
         prompt_file = task.get("prompt_file")
         if prompt_file:
             prompt_path = _resolve(root, str(prompt_file))
@@ -142,5 +135,5 @@ def evaluate_manifest(
                 _sha256_bytes(provider_registry_path.read_bytes()) if provider_registry_path.is_file() else None
             ),
         },
-        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require the standard seedance-2.0 model, and that model must also exist in the selected provider's verified capability registry. Pro is forbidden. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
+        "policy": "The paid submit entrypoint must evaluate this exact manifest fail-closed; historical gate reports are supplementary only. Seedance 2 video submissions require seedance-2.0-fast, and that model must also exist in the selected provider's verified capability registry. Pro, Mini, and the unpriced bare seedance-2.0 SKU are forbidden. Combat requires a viewer-readable attack-response-consequence chain, stable spatial axis, and explicit winner/loser terminal state.",
     }

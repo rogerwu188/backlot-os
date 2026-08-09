@@ -53,9 +53,11 @@ For Git checkouts, `scripts/update.sh` fetches the requested branch or tag and r
 
 After every update, run `scripts/doctor.sh` from the exact checkout used for
 installation. The doctor compares both the installed version record and the
-installed `submit_giggle_image_manifest.py` bytes with that checkout and fails
-closed on drift. A merged tag is not production-ready until this deployed-code
-parity check passes on the production machine.
+installed paid image/video gate bytes with that checkout and fails closed on
+drift. The production video gate currently admits only `seedance-2.0-fast`;
+neither a project manifest nor a stale provider registry may widen that model
+policy. A merged tag is not production-ready until this deployed-code parity
+check passes on the production machine.
 
 When the production project is outside the BacklotOS installation, image
 manifest prechecks and submissions must name it explicitly:

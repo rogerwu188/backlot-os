@@ -30,7 +30,10 @@ RETRY_DELAY_SECONDS = float(os.environ.get("GIGGLE_API_RETRY_DELAY", "2"))
 HTTP_TIMEOUT_SECONDS = float(os.environ.get("GIGGLE_API_HTTP_TIMEOUT_SECONDS", "30"))
 GENERATION_POST_TIMEOUT_SECONDS = float(os.environ.get("GIGGLE_GENERATION_POST_TIMEOUT_SECONDS", "180"))
 RETRYABLE_HTTP_CODES = {408, 409, 425, 429}
-STANDARD_VIDEO_MODEL = "seedance-2.0"
+PRODUCTION_VIDEO_MODEL = "seedance-2.0-fast"
+# Compatibility export for older compiler modules. The value is the current
+# production model, not the unpriced bare Seedance identifier.
+STANDARD_VIDEO_MODEL = PRODUCTION_VIDEO_MODEL
 VIDEO_GENERATION_ENDPOINTS = {
     "/api/v1/generation/text-to-video",
     "/api/v1/generation/image-to-video",
@@ -85,10 +88,10 @@ def _urlopen_json(
 
 
 def _request(path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    if path in VIDEO_GENERATION_ENDPOINTS and payload.get("model") != STANDARD_VIDEO_MODEL:
+    if path in VIDEO_GENERATION_ENDPOINTS and payload.get("model") != PRODUCTION_VIDEO_MODEL:
         raise SystemExit(
-            "paid video submission blocked: model must be seedance-2.0 (standard); "
-            "Pro, fast, and mini are forbidden"
+            "paid video submission blocked: model must be seedance-2.0-fast; "
+            "Pro, Mini, and the unpriced bare seedance-2.0 SKU are forbidden"
         )
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
