@@ -98,18 +98,21 @@ keeps prompt responsibilities in this fixed order:
 6. `OFFSCREEN_RELATIONSHIP_LEDGER`: target visibility, offscreen side, presence
    evidence, exit visibility, and explicit stay-visible/stay-hidden/re-entry
    policy. It contains video continuity only, never keyframe composition.
-7. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
+7. `DEPTH_FOCUS_TRANSFER_LEDGER`: video-side focus timing. It binds the initial
+   focus subject and depth plane, a visible trigger, transfer window, landing
+   subject and plane, stop condition, sharpness evidence, and terminal hold.
+8. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
    entry state, final-frame evidence for the exit state, a readable result hold,
    and the declared next-shot handoff. It forbids replaying setup at a cut.
-8. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+9. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
    job per cut.
-9. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+10. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
    state handoffs across cuts.
-10. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+11. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-11. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+12. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-12. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+13. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
@@ -132,6 +135,19 @@ missing evidence, short result holds, replayed entrances, and skipped handoffs.
 Composition, shot scale, focal length, camera height, and depth remain keyframe
 responsibilities. This remains an `AMERICAN_HOLLYWOOD` prompt/rule adapter, not
 model weights and not an Eastern wuxia or kung-fu grammar.
+
+The depth-focus transfer ledger is video-side timing only. A shot declares the
+descriptor and `FOREGROUND`, `MIDGROUND`, or `BACKGROUND` plane that owns focus
+on entry. `LOCKED_FOCUS` keeps that subject and plane for the whole shot;
+`SUBJECT_TRIGGERED_RACK_FOCUS` cannot start before its named subject trigger,
+must stay within the declared transfer window, land on a descriptor already
+present in the shot, stop on visible sharpness evidence, and hold that landing
+through the cut. Adapter V14 rejects autofocus hunting, anticipatory focus
+pulls, unregistered focus targets, wrong-subject exits, and focus loss before
+the result is readable. Composition, shot scale, focal length, camera height,
+depth-layer layout, and current pose remain keyframe responsibilities. The rule
+is labeled `AMERICAN_HOLLYWOOD`; Eastern wuxia and kung-fu profiles remain
+reserved and unloaded.
 
 Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a

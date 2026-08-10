@@ -215,6 +215,9 @@ CAMERA_ACTION_RESPONSE_TYPES = {
 SHOT_BOUNDARY_STATE_POLICY = "FIRST_FRAME_PROVES_ENTRY_FINAL_FRAME_PROVES_EXIT"
 SHOT_BOUNDARY_ENTRY_POLICY = "ALREADY_ESTABLISHED_NO_REPLAY"
 SHOT_BOUNDARY_RESET_POLICY = "NO_UNDECLARED_REPLAY_OR_RESET_AT_CUT"
+DEPTH_FOCUS_POLICY = "SUBJECT_TRIGGERED_FOCUS_TRANSFER_WITH_PLANE_LOCK_AND_RESULT_HOLD"
+DEPTH_FOCUS_MODES = {"LOCKED_FOCUS", "SUBJECT_TRIGGERED_RACK_FOCUS"}
+DEPTH_FOCUS_PLANES = {"FOREGROUND", "MIDGROUND", "BACKGROUND"}
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -229,6 +232,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
             "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
             "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
+            "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -876,6 +880,189 @@ def compile_shot_boundary_state_ledger(
     )
 
 
+def compile_depth_focus_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Bind focus ownership and any rack focus to a visible subject trigger."""
+    ledger = contract.get("depth_focus_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != DEPTH_FOCUS_POLICY:
+        raise ValueError(
+            "depth_focus_ledger policy must be "
+            f"{DEPTH_FOCUS_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "depth_focus_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("depth_focus_ledger must exactly cover all compiled shots")
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"depth focus row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "depth_focus_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"depth focus row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"depth focus row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"depth focus row {index} entry/exit state must match cinematic segment"
+            )
+        mode = require(
+            row.get("focus_mode"), f"depth focus row {index} focus_mode is required"
+        )
+        if mode not in DEPTH_FOCUS_MODES:
+            raise ValueError(f"unsupported depth focus mode: {mode}")
+        entry_id = require(
+            row.get("entry_focus_descriptor_id"),
+            f"depth focus row {index} entry_focus_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("target_focus_descriptor_id"),
+            f"depth focus row {index} target_focus_descriptor_id is required",
+        )
+        exit_id = require(
+            row.get("exit_focus_descriptor_id"),
+            f"depth focus row {index} exit_focus_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        for field, value in (
+            ("entry_focus_descriptor_id", entry_id),
+            ("target_focus_descriptor_id", target_id),
+            ("exit_focus_descriptor_id", exit_id),
+        ):
+            if value not in descriptor_ids or value not in segment_ids:
+                raise ValueError(
+                    f"depth focus row {index} {field} must reference a descriptor in its segment"
+                )
+        entry_plane = require(
+            row.get("entry_depth_plane"),
+            f"depth focus row {index} entry_depth_plane is required",
+        )
+        target_plane = require(
+            row.get("target_depth_plane"),
+            f"depth focus row {index} target_depth_plane is required",
+        )
+        if entry_plane not in DEPTH_FOCUS_PLANES or target_plane not in DEPTH_FOCUS_PLANES:
+            raise ValueError("unsupported depth focus plane")
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"depth focus row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"depth focus row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"depth focus row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"depth focus row {index} must hold the landed focus to shot end"
+            )
+        transfer_start = row.get("transfer_start_seconds")
+        transfer_end = row.get("transfer_end_seconds")
+        if mode == "LOCKED_FOCUS":
+            if transfer_start is not None or transfer_end is not None:
+                raise ValueError(
+                    f"depth focus row {index} locked focus cannot declare a transfer window"
+                )
+            if entry_id != target_id or target_id != exit_id or entry_plane != target_plane:
+                raise ValueError(
+                    f"depth focus row {index} locked focus must keep one subject and plane"
+                )
+        else:
+            if transfer_start is None or transfer_end is None:
+                raise ValueError(
+                    f"depth focus row {index} rack focus requires a transfer window"
+                )
+            transfer_start = float(transfer_start)
+            transfer_end = float(transfer_end)
+            if transfer_start < trigger_seconds:
+                raise ValueError(
+                    f"depth focus row {index} focus transfer cannot start before its trigger"
+                )
+            if not trigger_seconds <= transfer_start < transfer_end <= duration:
+                raise ValueError(
+                    f"depth focus row {index} transfer window must stay inside the shot"
+                )
+            if entry_id == target_id and entry_plane == target_plane:
+                raise ValueError(
+                    f"depth focus row {index} rack focus must change subject or depth plane"
+                )
+            if exit_id != target_id:
+                raise ValueError(
+                    f"depth focus row {index} exit focus must equal the declared target"
+                )
+        compiled.append({
+            "shot_index": shot_index,
+            "focus_mode": mode,
+            "entry_focus_descriptor_id": entry_id,
+            "entry_depth_plane": entry_plane,
+            "focus_trigger": require(
+                row.get("focus_trigger"),
+                f"depth focus row {index} focus_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_focus_descriptor_id": target_id,
+            "target_depth_plane": target_plane,
+            "transfer_start_seconds": transfer_start,
+            "transfer_end_seconds": transfer_end,
+            "stop_condition": require(
+                row.get("stop_condition"),
+                f"depth focus row {index} stop_condition is required",
+            ),
+            "exit_focus_descriptor_id": exit_id,
+            "visible_focus_evidence": require(
+                row.get("visible_focus_evidence"),
+                f"depth focus row {index} visible_focus_evidence is required",
+            ),
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['focus_mode']}]："
+        f"初始焦点={row['entry_focus_descriptor_id']}@{row['entry_depth_plane']}；"
+        f"触发={row['focus_trigger']}@{row['trigger_seconds']:g}秒；"
+        f"目标焦点={row['target_focus_descriptor_id']}@{row['target_depth_plane']}；"
+        f"转移={('保持锁焦' if row['transfer_start_seconds'] is None else str(row['transfer_start_seconds']) + '-' + str(row['transfer_end_seconds']) + '秒')}；"
+        f"停止条件={row['stop_condition']}；末焦={row['exit_focus_descriptor_id']}；"
+        f"锐度证据={row['visible_focus_evidence']}；保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【DEPTH-FOCUS TRANSFER LEDGER｜焦点主体、纵深层与触发式拉焦】"
+        + "。".join(prompt_rows)
+        + "。焦点不得抢在主体触发前转移，不得无动机搜索或漂移；"
+        "落焦后必须以可见锐度证据保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": DEPTH_FOCUS_POLICY,
+            "modes": sorted(DEPTH_FOCUS_MODES),
+            "depth_planes": sorted(DEPTH_FOCUS_PLANES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -1241,6 +1428,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     offscreen_prompt, offscreen_ledger = compile_offscreen_relationship_ledger(
         contract, compiled, descriptor_ids, spatial_axis_ledger
     )
+    depth_focus_prompt, depth_focus_ledger = compile_depth_focus_ledger(
+        contract, compiled, descriptor_ids
+    )
     boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
         contract, compiled
     )
@@ -1263,6 +1453,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + coupling_prompt
         + spatial_axis_prompt
         + offscreen_prompt
+        + depth_focus_prompt
         + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -1274,7 +1465,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -1283,6 +1474,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "spatial_axis_gate": "PASS_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND_COVERAGE" if spatial_axis_ledger else "NOT_APPLICABLE",
         "offscreen_relationship_ledger": offscreen_ledger,
         "offscreen_relationship_gate": "PASS_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY" if offscreen_ledger else "NOT_APPLICABLE",
+        "depth_focus_ledger": depth_focus_ledger,
+        "depth_focus_gate": "PASS_TRIGGERED_FOCUS_TRANSFER_AND_TERMINAL_HOLD" if depth_focus_ledger else "NOT_APPLICABLE",
         "shot_boundary_state_ledger": boundary_ledger,
         "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,

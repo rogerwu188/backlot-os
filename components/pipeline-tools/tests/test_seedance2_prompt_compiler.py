@@ -8,6 +8,7 @@ from unittest import mock
 from tools.seedance2_prompt_compiler import (
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
+    compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
     compile_prompt,
     compile_shot_boundary_state_ledger,
@@ -103,6 +104,13 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
                         {"shot_index": 2, "coupling_type": "SUBJECT_TRIGGERED_MOVE", "physical_trigger": "同伴支撑起身并迈出第一步", "trigger_seconds": 0.5, "subject_change": "伏地姿态转为朝落点奔跑", "camera_response_type": "TRACK", "camera_response": "从支撑手跟到连续脚印和奔跑路径", "movement_start_seconds": 0.5, "movement_end_seconds": 2.3, "camera_motivation": "读清起身到奔跑的连续路径", "stop_condition": "人物进入稳定奔跑线", "visible_result": "负伤姿态、脚印与落点方向保持同框", "result_hold_until_seconds": 3, "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
                     ],
                 },
+                "depth_focus_ledger": {
+                    "policy": "SUBJECT_TRIGGERED_FOCUS_TRANSFER_WITH_PLANE_LOCK_AND_RESULT_HOLD",
+                    "shots": [
+                        {"shot_index": 1, "focus_mode": "LOCKED_FOCUS", "entry_focus_descriptor_id": "@snow_battlefield", "entry_depth_plane": "BACKGROUND", "focus_trigger": "首帧已经建立坠落与雪原尺度", "trigger_seconds": 0, "target_focus_descriptor_id": "@snow_battlefield", "target_depth_plane": "BACKGROUND", "transfer_start_seconds": None, "transfer_end_seconds": None, "stop_condition": "冲击坑、雪柱与回落碎片均可读", "exit_focus_descriptor_id": "@snow_battlefield", "visible_focus_evidence": "落点与雪柱边缘保持清晰且人物尺度可辨", "result_hold_until_seconds": 5, "entry_state": "人物已在坠落", "exit_state": "雪柱与碎片形成可见结果"},
+                        {"shot_index": 2, "focus_mode": "SUBJECT_TRIGGERED_RACK_FOCUS", "entry_focus_descriptor_id": "@snow_battlefield", "entry_depth_plane": "BACKGROUND", "focus_trigger": "同伴支撑起身并迈出第一步", "trigger_seconds": 0.5, "target_focus_descriptor_id": "@hero_wounded", "target_depth_plane": "MIDGROUND", "transfer_start_seconds": 0.5, "transfer_end_seconds": 1.1, "stop_condition": "伤肩、支撑手和双眼进入同一清晰层", "exit_focus_descriptor_id": "@hero_wounded", "visible_focus_evidence": "人物面部与伤肩清晰，后景落点退入柔焦但方向仍可读", "result_hold_until_seconds": 3, "entry_state": "同伴负伤伏地", "exit_state": "同伴向落点奔跑"},
+                    ],
+                },
                 "shot_boundary_state_ledger": {
                     "policy": "FIRST_FRAME_PROVES_ENTRY_FINAL_FRAME_PROVES_EXIT",
                     "reset_policy": "NO_UNDECLARED_REPLAY_OR_RESET_AT_CUT",
@@ -144,6 +152,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("【CAMERA STYLE PROFILE｜运镜文化风格标签】", prompt)
         self.assertIn("运镜风格=美式好莱坞[AMERICAN_HOLLYWOOD]", prompt)
         self.assertIn("【CAMERA-ACTION COUPLING LEDGER", prompt)
+        self.assertIn("【DEPTH-FOCUS TRANSFER LEDGER", prompt)
         self.assertIn("【SHOT BOUNDARY STATE LOCK", prompt)
         self.assertIn("【SHOT INFORMATION LADDER｜一镜一信息】", prompt)
         self.assertIn("【SPATIAL AXIS LEDGER｜屏幕方位、视线与背景锚点】", prompt)
@@ -162,6 +171,15 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertEqual(
             manifest["cinematic_shot_language_contract"]["camera_action_coupling_gate"],
             "PASS_TRIGGER_RESPONSE_RESULT_HOLD",
+        )
+        depth_focus = manifest["cinematic_shot_language_contract"]["depth_focus_ledger"]
+        self.assertEqual(
+            depth_focus["adapter"],
+            "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
+        )
+        self.assertEqual(
+            manifest["cinematic_shot_language_contract"]["depth_focus_gate"],
+            "PASS_TRIGGERED_FOCUS_TRANSFER_AND_TERMINAL_HOLD",
         )
         boundary = manifest["cinematic_shot_language_contract"]["shot_boundary_state_ledger"]
         self.assertEqual(
@@ -392,6 +410,71 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         contract = self.camera_coupling_contract(camera_motivation="装饰性环绕")
         with self.assertRaisesRegex(ValueError, "camera_motivation must match its segment"):
             compile_camera_action_coupling_ledger(contract, self.camera_coupling_segment())
+
+    def depth_focus_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1,
+            "start_seconds": 0.0,
+            "end_seconds": 5.0,
+            "entry_state": "前景观察者清晰、后景目标柔焦",
+            "exit_state": "后景目标清晰并完成抬头",
+            "descriptor_ids": ["@observer", "@target"],
+        }]
+        row = {
+            "shot_index": 1,
+            "focus_mode": "SUBJECT_TRIGGERED_RACK_FOCUS",
+            "entry_focus_descriptor_id": "@observer",
+            "entry_depth_plane": "FOREGROUND",
+            "focus_trigger": "后景目标开始抬头",
+            "trigger_seconds": 1.0,
+            "target_focus_descriptor_id": "@target",
+            "target_depth_plane": "BACKGROUND",
+            "transfer_start_seconds": 1.0,
+            "transfer_end_seconds": 2.0,
+            "stop_condition": "目标双眼和伤痕进入清晰层",
+            "exit_focus_descriptor_id": "@target",
+            "visible_focus_evidence": "目标双眼与伤痕清晰，观察者退入柔焦",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "depth_focus_ledger": {
+                "policy": "SUBJECT_TRIGGERED_FOCUS_TRANSFER_WITH_PLANE_LOCK_AND_RESULT_HOLD",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_depth_focus_binds_trigger_plane_landing_and_hold(self):
+        contract, segments = self.depth_focus_fixture()
+        prompt, manifest = compile_depth_focus_ledger(
+            contract, segments, {"@observer", "@target"}
+        )
+        self.assertIn("【DEPTH-FOCUS TRANSFER LEDGER", prompt)
+        self.assertIn("焦点不得抢在主体触发前转移", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_depth_focus_rejects_transfer_before_subject_trigger(self):
+        contract, segments = self.depth_focus_fixture(transfer_start_seconds=0.5)
+        with self.assertRaisesRegex(ValueError, "cannot start before its trigger"):
+            compile_depth_focus_ledger(contract, segments, {"@observer", "@target"})
+
+    def test_depth_focus_rejects_wrong_exit_focus_subject(self):
+        contract, segments = self.depth_focus_fixture(
+            exit_focus_descriptor_id="@observer"
+        )
+        with self.assertRaisesRegex(ValueError, "exit focus must equal"):
+            compile_depth_focus_ledger(contract, segments, {"@observer", "@target"})
+
+    def test_depth_focus_rejects_missing_terminal_focus_hold(self):
+        contract, segments = self.depth_focus_fixture(result_hold_until_seconds=4.5)
+        with self.assertRaisesRegex(ValueError, "hold the landed focus to shot end"):
+            compile_depth_focus_ledger(contract, segments, {"@observer", "@target"})
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
         hero = "角色锁定描述"

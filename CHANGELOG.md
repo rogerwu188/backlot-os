@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V14 with a typed
+  depth-focus transfer ledger for task2-1 video prompts. Every shot binds the
+  initial focus subject and depth plane, any rack focus to a visible subject
+  trigger and exact transfer window, the landing subject and stop condition,
+  visible sharpness evidence, and a focus hold through the cut. Anticipatory
+  rack focus, autofocus hunting, wrong-subject landings, and early focus loss
+  fail before generation. Keyframe composition remains separate and the
+  adapter retains the `AMERICAN_HOLLYWOOD` cultural label.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V13 with a typed
   shot-boundary state lock for task2-1 video prompts. Every cut must prove its
   already-established entry state on the first frame, preserve visible exit
