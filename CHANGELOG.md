@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V15 with a typed
+  contact-force state ledger for task2-1 video prompts. Every shot binds the
+  contact owners and anchor, inherited entry contact, a physical change
+  trigger and exact window, visible force and contact evidence, the exit
+  contact state, and a hold through the cut. Anticipatory contact changes,
+  silent grip/contact resets, wrong exit states, and early result loss fail
+  before generation. Keyframe composition remains separate and the adapter
+  retains the `AMERICAN_HOLLYWOOD` cultural label.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V14 with a typed
   depth-focus transfer ledger for task2-1 video prompts. Every shot binds the
   initial focus subject and depth plane, any rack focus to a visible subject

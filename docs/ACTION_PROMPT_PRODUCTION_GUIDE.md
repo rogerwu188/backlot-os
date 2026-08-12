@@ -101,18 +101,22 @@ keeps prompt responsibilities in this fixed order:
 7. `DEPTH_FOCUS_TRANSFER_LEDGER`: video-side focus timing. It binds the initial
    focus subject and depth plane, a visible trigger, transfer window, landing
    subject and plane, stop condition, sharpness evidence, and terminal hold.
-8. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
+8. `CONTACT_FORCE_STATE_LEDGER`: video-side physical contact continuity. It
+   binds contact owners and anchor, inherited entry contact, a physical change
+   trigger and exact window, visible force and contact evidence, exit contact,
+   and a result hold through the cut.
+9. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
    entry state, final-frame evidence for the exit state, a readable result hold,
    and the declared next-shot handoff. It forbids replaying setup at a cut.
-9. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+10. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
    job per cut.
-10. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+11. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
    state handoffs across cuts.
-11. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+12. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-12. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+13. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-13. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+14. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
@@ -148,6 +152,18 @@ the result is readable. Composition, shot scale, focal length, camera height,
 depth-layer layout, and current pose remain keyframe responsibilities. The rule
 is labeled `AMERICAN_HOLLYWOOD`; Eastern wuxia and kung-fu profiles remain
 reserved and unloaded.
+
+The contact-force state ledger is video-side continuity only. Every shot names
+the two contact owners, their physical anchor, the inherited entry contact, and
+either `LOCKED_CONTACT` or `TRIGGERED_CONTACT_CHANGE`. A triggered change cannot
+begin before its physical trigger, must stay inside its declared time window,
+must land on the declared exit contact, and must expose both force evidence and
+visible contact evidence until the cut. Repeated contact tracks inherit the
+previous shot's exit contact exactly. Adapter V15 rejects anticipatory changes,
+silent grip/contact resets, wrong exits, and early result loss. Composition,
+shot scale, focal length, camera height, depth-layer layout, and current pose
+remain keyframe responsibilities. The rule is labeled `AMERICAN_HOLLYWOOD`;
+Eastern wuxia and kung-fu profiles remain reserved and unloaded.
 
 Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a

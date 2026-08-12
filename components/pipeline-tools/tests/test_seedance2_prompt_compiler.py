@@ -8,6 +8,7 @@ from unittest import mock
 from tools.seedance2_prompt_compiler import (
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
+    compile_contact_force_state_ledger,
     compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
     compile_prompt,
@@ -475,6 +476,81 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         contract, segments = self.depth_focus_fixture(result_hold_until_seconds=4.5)
         with self.assertRaisesRegex(ValueError, "hold the landed focus to shot end"):
             compile_depth_focus_ledger(contract, segments, {"@observer", "@target"})
+
+    def contact_force_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1,
+            "start_seconds": 0.0,
+            "end_seconds": 5.0,
+            "entry_state": "剑刃已浅刺入伤口",
+            "exit_state": "剑刃进一步刺入并保持",
+            "descriptor_ids": ["@fighter", "@monster", "@sword"],
+        }]
+        row = {
+            "shot_index": 1,
+            "contact_track_id": "sword-wound-contact",
+            "contact_mode": "TRIGGERED_CONTACT_CHANGE",
+            "actor_descriptor_id": "@fighter",
+            "target_descriptor_id": "@monster",
+            "contact_anchor": "@sword剑尖与胸口伤口",
+            "entry_contact_state": "剑尖浅刺入胸口伤口",
+            "contact_trigger": "持剑者双手向前加压",
+            "trigger_seconds": 1.0,
+            "target_contact_state": "剑刃深入胸口且握持未松",
+            "change_start_seconds": 1.0,
+            "change_end_seconds": 2.0,
+            "force_evidence": "双手握柄收紧、手臂发力并推动躯干后移",
+            "visible_contact_evidence": "剑刃与伤口持续同点接触且血迹沿刃缘增加",
+            "exit_contact_state": "剑刃深入胸口且握持未松",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "contact_force_state_ledger": {
+                "policy": "CONTACT_OWNERSHIP_FORCE_AND_RESULT_PERSIST_ACROSS_CUTS",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_contact_force_state_binds_contact_force_and_result_hold(self):
+        contract, segments = self.contact_force_fixture()
+        prompt, manifest = compile_contact_force_state_ledger(
+            contract, segments, {"@fighter", "@monster", "@sword"}
+        )
+        self.assertIn("【CONTACT FORCE STATE LEDGER", prompt)
+        self.assertIn("下一镜入口必须继承上一镜出口", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_contact_force_state_rejects_change_before_trigger(self):
+        contract, segments = self.contact_force_fixture(change_start_seconds=0.5)
+        with self.assertRaisesRegex(ValueError, "cannot start before its trigger"):
+            compile_contact_force_state_ledger(
+                contract, segments, {"@fighter", "@monster", "@sword"}
+            )
+
+    def test_contact_force_state_rejects_wrong_exit_contact(self):
+        contract, segments = self.contact_force_fixture(
+            exit_contact_state="剑刃脱离伤口"
+        )
+        with self.assertRaisesRegex(ValueError, "exit contact must equal"):
+            compile_contact_force_state_ledger(
+                contract, segments, {"@fighter", "@monster", "@sword"}
+            )
+
+    def test_contact_force_state_rejects_missing_terminal_hold(self):
+        contract, segments = self.contact_force_fixture(
+            result_hold_until_seconds=4.5
+        )
+        with self.assertRaisesRegex(ValueError, "hold the contact result to shot end"):
+            compile_contact_force_state_ledger(
+                contract, segments, {"@fighter", "@monster", "@sword"}
+            )
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
         hero = "角色锁定描述"
