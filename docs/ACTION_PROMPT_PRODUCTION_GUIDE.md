@@ -602,6 +602,24 @@ Ground tracking may establish clearance and a stable impact frame may resolve
 the result, but repeated whip-pans, perpetual shake, decorative slow motion,
 and impact zooms cannot replace readable body mechanics.
 
+## Material emission state ledger
+
+Task2-1 video prompts that contain saturated, translucent, reflective, or
+potentially luminous materials must declare a `material_emission_state_ledger`
+for every compiled shot. Each row binds a stable material track and descriptor,
+the intrinsic-color evidence, entry and target emission states, any physical
+emission trigger and exact change window, the light-evidence policy, the exit
+emission state, and a hold to the shot boundary.
+
+`INTRINSIC_NONEMISSIVE` materials may show ambient highlights and transmitted
+light, but they must use `AMBIENT_REFLECTION_ONLY`; nearby skin, props, fog, and
+ground must not receive invented cast light. `EMISSIVE_SOURCE` requires both a
+visible source and visible cast-light evidence. `TRIGGERED_EMISSION_CHANGE`
+cannot begin before its declared trigger. The next shot on the same material
+track must inherit the previous exit emission state exactly. These are
+video-side state and timing fields; they do not replace keyframe composition,
+lens, depth, or pose controls.
+
 ## Selective BGM flow
 
 Every release episode must choose one source policy:

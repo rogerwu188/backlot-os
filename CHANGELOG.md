@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V16 with a typed
+  material-emission state ledger for task2-1 video prompts. Every shot keeps
+  intrinsic material color and ambient reflection separate from actual light
+  emission, binds any emission change to a visible trigger and exact window,
+  requires both source and cast-light evidence for emissive materials, and
+  preserves the declared exit emission state through the cut. Saturated color,
+  translucency, or specular highlights cannot silently become invented glow.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V15 with a typed
   contact-force state ledger for task2-1 video prompts. Every shot binds the
   contact owners and anchor, inherited entry contact, a physical change

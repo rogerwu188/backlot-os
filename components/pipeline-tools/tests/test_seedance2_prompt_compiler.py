@@ -9,6 +9,7 @@ from tools.seedance2_prompt_compiler import (
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
     compile_contact_force_state_ledger,
+    compile_material_emission_state_ledger,
     compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
     compile_prompt,
@@ -550,6 +551,85 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hold the contact result to shot end"):
             compile_contact_force_state_ledger(
                 contract, segments, {"@fighter", "@monster", "@sword"}
+            )
+
+    def material_emission_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1, "start_seconds": 0.0, "end_seconds": 5.0,
+            "entry_state": "血红晶体保持环境反射", "exit_state": "血红晶体保持环境反射",
+            "descriptor_ids": ["@fighter", "@crystal"],
+        }]
+        row = {
+            "shot_index": 1,
+            "material_track_id": "blood-crystal-emission",
+            "material_descriptor_id": "@crystal",
+            "material_mode": "INTRINSIC_NONEMISSIVE",
+            "intrinsic_color_evidence": "血红色来自晶体本征色，切面只反射环境光",
+            "entry_emission_state": "NO_INTERNAL_EMISSION",
+            "emission_trigger": "无发光触发，维持环境反射",
+            "trigger_seconds": 0.0,
+            "target_emission_state": "NO_INTERNAL_EMISSION",
+            "change_start_seconds": None,
+            "change_end_seconds": None,
+            "light_evidence_policy": "AMBIENT_REFLECTION_ONLY",
+            "visible_light_evidence": "晶体切面有环境高光但周围皮肤和雪地无红色投射光",
+            "exit_emission_state": "NO_INTERNAL_EMISSION",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "material_emission_state_ledger": {
+                "policy": "INTRINSIC_MATERIAL_COLOR_SEPARATE_FROM_EMISSION_ACROSS_CUTS",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_material_emission_separates_intrinsic_color_from_light(self):
+        contract, segments = self.material_emission_fixture()
+        prompt, manifest = compile_material_emission_state_ledger(
+            contract, segments, {"@fighter", "@crystal"}
+        )
+        self.assertIn("【MATERIAL EMISSION STATE LEDGER", prompt)
+        self.assertIn("不得自动升级为内部发光", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_material_emission_rejects_nonemissive_cast_light(self):
+        contract, segments = self.material_emission_fixture(
+            light_evidence_policy="VISIBLE_SOURCE_AND_CAST_LIGHT"
+        )
+        with self.assertRaisesRegex(ValueError, "nonemissive material cannot claim"):
+            compile_material_emission_state_ledger(
+                contract, segments, {"@fighter", "@crystal"}
+            )
+
+    def test_material_emission_rejects_change_before_trigger(self):
+        contract, segments = self.material_emission_fixture(
+            material_mode="TRIGGERED_EMISSION_CHANGE",
+            target_emission_state="ACTIVE_RED_EMISSION",
+            exit_emission_state="ACTIVE_RED_EMISSION",
+            change_start_seconds=0.5,
+            change_end_seconds=2.0,
+            trigger_seconds=1.0,
+            light_evidence_policy="VISIBLE_SOURCE_AND_CAST_LIGHT",
+        )
+        with self.assertRaisesRegex(ValueError, "cannot start before its trigger"):
+            compile_material_emission_state_ledger(
+                contract, segments, {"@fighter", "@crystal"}
+            )
+
+    def test_material_emission_rejects_wrong_exit_state(self):
+        contract, segments = self.material_emission_fixture(
+            exit_emission_state="ACTIVE_RED_EMISSION"
+        )
+        with self.assertRaisesRegex(ValueError, "exit emission must equal"):
+            compile_material_emission_state_ledger(
+                contract, segments, {"@fighter", "@crystal"}
             )
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):

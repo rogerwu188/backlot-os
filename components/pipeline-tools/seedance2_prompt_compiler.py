@@ -220,6 +220,11 @@ DEPTH_FOCUS_MODES = {"LOCKED_FOCUS", "SUBJECT_TRIGGERED_RACK_FOCUS"}
 DEPTH_FOCUS_PLANES = {"FOREGROUND", "MIDGROUND", "BACKGROUND"}
 CONTACT_FORCE_STATE_POLICY = "CONTACT_OWNERSHIP_FORCE_AND_RESULT_PERSIST_ACROSS_CUTS"
 CONTACT_FORCE_STATE_MODES = {"LOCKED_CONTACT", "TRIGGERED_CONTACT_CHANGE"}
+MATERIAL_EMISSION_POLICY = "INTRINSIC_MATERIAL_COLOR_SEPARATE_FROM_EMISSION_ACROSS_CUTS"
+MATERIAL_EMISSION_MODES = {
+    "INTRINSIC_NONEMISSIVE", "EMISSIVE_SOURCE", "TRIGGERED_EMISSION_CHANGE",
+}
+MATERIAL_LIGHT_EVIDENCE = {"AMBIENT_REFLECTION_ONLY", "VISIBLE_SOURCE_AND_CAST_LIGHT"}
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -236,6 +241,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
             "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
             "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
+            "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -1268,6 +1274,205 @@ def compile_contact_force_state_ledger(
     )
 
 
+def compile_material_emission_state_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Separate intrinsic material color from actual light emission across cuts."""
+    ledger = contract.get("material_emission_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != MATERIAL_EMISSION_POLICY:
+        raise ValueError(
+            "material_emission_state_ledger policy must be "
+            f"{MATERIAL_EMISSION_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "material_emission_state_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "material_emission_state_ledger must exactly cover all compiled shots"
+        )
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"material emission row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "material_emission_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"material emission row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"material emission row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"material emission row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("material_track_id"),
+            f"material emission row {index} material_track_id is required",
+        )
+        descriptor_id = require(
+            row.get("material_descriptor_id"),
+            f"material emission row {index} material_descriptor_id is required",
+        )
+        if descriptor_id not in descriptor_ids or descriptor_id not in set(segment["descriptor_ids"]):
+            raise ValueError(
+                f"material emission row {index} material_descriptor_id must reference a descriptor in its segment"
+            )
+        mode = require(row.get("material_mode"), f"material emission row {index} material_mode is required")
+        if mode not in MATERIAL_EMISSION_MODES:
+            raise ValueError(f"unsupported material emission mode: {mode}")
+        evidence = require(
+            row.get("light_evidence_policy"),
+            f"material emission row {index} light_evidence_policy is required",
+        )
+        if evidence not in MATERIAL_LIGHT_EVIDENCE:
+            raise ValueError(f"unsupported material light evidence policy: {evidence}")
+        entry_emission = require(
+            row.get("entry_emission_state"),
+            f"material emission row {index} entry_emission_state is required",
+        )
+        target_emission = require(
+            row.get("target_emission_state"),
+            f"material emission row {index} target_emission_state is required",
+        )
+        exit_emission = require(
+            row.get("exit_emission_state"),
+            f"material emission row {index} exit_emission_state is required",
+        )
+        prior_exit = prior_exit_by_track.get(track_id)
+        if prior_exit is not None and entry_emission != prior_exit:
+            raise ValueError(
+                f"material emission track {track_id} handoff mismatch: previous exit "
+                f"{prior_exit} but shot {shot_index} enters {entry_emission}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"material emission row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"material emission row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"material emission row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"material emission row {index} must hold the emission result to shot end"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "TRIGGERED_EMISSION_CHANGE":
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"material emission row {index} triggered change requires a change window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"material emission row {index} emission change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"material emission row {index} change window must stay inside the shot"
+                )
+            if entry_emission == target_emission:
+                raise ValueError(
+                    f"material emission row {index} triggered change must change emission state"
+                )
+        else:
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"material emission row {index} locked material cannot declare a change window"
+                )
+            if entry_emission != target_emission:
+                raise ValueError(
+                    f"material emission row {index} locked material must preserve one emission state"
+                )
+        if exit_emission != target_emission:
+            raise ValueError(
+                f"material emission row {index} exit emission must equal the declared target"
+            )
+        if mode == "INTRINSIC_NONEMISSIVE" and evidence != "AMBIENT_REFLECTION_ONLY":
+            raise ValueError(
+                f"material emission row {index} nonemissive material cannot claim cast-light evidence"
+            )
+        if mode == "EMISSIVE_SOURCE" and evidence != "VISIBLE_SOURCE_AND_CAST_LIGHT":
+            raise ValueError(
+                f"material emission row {index} emissive source requires visible source and cast-light evidence"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "material_track_id": track_id,
+            "material_descriptor_id": descriptor_id,
+            "material_mode": mode,
+            "intrinsic_color_evidence": require(
+                row.get("intrinsic_color_evidence"),
+                f"material emission row {index} intrinsic_color_evidence is required",
+            ),
+            "entry_emission_state": entry_emission,
+            "emission_trigger": require(
+                row.get("emission_trigger"),
+                f"material emission row {index} emission_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_emission_state": target_emission,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "light_evidence_policy": evidence,
+            "visible_light_evidence": require(
+                row.get("visible_light_evidence"),
+                f"material emission row {index} visible_light_evidence is required",
+            ),
+            "exit_emission_state": exit_emission,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_emission
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['material_track_id']}/{row['material_mode']}]："
+        f"材质={row['material_descriptor_id']}；本征色证据={row['intrinsic_color_evidence']}；"
+        f"入口发光={row['entry_emission_state']}；触发={row['emission_trigger']}@{row['trigger_seconds']:g}秒；"
+        f"目标发光={row['target_emission_state']}；"
+        f"变化={('保持发光状态' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"光证据策略={row['light_evidence_policy']}；可见光证据={row['visible_light_evidence']}；"
+        f"出口发光={row['exit_emission_state']}；保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【MATERIAL EMISSION STATE LEDGER｜本征材质色与真实发光分离】"
+        + "。".join(prompt_rows)
+        + "。高饱和材质色、透光和环境反射不得自动升级为内部发光；真实发光必须同时提供可见光源与投射光证据。"
+        "同一材质轨道的下一镜入口必须继承上一镜出口并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": MATERIAL_EMISSION_POLICY,
+            "modes": sorted(MATERIAL_EMISSION_MODES),
+            "light_evidence_policies": sorted(MATERIAL_LIGHT_EVIDENCE),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -1639,6 +1844,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     contact_force_prompt, contact_force_ledger = compile_contact_force_state_ledger(
         contract, compiled, descriptor_ids
     )
+    material_emission_prompt, material_emission_ledger = compile_material_emission_state_ledger(
+        contract, compiled, descriptor_ids
+    )
     boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
         contract, compiled
     )
@@ -1663,6 +1871,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + offscreen_prompt
         + depth_focus_prompt
         + contact_force_prompt
+        + material_emission_prompt
         + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -1674,7 +1883,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -1687,6 +1896,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "depth_focus_gate": "PASS_TRIGGERED_FOCUS_TRANSFER_AND_TERMINAL_HOLD" if depth_focus_ledger else "NOT_APPLICABLE",
         "contact_force_state_ledger": contact_force_ledger,
         "contact_force_state_gate": "PASS_CONTACT_OWNERSHIP_FORCE_AND_CUT_HANDOFF" if contact_force_ledger else "NOT_APPLICABLE",
+        "material_emission_state_ledger": material_emission_ledger,
+        "material_emission_state_gate": "PASS_INTRINSIC_COLOR_EMISSION_EVIDENCE_AND_CUT_HANDOFF" if material_emission_ledger else "NOT_APPLICABLE",
         "shot_boundary_state_ledger": boundary_ledger,
         "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
