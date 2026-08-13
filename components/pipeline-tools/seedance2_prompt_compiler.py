@@ -229,6 +229,8 @@ ENTITY_FORM_STATE_POLICY = "IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_STATE_ACRO
 ENTITY_FORM_STATE_MODES = {"LOCKED_FORM", "TRIGGERED_FORM_CHANGE"}
 DAMAGE_CONTINUITY_POLICY = "CUMULATIVE_DAMAGE_EVIDENCE_PERSISTS_ACROSS_CUTS"
 DAMAGE_CONTINUITY_MODES = {"LOCKED_DAMAGE", "TRIGGERED_DAMAGE_CHANGE"}
+ACTION_RESOLUTION_POLICY = "DECLARED_INTENT_RESOLVES_TO_VISIBLE_OUTCOME"
+ACTION_RESOLUTION_MODES = {"COMPLETED", "INTERRUPTED", "HELD"}
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -248,6 +250,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
             "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
             "HELL_GRIND_DAMAGE_CONTINUITY_PROMPT_RULE_ADAPTER_V18",
+            "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -1887,6 +1890,221 @@ def compile_damage_continuity_ledger(
     )
 
 
+def compile_action_resolution_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Resolve declared action intent to a visible completion, interruption, or hold."""
+    ledger = contract.get("action_resolution_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != ACTION_RESOLUTION_POLICY:
+        raise ValueError(
+            "action_resolution_ledger policy must be "
+            f"{ACTION_RESOLUTION_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "action_resolution_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("action_resolution_ledger must exactly cover all compiled shots")
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"action resolution row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "action_resolution_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"action resolution row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"action resolution row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"action resolution row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("action_track_id"),
+            f"action resolution row {index} action_track_id is required",
+        )
+        actor_id = require(
+            row.get("actor_descriptor_id"),
+            f"action resolution row {index} actor_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        if actor_id not in descriptor_ids or actor_id not in segment_ids:
+            raise ValueError(
+                f"action resolution row {index} actor_descriptor_id must reference a descriptor in its segment"
+            )
+        mode = require(
+            row.get("resolution_mode"),
+            f"action resolution row {index} resolution_mode is required",
+        )
+        if mode not in ACTION_RESOLUTION_MODES:
+            raise ValueError(f"unsupported action resolution mode: {mode}")
+        entry_action = require(
+            row.get("entry_action_state"),
+            f"action resolution row {index} entry_action_state is required",
+        )
+        intended_completion = require(
+            row.get("intended_completion_state"),
+            f"action resolution row {index} intended_completion_state is required",
+        )
+        exit_action = require(
+            row.get("exit_action_state"),
+            f"action resolution row {index} exit_action_state is required",
+        )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_action != previous_exit:
+            raise ValueError(
+                f"action track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_action}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("resolution_trigger_seconds"),
+            f"action resolution row {index} resolution_trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"action resolution row {index} resolution trigger must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"action resolution row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"action resolution row {index} must hold the resolved outcome to shot end"
+            )
+        resolve_start = row.get("resolution_start_seconds")
+        resolve_end = row.get("resolution_end_seconds")
+        interruptor_id = row.get("interruptor_descriptor_id")
+        interruption_action = row.get("interruption_action")
+        if mode == "HELD":
+            if resolve_start is not None or resolve_end is not None:
+                raise ValueError(
+                    f"action resolution row {index} held intent cannot declare a resolution window"
+                )
+            if interruptor_id is not None or interruption_action is not None:
+                raise ValueError(
+                    f"action resolution row {index} held intent cannot declare interruption"
+                )
+            if exit_action != entry_action:
+                raise ValueError(
+                    f"action resolution row {index} held intent must preserve its entry action state"
+                )
+        else:
+            if resolve_start is None or resolve_end is None:
+                raise ValueError(
+                    f"action resolution row {index} resolved action requires a resolution window"
+                )
+            resolve_start, resolve_end = float(resolve_start), float(resolve_end)
+            if not trigger_seconds <= resolve_start < resolve_end <= duration:
+                raise ValueError(
+                    f"action resolution row {index} resolution window must follow its trigger and stay inside the shot"
+                )
+            if mode == "COMPLETED":
+                if interruptor_id is not None or interruption_action is not None:
+                    raise ValueError(
+                        f"action resolution row {index} completed action cannot declare interruption"
+                    )
+                if exit_action != intended_completion:
+                    raise ValueError(
+                        f"action resolution row {index} completed action must reach intended completion state"
+                    )
+            else:
+                if not interruptor_id or interruptor_id not in descriptor_ids or interruptor_id not in segment_ids:
+                    raise ValueError(
+                        f"action resolution row {index} interrupted action requires an in-segment interruptor descriptor"
+                    )
+                if interruptor_id == actor_id:
+                    raise ValueError(
+                        f"action resolution row {index} interruptor must differ from actor"
+                    )
+                require(
+                    interruption_action,
+                    f"action resolution row {index} interruption_action is required",
+                )
+                if exit_action == intended_completion:
+                    raise ValueError(
+                        f"action resolution row {index} interrupted action cannot silently complete"
+                    )
+        compiled.append({
+            "shot_index": shot_index,
+            "action_track_id": track_id,
+            "actor_descriptor_id": actor_id,
+            "intended_action": require(
+                row.get("intended_action"),
+                f"action resolution row {index} intended_action is required",
+            ),
+            "entry_action_state": entry_action,
+            "visible_intent_evidence": require(
+                row.get("visible_intent_evidence"),
+                f"action resolution row {index} visible_intent_evidence is required",
+            ),
+            "resolution_mode": mode,
+            "resolution_trigger": require(
+                row.get("resolution_trigger"),
+                f"action resolution row {index} resolution_trigger is required",
+            ),
+            "resolution_trigger_seconds": trigger_seconds,
+            "resolution_start_seconds": resolve_start,
+            "resolution_end_seconds": resolve_end,
+            "intended_completion_state": intended_completion,
+            "interruptor_descriptor_id": interruptor_id,
+            "interruption_action": interruption_action,
+            "visible_outcome_evidence": require(
+                row.get("visible_outcome_evidence"),
+                f"action resolution row {index} visible_outcome_evidence is required",
+            ),
+            "forbidden_outcome_evidence": require(
+                row.get("forbidden_outcome_evidence"),
+                f"action resolution row {index} forbidden_outcome_evidence is required",
+            ),
+            "exit_action_state": exit_action,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_action
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['action_track_id']}/{row['resolution_mode']}]："
+        f"行动者={row['actor_descriptor_id']}；意图={row['intended_action']}；"
+        f"入口行动={row['entry_action_state']}；意图证据={row['visible_intent_evidence']}；"
+        f"裁决触发={row['resolution_trigger']}@{row['resolution_trigger_seconds']:g}秒；"
+        f"裁决窗口={('保持未决' if row['resolution_start_seconds'] is None else str(row['resolution_start_seconds']) + '-' + str(row['resolution_end_seconds']) + '秒')}；"
+        f"预期完成={row['intended_completion_state']}；干预者={row['interruptor_descriptor_id'] or '无'}；"
+        f"干预动作={row['interruption_action'] or '无'}；结果证据={row['visible_outcome_evidence']}；"
+        f"禁用结果={row['forbidden_outcome_evidence']}；出口行动={row['exit_action_state']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【ACTION RESOLUTION LEDGER｜行动意图、干预与可见结果裁决】"
+        + "。".join(prompt_rows)
+        + "。每个行动意图必须以可见完成、可见中断或显式保持未决收束；"
+        "被阻挡、制止、缴械或打断的行动不得在镜头末尾静默完成。"
+        "同一行动轨道的下一镜入口必须继承上一镜出口并保持结果可读。",
+        {
+            "version": "1.0.0",
+            "policy": ACTION_RESOLUTION_POLICY,
+            "modes": sorted(ACTION_RESOLUTION_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -2267,6 +2485,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     damage_continuity_prompt, damage_continuity_ledger = compile_damage_continuity_ledger(
         contract, compiled, descriptor_ids
     )
+    action_resolution_prompt, action_resolution_ledger = compile_action_resolution_ledger(
+        contract, compiled, descriptor_ids
+    )
     boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
         contract, compiled
     )
@@ -2294,6 +2515,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + material_emission_prompt
         + entity_form_prompt
         + damage_continuity_prompt
+        + action_resolution_prompt
         + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -2305,7 +2527,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -2324,6 +2546,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "entity_form_state_gate": "PASS_IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_HANDOFF" if entity_form_ledger else "NOT_APPLICABLE",
         "damage_continuity_ledger": damage_continuity_ledger,
         "damage_continuity_gate": "PASS_CUMULATIVE_DAMAGE_EVIDENCE_AND_CUT_HANDOFF" if damage_continuity_ledger else "NOT_APPLICABLE",
+        "action_resolution_ledger": action_resolution_ledger,
+        "action_resolution_gate": "PASS_INTENT_INTERRUPTION_OUTCOME_AND_CUT_HANDOFF" if action_resolution_ledger else "NOT_APPLICABLE",
         "shot_boundary_state_ledger": boundary_ledger,
         "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,

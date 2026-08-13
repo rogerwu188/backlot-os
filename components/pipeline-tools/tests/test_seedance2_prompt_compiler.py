@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools.seedance2_prompt_compiler import (
+    compile_action_resolution_ledger,
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
     compile_contact_force_state_ledger,
@@ -787,6 +788,84 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "hold damage evidence to shot end"):
             compile_damage_continuity_ledger(contract, segments, {"@fighter"})
+
+    def action_resolution_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1, "start_seconds": 0.0, "end_seconds": 5.0,
+            "entry_state": "Jaxx begins advancing while Rein watches Roco",
+            "exit_state": "Rein's arm stops Jaxx and both hold position",
+            "descriptor_ids": ["@jaxx", "@rein"],
+        }]
+        row = {
+            "shot_index": 1,
+            "action_track_id": "jaxx-advance",
+            "actor_descriptor_id": "@jaxx",
+            "intended_action": "advance toward off-frame Roco",
+            "entry_action_state": "STEP_STARTED",
+            "visible_intent_evidence": "weight shifts forward and one foot advances",
+            "resolution_mode": "INTERRUPTED",
+            "resolution_trigger": "Rein places a barrier arm across Jaxx's chest",
+            "resolution_trigger_seconds": 2.0,
+            "resolution_start_seconds": 2.0,
+            "resolution_end_seconds": 3.0,
+            "intended_completion_state": "ADVANCE_COMPLETED",
+            "interruptor_descriptor_id": "@rein",
+            "interruption_action": "firm chest-level arm barrier arrests forward motion",
+            "visible_outcome_evidence": "Jaxx halts against the arm with planted feet",
+            "forbidden_outcome_evidence": "Jaxx cannot pass Rein or reach Roco",
+            "exit_action_state": "ADVANCE_BLOCKED",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "action_resolution_ledger": {
+                "policy": "DECLARED_INTENT_RESOLVES_TO_VISIBLE_OUTCOME",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_action_resolution_preserves_visible_interruption_outcome(self):
+        contract, segments = self.action_resolution_fixture()
+        prompt, manifest = compile_action_resolution_ledger(
+            contract, segments, {"@jaxx", "@rein"}
+        )
+        self.assertIn("【ACTION RESOLUTION LEDGER", prompt)
+        self.assertIn("不得在镜头末尾静默完成", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_action_resolution_rejects_interrupted_action_that_completes(self):
+        contract, segments = self.action_resolution_fixture(
+            exit_action_state="ADVANCE_COMPLETED"
+        )
+        with self.assertRaisesRegex(ValueError, "cannot silently complete"):
+            compile_action_resolution_ledger(
+                contract, segments, {"@jaxx", "@rein"}
+            )
+
+    def test_action_resolution_rejects_window_before_trigger(self):
+        contract, segments = self.action_resolution_fixture(
+            resolution_start_seconds=1.0,
+            resolution_end_seconds=3.0,
+        )
+        with self.assertRaisesRegex(ValueError, "must follow its trigger"):
+            compile_action_resolution_ledger(
+                contract, segments, {"@jaxx", "@rein"}
+            )
+
+    def test_action_resolution_rejects_missing_terminal_hold(self):
+        contract, segments = self.action_resolution_fixture(
+            result_hold_until_seconds=4.5
+        )
+        with self.assertRaisesRegex(ValueError, "hold the resolved outcome to shot end"):
+            compile_action_resolution_ledger(
+                contract, segments, {"@jaxx", "@rein"}
+            )
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
         hero = "角色锁定描述"

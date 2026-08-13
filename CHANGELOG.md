@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V19 with a typed
+  action-resolution ledger for task2-1 video prompts. Every shot declares the
+  actor's intent, visible intent evidence, resolution trigger and window,
+  completion or interruption evidence, exit action state, and terminal hold.
+  Interrupted advances, strikes, restraints, disarms, and other action intents
+  cannot silently complete after being visibly blocked.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V18 with a typed
   cumulative-damage continuity ledger for task2-1 video prompts. Every shot
   declares the damage site, inherited entry damage, physical trigger and exact

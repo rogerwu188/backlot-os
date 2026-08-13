@@ -114,18 +114,21 @@ keeps prompt responsibilities in this fixed order:
 11. `DAMAGE_CONTINUITY_LEDGER`: video-side cumulative damage continuity. It
    binds damage site, inherited entry damage, physical trigger, change window,
    visible evidence, irreversibility, exit damage, and terminal hold.
-12. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
+12. `ACTION_RESOLUTION_LEDGER`: video-side action intent and outcome. It binds
+   the actor, intended action, visible intent, resolution trigger and window,
+   completion or interruption evidence, exit action state, and terminal hold.
+13. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
    entry state, final-frame evidence for the exit state, a readable result hold,
    and the declared next-shot handoff. It forbids replaying setup at a cut.
-13. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+14. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
    job per cut.
-14. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+15. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
    state handoffs across cuts.
-15. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+16. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-16. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+17. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-17. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+18. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
@@ -183,6 +186,18 @@ without failing compilation. Adapter V18 therefore blocks silent wound healing,
 regrown severed anatomy, restored armor, vanished cracks, and disappearing blood
 traces after a cut, occlusion, or location change. Composition, shot scale,
 focal length, camera height, depth-layer layout, and current pose remain
+keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
+not model weights; Eastern wuxia and kung-fu profiles remain reserved.
+
+The action-resolution ledger is video-side state only. Every row names an
+actor, one intended action, its visible intent evidence, a resolution trigger
+and exact window, and one terminal mode: `COMPLETED`, `INTERRUPTED`, or `HELD`.
+Interrupted actions must name a distinct in-shot interruptor and visible
+intervention, cannot reach their intended completion state, and must hold the
+blocked outcome through the cut. Adapter V19 therefore prevents a stopped
+advance, blocked strike, restraint, disarm, or other interrupted intent from
+silently completing at the end of a shot or after a cut. Composition, shot
+scale, focal length, camera height, depth-layer layout, and current pose remain
 keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
 not model weights; Eastern wuxia and kung-fu profiles remain reserved.
 
