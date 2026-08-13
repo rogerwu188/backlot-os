@@ -105,18 +105,27 @@ keeps prompt responsibilities in this fixed order:
    binds contact owners and anchor, inherited entry contact, a physical change
    trigger and exact window, visible force and contact evidence, exit contact,
    and a result hold through the cut.
-9. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
+9. `MATERIAL_EMISSION_STATE_LEDGER`: video-side material continuity. It keeps
+   intrinsic color and ambient reflection separate from true emission, requires
+   source-and-cast-light evidence, and preserves the exit emission through cuts.
+10. `ENTITY_FORM_STATE_LEDGER`: video-side identity and mutually exclusive
+   form continuity. It binds legal transformations to a visible trigger and
+   exact window while preserving the same identity anchor.
+11. `DAMAGE_CONTINUITY_LEDGER`: video-side cumulative damage continuity. It
+   binds damage site, inherited entry damage, physical trigger, change window,
+   visible evidence, irreversibility, exit damage, and terminal hold.
+12. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
    entry state, final-frame evidence for the exit state, a readable result hold,
    and the declared next-shot handoff. It forbids replaying setup at a cut.
-10. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+13. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
    job per cut.
-11. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+14. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
    state handoffs across cuts.
-12. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+15. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-13. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+16. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-14. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+17. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
 
@@ -164,6 +173,18 @@ silent grip/contact resets, wrong exits, and early result loss. Composition,
 shot scale, focal length, camera height, depth-layer layout, and current pose
 remain keyframe responsibilities. The rule is labeled `AMERICAN_HOLLYWOOD`;
 Eastern wuxia and kung-fu profiles remain reserved and unloaded.
+
+The damage-continuity ledger is video-side state only. Every row names one
+entity descriptor and damage site, the inherited entry damage, baseline state,
+physical trigger, exact change window, visible wound or damaged-equipment
+evidence, declared exit damage, and a hold through the cut. A track marked
+`irreversible_in_sequence` cannot return from a damaged state to its baseline
+without failing compilation. Adapter V18 therefore blocks silent wound healing,
+regrown severed anatomy, restored armor, vanished cracks, and disappearing blood
+traces after a cut, occlusion, or location change. Composition, shot scale,
+focal length, camera height, depth-layer layout, and current pose remain
+keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
+not model weights; Eastern wuxia and kung-fu profiles remain reserved.
 
 Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a

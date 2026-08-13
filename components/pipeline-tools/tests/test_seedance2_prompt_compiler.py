@@ -9,6 +9,7 @@ from tools.seedance2_prompt_compiler import (
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
     compile_contact_force_state_ledger,
+    compile_damage_continuity_ledger,
     compile_entity_form_state_ledger,
     compile_material_emission_state_ledger,
     compile_depth_focus_ledger,
@@ -706,6 +707,86 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "hold the form result to shot end"):
             compile_entity_form_state_ledger(contract, segments, {"@fighter"})
+
+    def damage_continuity_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1, "start_seconds": 0.0, "end_seconds": 5.0,
+            "entry_state": "战士右肩伤口持续可见", "exit_state": "战士右肩伤口持续可见",
+            "descriptor_ids": ["@fighter"],
+        }]
+        row = {
+            "shot_index": 1,
+            "damage_track_id": "fighter-right-shoulder",
+            "entity_descriptor_id": "@fighter",
+            "damage_site": "右肩护甲与皮肤",
+            "damage_mode": "LOCKED_DAMAGE",
+            "baseline_damage_state": "INTACT",
+            "entry_damage_state": "TORN_ARMOR_BLEEDING",
+            "damage_trigger": "无新增伤害触发",
+            "trigger_seconds": 0.0,
+            "target_damage_state": "TORN_ARMOR_BLEEDING",
+            "change_start_seconds": None,
+            "change_end_seconds": None,
+            "irreversible_in_sequence": True,
+            "visible_damage_evidence": "右肩破甲边缘、固定血迹与渗血位置持续可见",
+            "forbidden_restoration_evidence": "不得出现完整护甲、无伤皮肤或血迹消失",
+            "exit_damage_state": "TORN_ARMOR_BLEEDING",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "damage_continuity_ledger": {
+                "policy": "CUMULATIVE_DAMAGE_EVIDENCE_PERSISTS_ACROSS_CUTS",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_damage_continuity_preserves_visible_cumulative_damage(self):
+        contract, segments = self.damage_continuity_fixture()
+        prompt, manifest = compile_damage_continuity_ledger(
+            contract, segments, {"@fighter"}
+        )
+        self.assertIn("【DAMAGE CONTINUITY LEDGER", prompt)
+        self.assertIn("不得在切镜、遮挡或换景后静默复原", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_DAMAGE_CONTINUITY_PROMPT_RULE_ADAPTER_V18",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_damage_continuity_rejects_change_before_trigger(self):
+        contract, segments = self.damage_continuity_fixture(
+            damage_mode="TRIGGERED_DAMAGE_CHANGE",
+            entry_damage_state="INTACT",
+            target_damage_state="TORN_ARMOR_BLEEDING",
+            exit_damage_state="TORN_ARMOR_BLEEDING",
+            trigger_seconds=2.0,
+            change_start_seconds=1.0,
+            change_end_seconds=3.0,
+        )
+        with self.assertRaisesRegex(ValueError, "cannot start before its trigger"):
+            compile_damage_continuity_ledger(contract, segments, {"@fighter"})
+
+    def test_damage_continuity_rejects_silent_irreversible_restoration(self):
+        contract, segments = self.damage_continuity_fixture(
+            damage_mode="TRIGGERED_DAMAGE_CHANGE",
+            target_damage_state="INTACT",
+            exit_damage_state="INTACT",
+            trigger_seconds=1.0,
+            change_start_seconds=1.0,
+            change_end_seconds=2.0,
+        )
+        with self.assertRaisesRegex(ValueError, "cannot silently restore to baseline"):
+            compile_damage_continuity_ledger(contract, segments, {"@fighter"})
+
+    def test_damage_continuity_rejects_missing_terminal_hold(self):
+        contract, segments = self.damage_continuity_fixture(
+            result_hold_until_seconds=4.5
+        )
+        with self.assertRaisesRegex(ValueError, "hold damage evidence to shot end"):
+            compile_damage_continuity_ledger(contract, segments, {"@fighter"})
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
         hero = "角色锁定描述"

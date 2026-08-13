@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V18 with a typed
+  cumulative-damage continuity ledger for task2-1 video prompts. Every shot
+  declares the damage site, inherited entry damage, physical trigger and exact
+  change window, visible wound or damaged-equipment evidence, the exit damage
+  state, irreversibility policy, and a terminal hold. Wounds, severance,
+  cracked armor, blood traces, and other irreversible consequences cannot
+  silently heal during a cut, occlusion, or location change.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V17 with a typed
   entity-form state ledger for task2-1 video prompts. Every shot anchors the
   same identity, declares mutually exclusive forms, preserves the inherited

@@ -227,6 +227,8 @@ MATERIAL_EMISSION_MODES = {
 MATERIAL_LIGHT_EVIDENCE = {"AMBIENT_REFLECTION_ONLY", "VISIBLE_SOURCE_AND_CAST_LIGHT"}
 ENTITY_FORM_STATE_POLICY = "IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_STATE_ACROSS_CUTS"
 ENTITY_FORM_STATE_MODES = {"LOCKED_FORM", "TRIGGERED_FORM_CHANGE"}
+DAMAGE_CONTINUITY_POLICY = "CUMULATIVE_DAMAGE_EVIDENCE_PERSISTS_ACROSS_CUTS"
+DAMAGE_CONTINUITY_MODES = {"LOCKED_DAMAGE", "TRIGGERED_DAMAGE_CHANGE"}
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -245,6 +247,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
             "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
             "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
+            "HELL_GRIND_DAMAGE_CONTINUITY_PROMPT_RULE_ADAPTER_V18",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -1683,6 +1686,207 @@ def compile_entity_form_state_ledger(
     )
 
 
+def compile_damage_continuity_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Preserve cumulative wounds, severance, and damaged equipment across cuts."""
+    ledger = contract.get("damage_continuity_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != DAMAGE_CONTINUITY_POLICY:
+        raise ValueError(
+            "damage_continuity_ledger policy must be "
+            f"{DAMAGE_CONTINUITY_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "damage_continuity_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("damage_continuity_ledger must exactly cover all compiled shots")
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"damage continuity row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "damage_continuity_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"damage continuity row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"damage continuity row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"damage continuity row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("damage_track_id"),
+            f"damage continuity row {index} damage_track_id is required",
+        )
+        descriptor_id = require(
+            row.get("entity_descriptor_id"),
+            f"damage continuity row {index} entity_descriptor_id is required",
+        )
+        if descriptor_id not in descriptor_ids or descriptor_id not in set(segment["descriptor_ids"]):
+            raise ValueError(
+                f"damage continuity row {index} entity_descriptor_id must reference a descriptor in its segment"
+            )
+        mode = require(
+            row.get("damage_mode"), f"damage continuity row {index} damage_mode is required"
+        )
+        if mode not in DAMAGE_CONTINUITY_MODES:
+            raise ValueError(f"unsupported damage continuity mode: {mode}")
+        baseline = require(
+            row.get("baseline_damage_state"),
+            f"damage continuity row {index} baseline_damage_state is required",
+        )
+        entry_damage = require(
+            row.get("entry_damage_state"),
+            f"damage continuity row {index} entry_damage_state is required",
+        )
+        target_damage = require(
+            row.get("target_damage_state"),
+            f"damage continuity row {index} target_damage_state is required",
+        )
+        exit_damage = require(
+            row.get("exit_damage_state"),
+            f"damage continuity row {index} exit_damage_state is required",
+        )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_damage != previous_exit:
+            raise ValueError(
+                f"damage track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_damage}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"damage continuity row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"damage continuity row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"damage continuity row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"damage continuity row {index} must hold damage evidence to shot end"
+            )
+        irreversible = row.get("irreversible_in_sequence")
+        if not isinstance(irreversible, bool):
+            raise ValueError(
+                f"damage continuity row {index} irreversible_in_sequence must be boolean"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "TRIGGERED_DAMAGE_CHANGE":
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"damage continuity row {index} triggered damage change requires a change window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"damage continuity row {index} damage change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"damage continuity row {index} change window must stay inside the shot"
+                )
+            if entry_damage == target_damage:
+                raise ValueError(
+                    f"damage continuity row {index} triggered change must change damage state"
+                )
+            if irreversible and entry_damage != baseline and target_damage == baseline:
+                raise ValueError(
+                    f"damage continuity row {index} irreversible damage cannot silently restore to baseline"
+                )
+        else:
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"damage continuity row {index} locked damage cannot declare a change window"
+                )
+            if entry_damage != target_damage:
+                raise ValueError(
+                    f"damage continuity row {index} locked damage must preserve one damage state"
+                )
+        if exit_damage != target_damage:
+            raise ValueError(
+                f"damage continuity row {index} exit damage must equal the declared target"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "damage_track_id": track_id,
+            "entity_descriptor_id": descriptor_id,
+            "damage_site": require(
+                row.get("damage_site"),
+                f"damage continuity row {index} damage_site is required",
+            ),
+            "damage_mode": mode,
+            "baseline_damage_state": baseline,
+            "entry_damage_state": entry_damage,
+            "damage_trigger": require(
+                row.get("damage_trigger"),
+                f"damage continuity row {index} damage_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_damage_state": target_damage,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "irreversible_in_sequence": irreversible,
+            "visible_damage_evidence": require(
+                row.get("visible_damage_evidence"),
+                f"damage continuity row {index} visible_damage_evidence is required",
+            ),
+            "forbidden_restoration_evidence": require(
+                row.get("forbidden_restoration_evidence"),
+                f"damage continuity row {index} forbidden_restoration_evidence is required",
+            ),
+            "exit_damage_state": exit_damage,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_damage
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['damage_track_id']}/{row['damage_mode']}]："
+        f"实体={row['entity_descriptor_id']}；损伤部位={row['damage_site']}；"
+        f"基线={row['baseline_damage_state']}；入口损伤={row['entry_damage_state']}；"
+        f"触发={row['damage_trigger']}@{row['trigger_seconds']:g}秒；目标损伤={row['target_damage_state']}；"
+        f"变化={('锁定损伤' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"序列内不可逆={row['irreversible_in_sequence']}；可见损伤证据={row['visible_damage_evidence']}；"
+        f"禁用恢复证据={row['forbidden_restoration_evidence']}；出口损伤={row['exit_damage_state']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【DAMAGE CONTINUITY LEDGER｜累积损伤与不可逆恢复约束】"
+        + "。".join(prompt_rows)
+        + "。伤口、断肢、破甲、裂纹与血迹必须按物理触发累积并提供可见证据；"
+        "序列内不可逆损伤不得在切镜、遮挡或换景后静默复原。"
+        "同一损伤轨道的下一镜入口必须继承上一镜出口并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": DAMAGE_CONTINUITY_POLICY,
+            "modes": sorted(DAMAGE_CONTINUITY_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_DAMAGE_CONTINUITY_PROMPT_RULE_ADAPTER_V18",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -2060,6 +2264,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     entity_form_prompt, entity_form_ledger = compile_entity_form_state_ledger(
         contract, compiled, descriptor_ids
     )
+    damage_continuity_prompt, damage_continuity_ledger = compile_damage_continuity_ledger(
+        contract, compiled, descriptor_ids
+    )
     boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
         contract, compiled
     )
@@ -2086,6 +2293,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + contact_force_prompt
         + material_emission_prompt
         + entity_form_prompt
+        + damage_continuity_prompt
         + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -2097,7 +2305,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -2114,6 +2322,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "material_emission_state_gate": "PASS_INTRINSIC_COLOR_EMISSION_EVIDENCE_AND_CUT_HANDOFF" if material_emission_ledger else "NOT_APPLICABLE",
         "entity_form_state_ledger": entity_form_ledger,
         "entity_form_state_gate": "PASS_IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_HANDOFF" if entity_form_ledger else "NOT_APPLICABLE",
+        "damage_continuity_ledger": damage_continuity_ledger,
+        "damage_continuity_gate": "PASS_CUMULATIVE_DAMAGE_EVIDENCE_AND_CUT_HANDOFF" if damage_continuity_ledger else "NOT_APPLICABLE",
         "shot_boundary_state_ledger": boundary_ledger,
         "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
