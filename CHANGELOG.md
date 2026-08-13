@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V17 with a typed
+  entity-form state ledger for task2-1 video prompts. Every shot anchors the
+  same identity, declares mutually exclusive forms, preserves the inherited
+  entry form, and either locks it or binds a legal transformation to a visible
+  trigger and exact window. Undeclared armor, helmet, body-scale, or costume
+  changes and identity drift during transformations fail before generation.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V16 with a typed
   material-emission state ledger for task2-1 video prompts. Every shot keeps
   intrinsic material color and ambient reflection separate from actual light

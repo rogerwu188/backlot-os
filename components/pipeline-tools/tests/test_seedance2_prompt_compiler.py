@@ -9,6 +9,7 @@ from tools.seedance2_prompt_compiler import (
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
     compile_contact_force_state_ledger,
+    compile_entity_form_state_ledger,
     compile_material_emission_state_ledger,
     compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
@@ -631,6 +632,80 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
             compile_material_emission_state_ledger(
                 contract, segments, {"@fighter", "@crystal"}
             )
+
+    def entity_form_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1, "start_seconds": 0.0, "end_seconds": 5.0,
+            "entry_state": "战士保持无盔甲伤后形态", "exit_state": "战士保持无盔甲伤后形态",
+            "descriptor_ids": ["@fighter"],
+        }]
+        row = {
+            "shot_index": 1,
+            "entity_track_id": "fighter-form",
+            "entity_descriptor_id": "@fighter",
+            "identity_anchor_id": "fighter-face-scar-and-braids",
+            "form_mode": "LOCKED_FORM",
+            "mutually_exclusive_forms": ["CRYSTAL_ARMOR", "POST_BATTLE_UNARMORED"],
+            "entry_form_state": "POST_BATTLE_UNARMORED",
+            "form_transition_trigger": "无合法变形触发",
+            "trigger_seconds": 0.0,
+            "target_form_state": "POST_BATTLE_UNARMORED",
+            "change_start_seconds": None,
+            "change_end_seconds": None,
+            "visible_identity_evidence": "同一面部疤痕、发辫与体型",
+            "visible_form_evidence": "裸露伤痕与破损战衣持续可见",
+            "forbidden_form_evidence": "不得出现晶体盔甲、头盔或体型突变",
+            "exit_form_state": "POST_BATTLE_UNARMORED",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "entity_form_state_ledger": {
+                "policy": "IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_STATE_ACROSS_CUTS",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_entity_form_state_locks_identity_and_mutually_exclusive_form(self):
+        contract, segments = self.entity_form_fixture()
+        prompt, manifest = compile_entity_form_state_ledger(
+            contract, segments, {"@fighter"}
+        )
+        self.assertIn("【ENTITY FORM STATE LEDGER", prompt)
+        self.assertIn("不得同时出现互斥形态", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_entity_form_state_rejects_change_before_trigger(self):
+        contract, segments = self.entity_form_fixture(
+            form_mode="TRIGGERED_FORM_CHANGE",
+            target_form_state="CRYSTAL_ARMOR",
+            exit_form_state="CRYSTAL_ARMOR",
+            trigger_seconds=2.0,
+            change_start_seconds=1.0,
+            change_end_seconds=3.0,
+        )
+        with self.assertRaisesRegex(ValueError, "cannot start before its trigger"):
+            compile_entity_form_state_ledger(contract, segments, {"@fighter"})
+
+    def test_entity_form_state_rejects_wrong_exit_form(self):
+        contract, segments = self.entity_form_fixture(
+            exit_form_state="CRYSTAL_ARMOR"
+        )
+        with self.assertRaisesRegex(ValueError, "exit form must equal"):
+            compile_entity_form_state_ledger(contract, segments, {"@fighter"})
+
+    def test_entity_form_state_rejects_missing_terminal_hold(self):
+        contract, segments = self.entity_form_fixture(
+            result_hold_until_seconds=4.5
+        )
+        with self.assertRaisesRegex(ValueError, "hold the form result to shot end"):
+            compile_entity_form_state_ledger(contract, segments, {"@fighter"})
 
     def test_cinematic_shot_language_rejects_undeclared_axis_cross(self):
         hero = "角色锁定描述"

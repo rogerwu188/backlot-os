@@ -620,6 +620,24 @@ track must inherit the previous exit emission state exactly. These are
 video-side state and timing fields; they do not replace keyframe composition,
 lens, depth, or pose controls.
 
+## Entity form state ledger
+
+Task2-1 video prompts that show characters or creatures with alternate armor,
+helmet, costume, body-scale, transformed, or post-battle forms must declare an
+`entity_form_state_ledger` for every compiled shot. Each row binds a stable
+entity track and descriptor to an identity anchor, a set of mutually exclusive
+forms, the inherited entry form, a target and exit form, visible identity and
+form evidence, forbidden-form evidence, and a hold to the shot boundary.
+
+`LOCKED_FORM` preserves one form for the entire shot and cannot declare a
+change window. `TRIGGERED_FORM_CHANGE` requires a visible physical trigger and
+an exact change window that cannot start early. The exit form must equal the
+target form, and the next shot on the same entity track must inherit it exactly.
+Identity anchors such as face, scars, hair, silhouette, or stable body markers
+remain visible through legal transformations. These are video-side state and
+timing fields; they do not replace keyframe composition, lens, depth, or pose
+controls.
+
 ## Selective BGM flow
 
 Every release episode must choose one source policy:

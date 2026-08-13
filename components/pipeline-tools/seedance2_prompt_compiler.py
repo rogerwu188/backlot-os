@@ -225,6 +225,8 @@ MATERIAL_EMISSION_MODES = {
     "INTRINSIC_NONEMISSIVE", "EMISSIVE_SOURCE", "TRIGGERED_EMISSION_CHANGE",
 }
 MATERIAL_LIGHT_EVIDENCE = {"AMBIENT_REFLECTION_ONLY", "VISIBLE_SOURCE_AND_CAST_LIGHT"}
+ENTITY_FORM_STATE_POLICY = "IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_STATE_ACROSS_CUTS"
+ENTITY_FORM_STATE_MODES = {"LOCKED_FORM", "TRIGGERED_FORM_CHANGE"}
 CAMERA_STYLE_PROFILES = {
     "AMERICAN_HOLLYWOOD": {
         "label_zh": "美式好莱坞",
@@ -242,6 +244,7 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
             "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
             "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
+            "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
         ],
     },
     # Reserved identifiers make the selection boundary explicit without claiming
@@ -1473,6 +1476,213 @@ def compile_material_emission_state_ledger(
     )
 
 
+def compile_entity_form_state_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Lock identity while mutually exclusive character forms change or persist."""
+    ledger = contract.get("entity_form_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != ENTITY_FORM_STATE_POLICY:
+        raise ValueError(
+            "entity_form_state_ledger policy must be "
+            f"{ENTITY_FORM_STATE_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "entity_form_state_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("entity_form_state_ledger must exactly cover all compiled shots")
+
+    compiled, prior_exit_by_track, identity_by_track = [], {}, {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"entity form row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "entity_form_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"entity form row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"entity form row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"entity form row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("entity_track_id"), f"entity form row {index} entity_track_id is required"
+        )
+        descriptor_id = require(
+            row.get("entity_descriptor_id"),
+            f"entity form row {index} entity_descriptor_id is required",
+        )
+        if descriptor_id not in descriptor_ids or descriptor_id not in set(segment["descriptor_ids"]):
+            raise ValueError(
+                f"entity form row {index} entity_descriptor_id must reference a descriptor in its segment"
+            )
+        identity_anchor = require(
+            row.get("identity_anchor_id"),
+            f"entity form row {index} identity_anchor_id is required",
+        )
+        previous_identity = identity_by_track.get(track_id)
+        if previous_identity is not None and identity_anchor != previous_identity:
+            raise ValueError(
+                f"entity form track {track_id} identity anchor changed across cuts"
+            )
+        forms = require(
+            row.get("mutually_exclusive_forms"),
+            f"entity form row {index} mutually_exclusive_forms are required",
+        )
+        if not isinstance(forms, list) or len(forms) < 2 or len(set(forms)) != len(forms):
+            raise ValueError(
+                f"entity form row {index} requires at least two unique mutually exclusive forms"
+            )
+        mode = require(row.get("form_mode"), f"entity form row {index} form_mode is required")
+        if mode not in ENTITY_FORM_STATE_MODES:
+            raise ValueError(f"unsupported entity form mode: {mode}")
+        entry_form = require(
+            row.get("entry_form_state"),
+            f"entity form row {index} entry_form_state is required",
+        )
+        target_form = require(
+            row.get("target_form_state"),
+            f"entity form row {index} target_form_state is required",
+        )
+        exit_form = require(
+            row.get("exit_form_state"),
+            f"entity form row {index} exit_form_state is required",
+        )
+        if entry_form not in forms or target_form not in forms or exit_form not in forms:
+            raise ValueError(
+                f"entity form row {index} entry, target, and exit forms must be declared mutually exclusive forms"
+            )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_form != previous_exit:
+            raise ValueError(
+                f"entity form track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_form}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"entity form row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"entity form row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"entity form row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"entity form row {index} must hold the form result to shot end"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "TRIGGERED_FORM_CHANGE":
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"entity form row {index} triggered form change requires a change window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"entity form row {index} form change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"entity form row {index} change window must stay inside the shot"
+                )
+            if entry_form == target_form:
+                raise ValueError(
+                    f"entity form row {index} triggered change must change form state"
+                )
+        else:
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"entity form row {index} locked form cannot declare a change window"
+                )
+            if entry_form != target_form:
+                raise ValueError(
+                    f"entity form row {index} locked form must preserve one form state"
+                )
+        if exit_form != target_form:
+            raise ValueError(
+                f"entity form row {index} exit form must equal the declared target"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "entity_track_id": track_id,
+            "entity_descriptor_id": descriptor_id,
+            "identity_anchor_id": identity_anchor,
+            "form_mode": mode,
+            "mutually_exclusive_forms": forms,
+            "entry_form_state": entry_form,
+            "form_transition_trigger": require(
+                row.get("form_transition_trigger"),
+                f"entity form row {index} form_transition_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_form_state": target_form,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "visible_identity_evidence": require(
+                row.get("visible_identity_evidence"),
+                f"entity form row {index} visible_identity_evidence is required",
+            ),
+            "visible_form_evidence": require(
+                row.get("visible_form_evidence"),
+                f"entity form row {index} visible_form_evidence is required",
+            ),
+            "forbidden_form_evidence": require(
+                row.get("forbidden_form_evidence"),
+                f"entity form row {index} forbidden_form_evidence is required",
+            ),
+            "exit_form_state": exit_form,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        identity_by_track[track_id] = identity_anchor
+        prior_exit_by_track[track_id] = exit_form
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['entity_track_id']}/{row['form_mode']}]："
+        f"实体={row['entity_descriptor_id']}；身份锚点={row['identity_anchor_id']}；"
+        f"互斥形态={','.join(row['mutually_exclusive_forms'])}；入口形态={row['entry_form_state']}；"
+        f"触发={row['form_transition_trigger']}@{row['trigger_seconds']:g}秒；目标形态={row['target_form_state']}；"
+        f"变化={('锁定形态' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"身份证据={row['visible_identity_evidence']}；形态证据={row['visible_form_evidence']}；"
+        f"禁用形态证据={row['forbidden_form_evidence']}；出口形态={row['exit_form_state']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【ENTITY FORM STATE LEDGER｜实体互斥形态与身份锚点】"
+        + "。".join(prompt_rows)
+        + "。同一实体不得同时出现互斥形态；盔甲、头盔、体型和伤后服装不得未声明切换。"
+        "合法变形必须等待物理触发、落在声明窗口内，并以可见身份锚点证明仍为同一实体。"
+        "同一实体轨道的下一镜入口必须继承上一镜出口形态并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": ENTITY_FORM_STATE_POLICY,
+            "modes": sorted(ENTITY_FORM_STATE_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -1847,6 +2057,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     material_emission_prompt, material_emission_ledger = compile_material_emission_state_ledger(
         contract, compiled, descriptor_ids
     )
+    entity_form_prompt, entity_form_ledger = compile_entity_form_state_ledger(
+        contract, compiled, descriptor_ids
+    )
     boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
         contract, compiled
     )
@@ -1872,6 +2085,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + depth_focus_prompt
         + contact_force_prompt
         + material_emission_prompt
+        + entity_form_prompt
         + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -1883,7 +2097,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -1898,6 +2112,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "contact_force_state_gate": "PASS_CONTACT_OWNERSHIP_FORCE_AND_CUT_HANDOFF" if contact_force_ledger else "NOT_APPLICABLE",
         "material_emission_state_ledger": material_emission_ledger,
         "material_emission_state_gate": "PASS_INTRINSIC_COLOR_EMISSION_EVIDENCE_AND_CUT_HANDOFF" if material_emission_ledger else "NOT_APPLICABLE",
+        "entity_form_state_ledger": entity_form_ledger,
+        "entity_form_state_gate": "PASS_IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_HANDOFF" if entity_form_ledger else "NOT_APPLICABLE",
         "shot_boundary_state_ledger": boundary_ledger,
         "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,
