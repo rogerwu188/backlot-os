@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.2.54
+
+- Promote the licensed Hell Grind `v1.9.0-scene70c-1330` prompt/rule adapter
+  into the production prompt compiler. The V19 action-resolution ledger binds
+  every declared intent to a visible completed, interrupted, or held outcome,
+  exact timing, exit state, and terminal hold; interrupted actions cannot
+  silently complete after a block or cut.
+- Preserve the cumulative V7-V18 continuity, spatial, camera, focus, contact,
+  material, entity-form, and damage ledgers required by the V19 adapter. This
+  remains a deterministic prompt/rule adapter and makes no Seedance model-weight
+  training claim.
+- Retain `v1.8.0-scene70c-1180` / BacklotOS commit
+  `f723660ca414e8be609d38b9144c6c4eb0931fcb` as the immutable rollback point.
+
 ## 0.2.49
 
 - Make task-lane liveness scoped and fail-closed: RUNNING now requires a live
