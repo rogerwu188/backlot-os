@@ -126,6 +126,34 @@ time range, subject anchor, axis relation, and narrative purpose. Unplanned time
 defaults to a locked camera, so tracking, arcs, pushes, pulls, cranes, shake, and
 slow motion cannot accumulate into continuous drift.
 
+Combat contracts also require one of fifteen causal continuity ladders. It binds ordered
+action beats to persistent contact, environment, recovery, damage, formation,
+prop, or distance evidence and closes on one relational composition. The
+resolving camera must be one of the motivated segments already declared in the
+camera plan. The embodied-topology method additionally requires load-bearing
+geometry, ordered footholds or grips, distinct contacts, and a measured landing
+relation when a fighter traverses a larger body or structure. This licensed Hell
+Grind integration also supports a committed-miss counter window: the defender
+must visibly clear the attack line, the weapon must remain trapped in measured
+terrain contact, and the counter may start only after the extraction delay is
+readable. It is explicitly a
+portable prompt/rule adapter; it does not claim Seedance model-weight training.
+The near-miss armor-interception method separately proves measured body
+clearance, glancing protection contact, an unharmed body state, persistent armor
+damage, and opposed recovery costs, preventing a partial interception from
+collapsing into either a clean miss or unexplained body damage.
+The force-conversion method additionally preserves a defender's prop, body
+orientation, measured displacement, landing absorption, and residual stance
+cost when a blocked heavy impact becomes controlled aerial recovery.
+The follow-through exposure method preserves the opponent's committed recovery
+state, measures gap closure to a named target zone, proves embedded penetration
+before extraction, and carries the promoted wound state into the closing frame.
+The low-profile limb-failure method proves measured clearance below a committed
+attack, a targeted support-limb hit and persistent load-bearing failure before
+the opponent's counterlaunch; it then preserves airborne displacement, carried
+prop state, landing absorption, recovery stance, and witness reaction in one
+relational close.
+
 When several short clips cannot preserve one continuous physical event, use
 `multi_keyframe_long_take` instead of adding more edit seams. This mode compiles
 one 15-second Seedance 2 Pro Omni generation from 3-9 ordered, SHA-bound

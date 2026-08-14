@@ -86,19 +86,196 @@ keeps prompt responsibilities in this fixed order:
 2. `PURPOSE_GEOMETRY_TIME_CUTS`: one contiguous segment per compiled shot. Each
    segment names its narrative purpose, entry and exit state, subject anchor,
    camera side, axis relation, scale anchor, and the reason the camera moves.
-3. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
+3. `CAMERA_STYLE_PROFILE`: a per-shot, genre-aware cultural camera-language
+   label with provenance. It identifies the movement grammar independently of
+   the later visual `STYLE` treatment.
+4. `CAMERA_ACTION_COUPLING_LEDGER`: video-side timing only. It binds a visible
+   subject or physical trigger to the camera response, the exact movement
+   window, a stop condition, and a readable result hold. It must not carry the
+   keyframe's composition, focal length, camera height, or current-pose duties.
+5. `SPATIAL_AXIS_LEDGER`: screen direction, eyeline target, background anchor,
+   camera side, axis relation, and exact entry/exit state.
+6. `OFFSCREEN_RELATIONSHIP_LEDGER`: target visibility, offscreen side, presence
+   evidence, exit visibility, and explicit stay-visible/stay-hidden/re-entry
+   policy. It contains video continuity only, never keyframe composition.
+7. `DEPTH_FOCUS_TRANSFER_LEDGER`: video-side focus timing. It binds the initial
+   focus subject and depth plane, a visible trigger, transfer window, landing
+   subject and plane, stop condition, sharpness evidence, and terminal hold.
+8. `CONTACT_FORCE_STATE_LEDGER`: video-side physical contact continuity. It
+   binds contact owners and anchor, inherited entry contact, a physical change
+   trigger and exact window, visible force and contact evidence, exit contact,
+   and a result hold through the cut.
+9. `MATERIAL_EMISSION_STATE_LEDGER`: video-side material continuity. It keeps
+   intrinsic color and ambient reflection separate from true emission, requires
+   source-and-cast-light evidence, and preserves the exit emission through cuts.
+10. `ENTITY_FORM_STATE_LEDGER`: video-side identity and mutually exclusive
+   form continuity. It binds legal transformations to a visible trigger and
+   exact window while preserving the same identity anchor.
+11. `DAMAGE_CONTINUITY_LEDGER`: video-side cumulative damage continuity. It
+   binds damage site, inherited entry damage, physical trigger, change window,
+   visible evidence, irreversibility, exit damage, and terminal hold.
+12. `ACTION_RESOLUTION_LEDGER`: video-side action intent and outcome. It binds
+   the actor, intended action, visible intent, resolution trigger and window,
+   completion or interruption evidence, exit action state, and terminal hold.
+13. `SHOT_BOUNDARY_STATE_LOCK`: first-frame evidence for the already-established
+   entry state, final-frame evidence for the exit state, a readable result hold,
+   and the declared next-shot handoff. It forbids replaying setup at a cut.
+14. `SHOT_INFORMATION_LADDER`: one distinct visible information unit and camera
+   job per cut.
+15. `CROSS_CUT_STATE_LEDGER`: exact character, prop, spatial, and environment
+   state handoffs across cuts.
+16. `KEY_RULES`: scene-specific invariants such as protected props, thresholds,
    wind direction, crowd formation, or one-variable iteration discipline.
-4. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
+17. `AUDIO`: diegetic sound and a typed dialogue policy. Spoken words belong
    here, never inside action or camera prose.
-5. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
+18. `ATMOSPHERE`, `STYLE`, then `NEGATIVES`: continuity state precedes the visual
    treatment; negative constraints cannot stand in for a positive physical
    event.
+
+The offscreen ledger is video-side continuity only: it binds the spatial-axis
+eyeline target to `ON_SCREEN` or `OFF_SCREEN`, a stable offscreen side, a
+diegetic or visible presence cue, an exit visibility, and either
+`STAY_OFFSCREEN`, `VISIBLE_HOLD`, or a named `REENTER_ON_TRIGGER`. An offscreen
+target cannot appear before the trigger, and an on-screen target cannot carry
+offscreen fields. Composition, shot scale, focal length, camera height, and the
+actor's current pose remain keyframe responsibilities and are rejected from the
+V12 adapter contract.
+
+The shot-boundary state lock is also video-side only. Every cut must open on
+visible evidence that its segment entry state is already established, rather
+than replaying the setup or silently resetting a person, prop, or environment.
+Before the next cut, the declared exit state must remain visibly readable for
+at least 0.5 seconds and name the exact next-shot handoff (or terminal shot).
+Adapter V13 cross-checks both states against the time-coded segment and rejects
+missing evidence, short result holds, replayed entrances, and skipped handoffs.
+Composition, shot scale, focal length, camera height, and depth remain keyframe
+responsibilities. This remains an `AMERICAN_HOLLYWOOD` prompt/rule adapter, not
+model weights and not an Eastern wuxia or kung-fu grammar.
+
+The depth-focus transfer ledger is video-side timing only. A shot declares the
+descriptor and `FOREGROUND`, `MIDGROUND`, or `BACKGROUND` plane that owns focus
+on entry. `LOCKED_FOCUS` keeps that subject and plane for the whole shot;
+`SUBJECT_TRIGGERED_RACK_FOCUS` cannot start before its named subject trigger,
+must stay within the declared transfer window, land on a descriptor already
+present in the shot, stop on visible sharpness evidence, and hold that landing
+through the cut. Adapter V14 rejects autofocus hunting, anticipatory focus
+pulls, unregistered focus targets, wrong-subject exits, and focus loss before
+the result is readable. Composition, shot scale, focal length, camera height,
+depth-layer layout, and current pose remain keyframe responsibilities. The rule
+is labeled `AMERICAN_HOLLYWOOD`; Eastern wuxia and kung-fu profiles remain
+reserved and unloaded.
+
+The contact-force state ledger is video-side continuity only. Every shot names
+the two contact owners, their physical anchor, the inherited entry contact, and
+either `LOCKED_CONTACT` or `TRIGGERED_CONTACT_CHANGE`. A triggered change cannot
+begin before its physical trigger, must stay inside its declared time window,
+must land on the declared exit contact, and must expose both force evidence and
+visible contact evidence until the cut. Repeated contact tracks inherit the
+previous shot's exit contact exactly. Adapter V15 rejects anticipatory changes,
+silent grip/contact resets, wrong exits, and early result loss. Composition,
+shot scale, focal length, camera height, depth-layer layout, and current pose
+remain keyframe responsibilities. The rule is labeled `AMERICAN_HOLLYWOOD`;
+Eastern wuxia and kung-fu profiles remain reserved and unloaded.
+
+The damage-continuity ledger is video-side state only. Every row names one
+entity descriptor and damage site, the inherited entry damage, baseline state,
+physical trigger, exact change window, visible wound or damaged-equipment
+evidence, declared exit damage, and a hold through the cut. A track marked
+`irreversible_in_sequence` cannot return from a damaged state to its baseline
+without failing compilation. Adapter V18 therefore blocks silent wound healing,
+regrown severed anatomy, restored armor, vanished cracks, and disappearing blood
+traces after a cut, occlusion, or location change. Composition, shot scale,
+focal length, camera height, depth-layer layout, and current pose remain
+keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
+not model weights; Eastern wuxia and kung-fu profiles remain reserved.
+
+The action-resolution ledger is video-side state only. Every row names an
+actor, one intended action, its visible intent evidence, a resolution trigger
+and exact window, and one terminal mode: `COMPLETED`, `INTERRUPTED`, or `HELD`.
+Interrupted actions must name a distinct in-shot interruptor and visible
+intervention, cannot reach their intended completion state, and must hold the
+blocked outcome through the cut. Adapter V19 therefore prevents a stopped
+advance, blocked strike, restraint, disarm, or other interrupted intent from
+silently completing at the end of a shot or after a cut. Composition, shot
+scale, focal length, camera height, depth-layer layout, and current pose remain
+keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
+not model weights; Eastern wuxia and kung-fu profiles remain reserved.
+
+Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
+好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a
+profile per shot using `PER_SHOT_GENRE_AWARE`, so the same narrative shot can
+select a different registered grammar when its genre changes. `EASTERN_WUXIA`
+and `EASTERN_KUNGFU` are reserved identifiers only: they remain blocked from
+production until separately licensed source material has completed adaptation,
+QA, and deployment. This prevents Hell Grind's Hollywood grammar from silently
+becoming a universal default or being mislabeled as an Eastern action style.
+
+For multi-cut scenes with persistent character, prop, spatial, or environment
+facts, add `cross_cut_state_ledger`. Each typed track must cover every compiled
+shot in order, bind to a SHA-locked descriptor, record visible entry/exit
+evidence, and make each next entry exactly equal the prior exit. Its terminal
+state must equal the final exit. Adapter V8 rejects a pristine prop after damage,
+a restored injury, a relocated witness, a cleared footprint/fire/snow trace, or
+any other undeclared reset before provider submission. This generalizes the
+licensed Scene 70 practice of separating cut purpose from durable state facts;
+it is a prompt/rule adapter, not trained Seedance model weights.
+
+When a cut sequence needs explicit information progression, add
+`shot_information_ladder` with `ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT`. Every
+compiled shot receives a unique information-unit ID, one typed job
+(`orientation`, `threat`, `action_setup`, `contact_detail`, `consequence`,
+`reaction`, or `resolution`), a visible evidence clause, one shot scale and
+numeric lens, and a plain-language camera role. Contact, consequence, and
+resolution shots must name the visible result. The ladder entry/exit states
+must match the time-coded segment exactly. Adapter V9 therefore rejects a new
+focal length or camera move that merely repeats the previous action picture;
+each cut must add distinct story information. This generalizes the licensed
+Scene 70.2 pattern of moving from spatial orientation to contact diagnosis and
+durable consequence without copying its characters or imagery.
+
+When coverage changes subject, scale, or lens across an established axis, add
+`spatial_axis_ledger` with
+`PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND`. Every shot must bind a
+SHA-locked subject, its screen region, gaze direction and eyeline target, a
+SHA-locked background anchor and depth region, the camera side and axis
+relation already declared by the time-coded segment, and the exact segment
+entry/exit state. Each named axis starts with `ESTABLISH_AXIS`, stays on its
+declared side with `HOLD_AXIS`, and may change sides only through an explicit
+`DECLARED_AXIS_CROSS`. Adapter V10 rejects an undeclared 180-degree crossing,
+an unknown eyeline/background target, or a cut whose composition silently
+changes the scene geography. This generalizes the licensed Scene 70C practice
+of keeping opposing profiles, off-screen gazes, foreground/background anchors,
+and persistent physical contact readable across focal-length changes; it does
+not ship source characters, source imagery, or Seedance model weights.
+
+When the camera changes position, angle, focus, or follow behavior inside a
+shot, add `camera_action_coupling_ledger` with
+`SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD`. Every shot declares the
+physical trigger and subject change first. A moving response cannot begin
+before that trigger, must stop on a named visible condition, and must leave a
+readable result hold before the shot ends. Locked shots use `LOCKED_HOLD` and
+cannot smuggle in movement timing. Adapter V11 rejects anticipatory or
+decorative drift, a follow move that outlives its subject action, and a cut that
+abandons the result immediately after motion. This generalizes the licensed
+Scene 70C pattern of following a head raise only after it begins, stopping when
+the face settles, and holding the changed expression. It remains an
+`AMERICAN_HOLLYWOOD` prompt/rule adapter, not model weights and not an Eastern
+wuxia or kung-fu grammar.
+
+The D-L pipeline keeps keyframe references and video references separate.
+Keyframes own composition, shot size, focal length, camera height, depth, and
+the action's current state. Video prompts own timeline, motivated movement,
+action physics, axis, continuity, rhythm, and result state. Stage E SHA-binds
+both artifacts plus the reference registry and prompt/rule adapter; AgentCut
+later assembles only those frozen SHAs and never reselects cultural style.
 
 The segments must start at zero, remain contiguous, follow storyboard order,
 and cover the declared duration exactly. The compiler rejects unknown asset
 references, descriptor text whose SHA does not match, untested assets,
 decorative camera movement without motivation, timeline gaps, and unsupported
-dialogue policies before a paid generation call.
+dialogue policies before a paid generation call. When a cross-cut ledger is
+present, incomplete shot coverage, unknown descriptor bindings, duplicate
+tracks, state-handoff mismatches, and terminal-state mismatches also fail.
 
 Map writer fields deliberately: `shot_treatment.purpose` becomes
 `narrative_purpose`; blocking and scene-map data become `geometry`; the current
@@ -362,6 +539,140 @@ Edit-only techniques (`whip_pan_cut`, `detail_triple_cut`, and
 `shot_reverse_exchange`) require storyboard generation. Slow motion without a
 decisive contact, sustained shake, adjacent dynamic motion, decorative orbit,
 and continuous push/pull/roam fail before paid submission.
+
+### Causal combat-continuity ladders
+
+Camera grammar alone does not guarantee that an exchange remains physically
+legible. Every combat contract therefore includes one to three
+`continuity_ladders`. A ladder binds ordered action-beat indexes, an entry and
+exit state, persistent visible evidence, any required real-world measurement,
+one final relational composition, and a camera resolution that must match an
+already declared camera segment. Contact must leave a visible consequence;
+damage, formation, props, distance, and recovery cannot reset between beats.
+
+The licensed Scene 69, Scene 69B.20, Scene 69B.19, Scene 69B.18, Scene 69B.17,
+Scene 69B.16, and Scene 69B.15 prompt/rule adapter exposes fifteen typed
+methods:
+
+- `causal_impact_aftermath_ladder`
+- `occlusion_breach_threat_reveal`
+- `timed_emotional_reaction_microsequence`
+- `damage_accumulation_state_promotion`
+- `reversible_crowd_geometry_ceremonial_entrance`
+- `prop_geometric_anchor_momentum_recovery`
+- `reciprocal_charge_convergence_ladder`
+- `asymmetric_locked_clash_sustained_force`
+- `defense_rhythm_failure_combo_ladder`
+- `embodied_topology_traversal_damage_combo`
+- `committed_miss_entrapment_counter_window`
+- `force_conversion_controlled_recovery_ladder`
+- `follow_through_exposure_penetration_extraction_ladder`
+- `near_miss_armor_interception_recovery_ladder`
+- `low_profile_evasion_limb_failure_counterlaunch_recovery_ladder`
+
+Each method has its own required evidence vocabulary. Spatial methods require a
+positive measurement in metres, centimetres, seconds, degrees, or body lengths;
+damage promotion additionally requires a durable state ID. The final frame must
+show the relevant identities, force direction, path, and environmental result
+together. Missing evidence, unordered beat bindings, duplicate methods, invalid
+measurements, and camera resolutions outside the motivated plan fail before a
+paid submission. This is a licensed prompt/rule adapter, not trained Seedance
+model weights.
+
+When a contract composes two or three continuity ladders, adapter V7 treats the
+declared order as a causal state chain. Each later ladder must begin at or after
+the prior ladder's final bound beat, and its `entry_state` must exactly inherit
+the prior ladder's `exit_state`. The compiler emits the shared state and boundary
+beats into both adjacent manifest rows and into the prompt. A clean reset of
+character position, injury, prop condition, or spatial relation between ladders
+fails before provider submission.
+
+`embodied_topology_traversal_damage_combo` handles a large opponent, creature,
+vehicle, or structure as traversable terrain. It requires a load-bearing anchor,
+ordered footholds or grip transitions, a continuous route, distinct contact
+results, measured landing relation, and a shared closing frame containing the
+topology and cumulative damage. Source prompts that demand perpetual handheld
+motion, decorative whip moves, or slow motion are filtered out; camera movement
+may reveal the route but cannot replace physical evidence.
+
+`committed_miss_entrapment_counter_window` turns a missed committed strike into
+a readable initiative transfer. It requires an irreversible attack line, a
+measured evasion clearance, visible weapon contact and entrapment, a persistent
+extraction delay, and a counterlaunch that starts only after the opening is
+proved. The trapped state receives a durable state ID and must remain visible in
+the final shared composition. Continuous shake, decorative whip moves, and
+unmotivated slow motion are filtered from the source methodology.
+
+`force_conversion_controlled_recovery_ladder` handles a defender who blocks a
+heavier impact and converts its force into controlled displacement rather than
+resetting between contact and landing. It requires defensive contact, readable
+force transfer, measured displacement, deliberate body rotation, carried-prop
+continuity, landing absorption, residual stance cost, and a final shared frame
+showing the new distance. Decorative whip-pans, repeated lens-stomps, perpetual
+handheld drift, and unmotivated slow motion are filtered out.
+
+`follow_through_exposure_penetration_extraction_ladder` turns a committed
+follow-through into a physically legible counteroffensive opening. It requires
+the opponent's recovery state, a named exposed target zone, measured gap
+closure, targeted penetration, an embedded interval that proves ownership and
+reaction, a distinct extraction consequence, durable cumulative damage, and a
+shared closing frame. Decorative whip-pans, repeated lens-stomps, perpetual
+handheld drift, and unmotivated slow motion are filtered out.
+
+`near_miss_armor_interception_recovery_ladder` preserves the difference between
+a body evasion, a complete miss, and a glancing hit on a named protective layer.
+It requires a measured last-moment clearance, visible armor contact, separate
+protected-body and damaged-protection states, a persistent fragment or
+deformation consequence, opposing attacker/defender recovery costs, and a
+shared closing frame. The damaged protection receives a durable state ID.
+Decorative whip-pans, impact zooms, perpetual handheld drift, unmotivated slow
+motion, and invented glow cannot replace physical contact evidence.
+
+`low_profile_evasion_limb_failure_counterlaunch_recovery_ladder` organizes a
+low-profile evasion, targeted support-limb hit, visible load-bearing failure,
+opponent counterlaunch, measured airborne displacement, and prop-preserving
+landing as one causal exchange. The support-limb failure receives a durable
+state ID; the closing frame must retain the wound, both recovery costs, the
+carried prop, landing absorption, and any motivated witness-field reaction.
+Ground tracking may establish clearance and a stable impact frame may resolve
+the result, but repeated whip-pans, perpetual shake, decorative slow motion,
+and impact zooms cannot replace readable body mechanics.
+
+## Material emission state ledger
+
+Task2-1 video prompts that contain saturated, translucent, reflective, or
+potentially luminous materials must declare a `material_emission_state_ledger`
+for every compiled shot. Each row binds a stable material track and descriptor,
+the intrinsic-color evidence, entry and target emission states, any physical
+emission trigger and exact change window, the light-evidence policy, the exit
+emission state, and a hold to the shot boundary.
+
+`INTRINSIC_NONEMISSIVE` materials may show ambient highlights and transmitted
+light, but they must use `AMBIENT_REFLECTION_ONLY`; nearby skin, props, fog, and
+ground must not receive invented cast light. `EMISSIVE_SOURCE` requires both a
+visible source and visible cast-light evidence. `TRIGGERED_EMISSION_CHANGE`
+cannot begin before its declared trigger. The next shot on the same material
+track must inherit the previous exit emission state exactly. These are
+video-side state and timing fields; they do not replace keyframe composition,
+lens, depth, or pose controls.
+
+## Entity form state ledger
+
+Task2-1 video prompts that show characters or creatures with alternate armor,
+helmet, costume, body-scale, transformed, or post-battle forms must declare an
+`entity_form_state_ledger` for every compiled shot. Each row binds a stable
+entity track and descriptor to an identity anchor, a set of mutually exclusive
+forms, the inherited entry form, a target and exit form, visible identity and
+form evidence, forbidden-form evidence, and a hold to the shot boundary.
+
+`LOCKED_FORM` preserves one form for the entire shot and cannot declare a
+change window. `TRIGGERED_FORM_CHANGE` requires a visible physical trigger and
+an exact change window that cannot start early. The exit form must equal the
+target form, and the next shot on the same entity track must inherit it exactly.
+Identity anchors such as face, scars, hair, silhouette, or stable body markers
+remain visible through legal transformations. These are video-side state and
+timing fields; they do not replace keyframe composition, lens, depth, or pose
+controls.
 
 ## Selective BGM flow
 

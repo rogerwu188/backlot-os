@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.seedance2_prompt_compiler import compile_prompt
+from tools.seedance2_prompt_compiler import COMBAT_CONTINUITY_METHODS, compile_prompt
 
 
 class MultiKeyframeLongTakeTest(unittest.TestCase):
@@ -119,6 +119,24 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
                     },
                 ],
             },
+            "continuity_ladders": [{
+                "method_id": "causal_impact_aftermath_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "actors separate by one arm length while prior contact remains resolved",
+                "exit_state": "lead controls witness chest-down at the table edge",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": "contact", "visible_result": "shoulder and wrist remain loaded at table edge"},
+                    {"action_beat_index": 4, "evidence_type": "environment", "visible_result": "table edge receives and preserves the downward force path"},
+                    {"action_beat_index": 5, "evidence_type": "recovery", "visible_result": "lead settles into a stable staggered stance"},
+                    {"action_beat_index": 5, "evidence_type": "relational_close", "visible_result": "both identities, restraint direction and table edge remain in one frame"},
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 1.0, "unit": "m"},
+                "final_relational_frame": "lead standing over witness chest-down, loaded wrist, table edge and force direction visible",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "preserve the full restraint force path without camera compensation",
+                },
+            }],
             "winner": "lead", "restrained_actor": "witness",
             "terminal_identity_hold": "lead remains standing and pins witness chest-down; their faces and wardrobes remain distinct",
         }
@@ -247,8 +265,342 @@ class MultiKeyframeLongTakeTest(unittest.TestCase):
             self.assertIn("被制服者=witness", prompt)
             self.assertIn("@视频1只参考动作节拍", prompt)
             self.assertIn("动作镜头语言配方", prompt)
+            self.assertIn("因果连续性阶梯", prompt)
             self.assertEqual(manifest["combat_choreography_contract"]["camera_language_plan"]["selection_gate"], "PASS_MOTIVATED_ONLY")
+            self.assertEqual(
+                manifest["combat_choreography_contract"]["continuity_ladders"][0]["method_id"],
+                "causal_impact_aftermath_ladder",
+            )
+            self.assertEqual(
+                manifest["combat_choreography_contract"]["continuity_adapter"],
+                "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V7",
+            )
             self.assertIn("COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME", manifest["gates"])
+            self.assertIn("COMBAT_CAUSAL_CONTINUITY_LADDER", manifest["gates"])
+
+    def test_combat_rejects_continuity_ladder_missing_required_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"][0]["evidence_beats"] = [
+                row for row in contract["continuity_ladders"][0]["evidence_beats"]
+                if row["evidence_type"] != "environment"
+            ]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: environment"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_continuity_camera_outside_declared_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"][0]["camera_resolution"]["technique_id"] = "crash_pull"
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "must match a declared camera segment"):
+                compile_prompt(spec)
+
+    def test_combat_compiles_cross_ladder_state_handoff(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            first = contract["continuity_ladders"][0]
+            first["beat_indexes"] = [1, 2, 3]
+            first["exit_state"] = "weapon remains trapped while the defender owns the opening"
+            first["evidence_beats"] = [
+                {"action_beat_index": 1, "evidence_type": "contact", "visible_result": "weapon contact remains loaded"},
+                {"action_beat_index": 2, "evidence_type": "environment", "visible_result": "table edge preserves the force path"},
+                {"action_beat_index": 3, "evidence_type": "recovery", "visible_result": "defender settles without resetting distance"},
+                {"action_beat_index": 3, "evidence_type": "relational_close", "visible_result": "both identities and trapped weapon remain readable"},
+            ]
+            first["camera_resolution"] = {
+                "technique_id": "tracking_follow", "action_beat_index": 1,
+                "narrative_purpose": "preserve the opening contact and route",
+            }
+            second = {
+                "method_id": "timed_emotional_reaction_microsequence",
+                "beat_indexes": [3, 4],
+                "entry_state": first["exit_state"],
+                "exit_state": "the reaction resolves while the trapped weapon remains visible",
+                "evidence_beats": [
+                    {"action_beat_index": 3, "evidence_type": "stimulus", "visible_result": "the trapped weapon creates the opening"},
+                    {"action_beat_index": 3, "evidence_type": "objective_evidence", "visible_result": "the weapon remains visibly trapped"},
+                    {"action_beat_index": 4, "evidence_type": "performance_transition", "visible_result": "the defender commits to the opening"},
+                    {"action_beat_index": 4, "evidence_type": "relational_close", "visible_result": "both identities and inherited state share the frame"},
+                ],
+                "final_relational_frame": "both identities and inherited trapped-weapon state remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "show the inherited state without camera substitution",
+                },
+            }
+            contract["continuity_ladders"] = [first, second]
+            spec["combat_choreography_contract"] = contract
+            prompt, manifest = compile_prompt(spec)
+            ladders = manifest["combat_choreography_contract"]["continuity_ladders"]
+            self.assertIn("跨阶梯状态交接", prompt)
+            self.assertEqual(ladders[0]["handoff_to_next"]["shared_state"], first["exit_state"])
+            self.assertEqual(ladders[1]["handoff_from_previous"]["from_action_beat_index"], 3)
+
+    def test_combat_rejects_cross_ladder_state_reset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            first = contract["continuity_ladders"][0]
+            first["beat_indexes"] = [1, 2, 3]
+            first["evidence_beats"] = [
+                {**row, "action_beat_index": min(index, 3)}
+                for index, row in enumerate(first["evidence_beats"], start=1)
+            ]
+            first["camera_resolution"] = {
+                "technique_id": "tracking_follow", "action_beat_index": 1,
+                "narrative_purpose": "preserve the opening contact and route",
+            }
+            second = dict(first)
+            second["method_id"] = "timed_emotional_reaction_microsequence"
+            second["beat_indexes"] = [3, 4]
+            second["entry_state"] = "a clean reset with no inherited damage or prop state"
+            second["evidence_beats"] = [
+                {"action_beat_index": 3, "evidence_type": "stimulus", "visible_result": "prior contact triggers the reaction"},
+                {"action_beat_index": 3, "evidence_type": "objective_evidence", "visible_result": "the prior result remains visible"},
+                {"action_beat_index": 4, "evidence_type": "performance_transition", "visible_result": "the defender commits"},
+                {"action_beat_index": 4, "evidence_type": "relational_close", "visible_result": "both identities share the frame"},
+            ]
+            second.pop("spatial_measurement", None)
+            second["camera_resolution"] = {
+                "technique_id": "locked_impact", "action_beat_index": 4,
+                "narrative_purpose": "show the reaction in one stable relation",
+            }
+            contract["continuity_ladders"] = [first, second]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "state handoff mismatch"):
+                compile_prompt(spec)
+
+    def test_combat_compiles_all_licensed_continuity_methods(self):
+        for method_id, method in COMBAT_CONTINUITY_METHODS.items():
+            with self.subTest(method_id=method_id), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+                spec = self.spec(frames)
+                contract = self.combat_contract(root)
+                ladder = {
+                    "method_id": method_id,
+                    "beat_indexes": [3, 4, 5] if method["min_beats"] == 3 else [4, 5],
+                    "entry_state": "the prior physical relation remains visible",
+                    "exit_state": "the exchange resolves without resetting evidence",
+                    "evidence_beats": [
+                        {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} consequence persists"}
+                        for evidence_type in sorted(method["required_evidence"])
+                    ],
+                    "final_relational_frame": "both identities, force path, environment, and result remain readable",
+                    "camera_resolution": {
+                        "technique_id": "locked_impact", "action_beat_index": 4,
+                        "narrative_purpose": "resolve causal evidence in a stable composition",
+                    },
+                }
+                if method["measurement_required"]:
+                    ladder["spatial_measurement"] = {"kind": "distance", "value": 1, "unit": "m"}
+                if method.get("state_promotion_required"):
+                    ladder["promoted_state_id"] = "witness_damage_state_2"
+                contract["continuity_ladders"] = [ladder]
+                spec["combat_choreography_contract"] = contract
+                prompt, manifest = compile_prompt(spec)
+                self.assertIn(method_id, prompt)
+                self.assertEqual(
+                    manifest["combat_choreography_contract"]["continuity_ladders"][0]["method_id"],
+                    method_id,
+                )
+
+    def test_combat_rejects_topology_traversal_without_load_bearing_anchor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "embodied_topology_traversal_damage_combo",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the larger body is established as an inclined route",
+                "exit_state": "lead lands behind the larger opponent",
+                "evidence_beats": [
+                    {"action_beat_index": 3, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "foothold_sequence", "traversal_path", "distinct_contacts",
+                        "landing_relation", "cumulative_result", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 1.5, "unit": "m"},
+                "final_relational_frame": "route, damage and landing side remain in one frame",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "show the route without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: topology_anchor"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_committed_miss_without_entrapment_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "committed_miss_entrapment_counter_window",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the attacker commits to an irreversible downward strike",
+                "exit_state": "the defender launches while the weapon remains trapped",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "attack_commitment", "evasion_clearance", "extraction_delay",
+                        "counterlaunch", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "clearance", "value": 40, "unit": "cm"},
+                "promoted_state_id": "weapon_trapped_state_1",
+                "final_relational_frame": "both fighters and the trapped weapon remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove the exposure window without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: obstacle_entrapment"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_force_conversion_without_controlled_rotation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "force_conversion_controlled_recovery_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the defender braces against a heavier incoming strike",
+                "exit_state": "the defender regains stance at a measured new distance",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "defensive_contact", "force_transfer", "carried_prop_continuity",
+                        "landing_absorption", "stance_recovery", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 3, "unit": "m"},
+                "final_relational_frame": "both fighters, retained prop and new distance remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove force transfer without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: controlled_rotation"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_penetration_extraction_without_embedded_reaction(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "follow_through_exposure_penetration_extraction_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the opponent remains committed in a visible follow-through",
+                "exit_state": "the attacker withdraws with the promoted wound state still visible",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "opponent_follow_through", "exposed_target_zone", "gap_closure",
+                        "targeted_penetration_contact", "extraction_consequence",
+                        "cumulative_damage_state", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "distance", "value": 2, "unit": "m"},
+                "promoted_state_id": "target_wound_state_2",
+                "final_relational_frame": "both fighters, target zone, weapon and promoted wound remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove embedded contact and extraction without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: embedded_reaction"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_near_miss_without_armor_glancing_contact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "near_miss_armor_interception_recovery_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the attacker commits to a readable strike line",
+                "exit_state": "the body remains protected while armor damage and opposed recovery costs persist",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "attack_commitment", "last_moment_evasion_clearance",
+                        "body_protection_state", "fragment_consequence",
+                        "attacker_followthrough_imbalance", "defender_stance_recovery",
+                        "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "clearance", "value": 80, "unit": "cm"},
+                "promoted_state_id": "armor_damage_state_1",
+                "final_relational_frame": "both fighters, attack path, protected body and persistent armor damage remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove partial protective interception without camera substitution",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: armor_glancing_contact"):
+                compile_prompt(spec)
+
+    def test_combat_rejects_low_profile_limb_failure_without_support_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            frames = [self.frame(root / "a", 0, "start"), self.frame(root / "b", 7, "middle", transition=self.transition()), self.frame(root / "c", 15, "end", transition=self.transition())]
+            spec = self.spec(frames)
+            contract = self.combat_contract(root)
+            contract["continuity_ladders"] = [{
+                "method_id": "low_profile_evasion_limb_failure_counterlaunch_recovery_ladder",
+                "beat_indexes": [3, 4, 5],
+                "entry_state": "the opponent commits overhead while the runner drops below the strike line",
+                "exit_state": "the wounded opponent remains unstable while the displaced runner completes a prop-preserving landing",
+                "evidence_beats": [
+                    {"action_beat_index": 4, "evidence_type": evidence_type, "visible_result": f"visible {evidence_type} evidence"}
+                    for evidence_type in (
+                        "attack_commitment", "low_profile_evasion_clearance",
+                        "targeted_limb_contact", "counterlaunch_contact",
+                        "airborne_displacement", "carried_prop_continuity",
+                        "landing_absorption", "landing_recovery_state",
+                        "crowd_reaction", "relational_close",
+                    )
+                ],
+                "spatial_measurement": {"kind": "displacement", "value": 5, "unit": "m"},
+                "promoted_state_id": "opponent_support_limb_failure_state_1",
+                "final_relational_frame": "wounded support limb, displaced runner, retained prop, landing stance, and reacting witnesses remain readable",
+                "camera_resolution": {
+                    "technique_id": "locked_impact", "action_beat_index": 4,
+                    "narrative_purpose": "prove support failure and recovery without substituting camera motion for physics",
+                },
+            }]
+            spec["combat_choreography_contract"] = contract
+            with self.assertRaisesRegex(ValueError, "missing required evidence: support_failure"):
+                compile_prompt(spec)
 
     def test_combat_rejects_continuous_perpetual_camera_motion(self):
         with tempfile.TemporaryDirectory() as directory:

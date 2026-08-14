@@ -75,6 +75,2313 @@ ACTION_CAMERA_TECHNIQUES = {
 ACTION_CAMERA_EDIT_ONLY = {"whip_pan_cut", "detail_triple_cut", "shot_reverse_exchange"}
 ACTION_CAMERA_DYNAMIC_FAMILIES = {"moving", "accent"}
 
+# Licensed Scene 69 prompt-rule adapter. These are causal shot-organization
+# methods, not model weights and not decorative camera presets.
+COMBAT_CONTINUITY_METHODS = {
+    "causal_impact_aftermath_ladder": {
+        "label": "冲击后果阶梯", "min_beats": 3,
+        "required_evidence": {"contact", "environment", "recovery", "relational_close"},
+        "measurement_required": True,
+    },
+    "occlusion_breach_threat_reveal": {
+        "label": "遮挡破局威胁揭示", "min_beats": 2,
+        "required_evidence": {"formation", "breach", "diagnostic_detail", "relational_close"},
+        "measurement_required": True,
+    },
+    "timed_emotional_reaction_microsequence": {
+        "label": "定时情绪反应微序列", "min_beats": 2,
+        "required_evidence": {"stimulus", "objective_evidence", "performance_transition", "relational_close"},
+        "measurement_required": False,
+    },
+    "damage_accumulation_state_promotion": {
+        "label": "伤势累积状态晋升", "min_beats": 2,
+        "required_evidence": {"inherited_damage", "contact", "diagnostic_detail", "cumulative_result"},
+        "measurement_required": False, "state_promotion_required": True,
+    },
+    "reversible_crowd_geometry_ceremonial_entrance": {
+        "label": "可逆人群几何入场", "min_beats": 2,
+        "required_evidence": {"formation", "breach", "crowd_reaction", "formation_restore", "relational_close"},
+        "measurement_required": True,
+    },
+    "prop_geometric_anchor_momentum_recovery": {
+        "label": "道具几何锚点减速", "min_beats": 2,
+        "required_evidence": {"grip_change", "prop_contact", "deceleration_path", "recovery", "relational_close"},
+        "measurement_required": True,
+    },
+    "reciprocal_charge_convergence_ladder": {
+        "label": "双向冲锋收敛阶梯", "min_beats": 2,
+        "required_evidence": {"start_positions", "acceleration", "shared_distance", "weapon_promotion", "relational_close"},
+        "measurement_required": True,
+    },
+    "asymmetric_locked_clash_sustained_force": {
+        "label": "非对称锁定对抗持续受力", "min_beats": 2,
+        "required_evidence": {"contact", "displacement", "stance_degradation", "mechanical_strain", "relational_close"},
+        "measurement_required": True,
+    },
+    "defense_rhythm_failure_combo_ladder": {
+        "label": "防守节奏失效连击阶梯", "min_beats": 3,
+        "required_evidence": {"successful_defense", "interval_compression", "failed_defense", "damage", "relational_close"},
+        "measurement_required": True,
+    },
+    "embodied_topology_traversal_damage_combo": {
+        "label": "实体拓扑穿越累积打击", "min_beats": 3,
+        "required_evidence": {
+            "topology_anchor", "foothold_sequence", "traversal_path", "distinct_contacts",
+            "landing_relation", "cumulative_result", "relational_close",
+        },
+        "measurement_required": True,
+    },
+    "committed_miss_entrapment_counter_window": {
+        "label": "承诺落空卡陷反击窗口", "min_beats": 3,
+        "required_evidence": {
+            "attack_commitment", "evasion_clearance", "obstacle_entrapment",
+            "extraction_delay", "counterlaunch", "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
+    "force_conversion_controlled_recovery_ladder": {
+        "label": "受力转化受控恢复阶梯", "min_beats": 3,
+        "required_evidence": {
+            "defensive_contact", "force_transfer", "controlled_rotation",
+            "carried_prop_continuity", "landing_absorption", "stance_recovery",
+            "relational_close",
+        },
+        "measurement_required": True,
+    },
+    "follow_through_exposure_penetration_extraction_ladder": {
+        "label": "收势暴露刺入拔出阶梯", "min_beats": 3,
+        "required_evidence": {
+            "opponent_follow_through", "exposed_target_zone", "gap_closure",
+            "targeted_penetration_contact", "embedded_reaction",
+            "extraction_consequence", "cumulative_damage_state",
+            "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
+    "near_miss_armor_interception_recovery_ladder": {
+        "label": "近失装甲截击恢复阶梯", "min_beats": 3,
+        "required_evidence": {
+            "attack_commitment", "last_moment_evasion_clearance",
+            "armor_glancing_contact", "body_protection_state",
+            "fragment_consequence", "attacker_followthrough_imbalance",
+            "defender_stance_recovery", "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
+    "low_profile_evasion_limb_failure_counterlaunch_recovery_ladder": {
+        "label": "低姿闪避肢体失效反发恢复阶梯", "min_beats": 3,
+        "required_evidence": {
+            "attack_commitment", "low_profile_evasion_clearance",
+            "targeted_limb_contact", "support_failure",
+            "counterlaunch_contact", "airborne_displacement",
+            "carried_prop_continuity", "landing_absorption",
+            "landing_recovery_state", "crowd_reaction", "relational_close",
+        },
+        "measurement_required": True, "state_promotion_required": True,
+    },
+}
+COMBAT_EVIDENCE_TYPES = set().union(
+    *(row["required_evidence"] for row in COMBAT_CONTINUITY_METHODS.values())
+)
+COMBAT_MEASUREMENT_KINDS = {"distance", "displacement", "clearance", "gap", "timing_interval", "angle"}
+COMBAT_MEASUREMENT_UNITS = {"m", "cm", "s", "degrees", "body_lengths"}
+CROSS_CUT_CONTINUITY_CLASSES = {
+    "character_state", "prop_state", "spatial_relation", "environment_state",
+}
+SHOT_INFORMATION_TYPES = {
+    "orientation", "threat", "action_setup", "contact_detail",
+    "consequence", "reaction", "resolution",
+}
+SPATIAL_SCREEN_REGIONS = {"screen_left", "screen_center", "screen_right", "full_frame"}
+SPATIAL_BACKGROUND_REGIONS = {
+    "left_depth", "center_depth", "right_depth", "full_background",
+}
+SPATIAL_GAZE_DIRECTIONS = {"screen_left", "screen_right", "camera", "up", "down", "none"}
+SPATIAL_AXIS_TRANSITIONS = {"ESTABLISH_AXIS", "HOLD_AXIS", "DECLARED_AXIS_CROSS"}
+OFFSCREEN_RELATIONSHIP_POLICY = "EXPLICIT_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY"
+OFFSCREEN_VISIBILITY_STATES = {"ON_SCREEN", "OFF_SCREEN"}
+OFFSCREEN_SIDES = {"screen_left", "screen_right", "behind_camera", "ahead_of_camera"}
+OFFSCREEN_REVEAL_POLICIES = {"STAY_OFFSCREEN", "REENTER_ON_TRIGGER", "VISIBLE_HOLD"}
+OFFSCREEN_EVIDENCE_TYPES = {
+    "EYELINE", "DIEGETIC_AUDIO", "CONTACT_TRACE", "SHADOW_OR_REFLECTION",
+    "VISIBLE_FRAME_PRESENCE",
+}
+CAMERA_ACTION_COUPLING_POLICY = "SUBJECT_TRIGGER_CAMERA_RESPONSE_THEN_RESULT_HOLD"
+CAMERA_ACTION_COUPLING_TYPES = {"LOCKED_HOLD", "SUBJECT_TRIGGERED_MOVE"}
+CAMERA_ACTION_RESPONSE_TYPES = {
+    "LOCKED_FRAME", "HANDHELD_BREATHING", "PAN", "TILT", "TRACK", "DOLLY",
+    "CRANE", "HANDHELD_FOLLOW", "RACK_FOCUS", "BOUNDED_ORBIT",
+}
+SHOT_BOUNDARY_STATE_POLICY = "FIRST_FRAME_PROVES_ENTRY_FINAL_FRAME_PROVES_EXIT"
+SHOT_BOUNDARY_ENTRY_POLICY = "ALREADY_ESTABLISHED_NO_REPLAY"
+SHOT_BOUNDARY_RESET_POLICY = "NO_UNDECLARED_REPLAY_OR_RESET_AT_CUT"
+DEPTH_FOCUS_POLICY = "SUBJECT_TRIGGERED_FOCUS_TRANSFER_WITH_PLANE_LOCK_AND_RESULT_HOLD"
+DEPTH_FOCUS_MODES = {"LOCKED_FOCUS", "SUBJECT_TRIGGERED_RACK_FOCUS"}
+DEPTH_FOCUS_PLANES = {"FOREGROUND", "MIDGROUND", "BACKGROUND"}
+CONTACT_FORCE_STATE_POLICY = "CONTACT_OWNERSHIP_FORCE_AND_RESULT_PERSIST_ACROSS_CUTS"
+CONTACT_FORCE_STATE_MODES = {"LOCKED_CONTACT", "TRIGGERED_CONTACT_CHANGE"}
+MATERIAL_EMISSION_POLICY = "INTRINSIC_MATERIAL_COLOR_SEPARATE_FROM_EMISSION_ACROSS_CUTS"
+MATERIAL_EMISSION_MODES = {
+    "INTRINSIC_NONEMISSIVE", "EMISSIVE_SOURCE", "TRIGGERED_EMISSION_CHANGE",
+}
+MATERIAL_LIGHT_EVIDENCE = {"AMBIENT_REFLECTION_ONLY", "VISIBLE_SOURCE_AND_CAST_LIGHT"}
+ENTITY_FORM_STATE_POLICY = "IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_STATE_ACROSS_CUTS"
+ENTITY_FORM_STATE_MODES = {"LOCKED_FORM", "TRIGGERED_FORM_CHANGE"}
+DAMAGE_CONTINUITY_POLICY = "CUMULATIVE_DAMAGE_EVIDENCE_PERSISTS_ACROSS_CUTS"
+DAMAGE_CONTINUITY_MODES = {"LOCKED_DAMAGE", "TRIGGERED_DAMAGE_CHANGE"}
+ACTION_RESOLUTION_POLICY = "DECLARED_INTENT_RESOLVES_TO_VISIBLE_OUTCOME"
+ACTION_RESOLUTION_MODES = {"COMPLETED", "INTERRUPTED", "HELD"}
+CAMERA_STYLE_PROFILES = {
+    "AMERICAN_HOLLYWOOD": {
+        "label_zh": "美式好莱坞",
+        "cultural_tradition": "AMERICAN_HOLLYWOOD",
+        "provenance": "HELL_GRIND_LICENSED_PRODUCTION_METHODOLOGY",
+        "deployment_status": "ADAPTED",
+        "adapter_lineage": [
+            "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V7",
+            "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8",
+            "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9",
+            "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
+            "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
+            "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
+            "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
+            "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
+            "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
+            "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
+            "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
+            "HELL_GRIND_DAMAGE_CONTINUITY_PROMPT_RULE_ADAPTER_V18",
+            "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
+        ],
+    },
+    # Reserved identifiers make the selection boundary explicit without claiming
+    # that these traditions have already been learned or cleared for production.
+    "EASTERN_WUXIA": {
+        "label_zh": "东方武侠",
+        "cultural_tradition": "EASTERN_WUXIA",
+        "provenance": None,
+        "deployment_status": "RESERVED_NOT_ADAPTED",
+        "adapter_lineage": [],
+    },
+    "EASTERN_KUNGFU": {
+        "label_zh": "东方功夫",
+        "cultural_tradition": "EASTERN_KUNGFU",
+        "provenance": None,
+        "deployment_status": "RESERVED_NOT_ADAPTED",
+        "adapter_lineage": [],
+    },
+}
+
+
+def compile_camera_style_plan(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict]:
+    """Label camera grammar per shot and keep cultural styles selectable."""
+    plan = contract.get("camera_style_plan")
+    if not plan:
+        plan = {
+            "selection_policy": "PER_SHOT_GENRE_AWARE",
+            "shots": [
+                {
+                    "shot_index": row["shot_index"],
+                    "style_profile_id": "AMERICAN_HOLLYWOOD",
+                    "selection_reason": "当前运镜规则来自已许可 Hell Grind 方法学",
+                }
+                for row in segments
+            ],
+        }
+    if plan.get("selection_policy") != "PER_SHOT_GENRE_AWARE":
+        raise ValueError(
+            "camera_style_plan selection_policy must be PER_SHOT_GENRE_AWARE"
+        )
+    rows = require(plan.get("shots"), "camera_style_plan shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("camera_style_plan must exactly cover all compiled shots")
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"camera style row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError("camera_style_plan shot_index must match compiled shot order")
+        profile_id = require(
+            row.get("style_profile_id"),
+            f"camera style row {index} style_profile_id is required",
+        )
+        profile = CAMERA_STYLE_PROFILES.get(profile_id)
+        if not profile:
+            raise ValueError(f"unknown camera style profile: {profile_id}")
+        if profile["deployment_status"] != "ADAPTED":
+            raise ValueError(f"camera style profile is not adapted for production: {profile_id}")
+        reason = require(
+            row.get("selection_reason"),
+            f"camera style row {index} selection_reason is required",
+        )
+        compiled.append({
+            "shot_index": shot_index,
+            "style_profile_id": profile_id,
+            "style_label_zh": profile["label_zh"],
+            "cultural_tradition": profile["cultural_tradition"],
+            "selection_reason": reason,
+            "provenance": profile["provenance"],
+            "adapter_lineage": profile["adapter_lineage"],
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}：运镜风格={row['style_label_zh']}"
+        f"[{row['style_profile_id']}]；选择依据={row['selection_reason']}"
+        for row in compiled
+    ]
+    return (
+        "\n【CAMERA STYLE PROFILE｜运镜文化风格标签】" + "。".join(prompt_rows) + "。",
+        {
+            "version": "1.0.0",
+            "adapter": "TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1",
+            "selection_policy": "PER_SHOT_GENRE_AWARE",
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "available_profiles": sorted({row["style_profile_id"] for row in compiled}),
+            "reserved_not_adapted_profiles": [
+                profile_id for profile_id, profile in CAMERA_STYLE_PROFILES.items()
+                if profile["deployment_status"] != "ADAPTED"
+            ],
+        },
+    )
+
+
+def compile_spatial_axis_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Make screen direction, eyelines, and background geography explicit per cut."""
+    ledger = contract.get("spatial_axis_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("coverage_policy") != "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND":
+        raise ValueError(
+            "spatial_axis_ledger coverage_policy must be "
+            "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND"
+        )
+    rows = require(ledger.get("shots"), "spatial_axis_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("spatial_axis_ledger must exactly cover all compiled shots")
+
+    compiled, axis_sides = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"spatial axis row {index} shot_index is required"
+        ))
+        if shot_index != index:
+            raise ValueError("spatial_axis_ledger shot_index must match compiled shot order")
+        axis_id = require(row.get("axis_id"), f"spatial axis row {index} axis_id is required")
+        axis_side = require(
+            row.get("axis_side"), f"spatial axis row {index} axis_side is required"
+        )
+        transition = require(
+            row.get("axis_transition"),
+            f"spatial axis row {index} axis_transition is required",
+        )
+        if transition not in SPATIAL_AXIS_TRANSITIONS:
+            raise ValueError(f"unsupported spatial axis transition: {transition}")
+        previous_side = axis_sides.get(axis_id)
+        if previous_side is None:
+            if transition != "ESTABLISH_AXIS":
+                raise ValueError(f"spatial axis {axis_id} must start with ESTABLISH_AXIS")
+        elif previous_side == axis_side:
+            if transition != "HOLD_AXIS":
+                raise ValueError(f"spatial axis {axis_id} unchanged side must use HOLD_AXIS")
+        elif transition != "DECLARED_AXIS_CROSS":
+            raise ValueError(f"undeclared axis cross for spatial axis {axis_id}")
+        axis_sides[axis_id] = axis_side
+
+        subject_id = require(
+            row.get("subject_descriptor_id"),
+            f"spatial axis row {index} subject_descriptor_id is required",
+        )
+        eyeline_target_id = require(
+            row.get("eyeline_target_descriptor_id"),
+            f"spatial axis row {index} eyeline_target_descriptor_id is required",
+        )
+        background_id = require(
+            row.get("background_anchor_descriptor_id"),
+            f"spatial axis row {index} background_anchor_descriptor_id is required",
+        )
+        for field, descriptor_id in (
+            ("subject_descriptor_id", subject_id),
+            ("eyeline_target_descriptor_id", eyeline_target_id),
+            ("background_anchor_descriptor_id", background_id),
+        ):
+            if descriptor_id not in descriptor_ids:
+                raise ValueError(
+                    f"spatial axis row {index} {field} references unknown descriptor"
+                )
+        subject_region = require(
+            row.get("subject_screen_region"),
+            f"spatial axis row {index} subject_screen_region is required",
+        )
+        if subject_region not in SPATIAL_SCREEN_REGIONS:
+            raise ValueError(f"unsupported subject screen region: {subject_region}")
+        background_region = require(
+            row.get("background_screen_region"),
+            f"spatial axis row {index} background_screen_region is required",
+        )
+        if background_region not in SPATIAL_BACKGROUND_REGIONS:
+            raise ValueError(f"unsupported background screen region: {background_region}")
+        gaze_direction = require(
+            row.get("gaze_direction"),
+            f"spatial axis row {index} gaze_direction is required",
+        )
+        if gaze_direction not in SPATIAL_GAZE_DIRECTIONS:
+            raise ValueError(f"unsupported gaze direction: {gaze_direction}")
+        camera_side = require(
+            row.get("camera_side"), f"spatial axis row {index} camera_side is required"
+        )
+        axis_relation = require(
+            row.get("axis_relation"),
+            f"spatial axis row {index} axis_relation is required",
+        )
+        if camera_side != segment["geometry"]["camera_side"]:
+            raise ValueError(f"spatial axis row {index} camera_side must match cinematic segment")
+        if axis_relation != segment["geometry"]["axis_relation"]:
+            raise ValueError(f"spatial axis row {index} axis_relation must match cinematic segment")
+        entry_state = require(
+            row.get("entry_state"), f"spatial axis row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"spatial axis row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"spatial axis row {index} entry/exit state must match cinematic segment"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "axis_id": axis_id,
+            "axis_side": axis_side,
+            "axis_transition": transition,
+            "subject_descriptor_id": subject_id,
+            "subject_screen_region": subject_region,
+            "gaze_direction": gaze_direction,
+            "eyeline_target_descriptor_id": eyeline_target_id,
+            "background_anchor_descriptor_id": background_id,
+            "background_screen_region": background_region,
+            "camera_side": camera_side,
+            "axis_relation": axis_relation,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['axis_id']}/{row['axis_transition']}]："
+        f"轴侧={row['axis_side']}；主体={row['subject_descriptor_id']}@{row['subject_screen_region']}；"
+        f"视线={row['gaze_direction']}→{row['eyeline_target_descriptor_id']}；"
+        f"背景={row['background_anchor_descriptor_id']}@{row['background_screen_region']}；"
+        f"机位侧={row['camera_side']}，轴线={row['axis_relation']}；"
+        f"入口={row['entry_state']}，出口={row['exit_state']}"
+        for row in compiled
+    ]
+    return (
+        "\n【SPATIAL AXIS LEDGER｜屏幕方位、视线与背景锚点】" + "。".join(prompt_rows) + "。"
+        "所有切镜必须保持已声明的屏幕方向、视线目标和背景地理；只有 DECLARED_AXIS_CROSS 可以改变轴侧。",
+        {
+            "version": "1.0.0",
+            "coverage_policy": "PRESERVE_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND",
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "adapter": "HELL_GRIND_SPATIAL_AXIS_PROMPT_RULE_ADAPTER_V10",
+        },
+    )
+
+
+def compile_offscreen_relationship_ledger(
+    contract: dict,
+    segments: list[dict],
+    descriptor_ids: set[str],
+    spatial_axis_ledger: dict | None,
+) -> tuple[str, dict | None]:
+    """Keep eyeline targets present without inventing undeclared on-screen bodies."""
+    ledger = contract.get("offscreen_relationship_ledger")
+    if not ledger:
+        return "", None
+    if not spatial_axis_ledger:
+        raise ValueError("offscreen_relationship_ledger requires spatial_axis_ledger")
+    if ledger.get("policy") != OFFSCREEN_RELATIONSHIP_POLICY:
+        raise ValueError(
+            "offscreen_relationship_ledger policy must be "
+            f"{OFFSCREEN_RELATIONSHIP_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "offscreen_relationship_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "offscreen_relationship_ledger must exactly cover all compiled shots"
+        )
+    spatial_rows = {
+        int(row["shot_index"]): row for row in spatial_axis_ledger["shots"]
+    }
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"offscreen relationship row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "offscreen_relationship_ledger shot_index must match compiled shot order"
+            )
+        spatial = spatial_rows[shot_index]
+        subject_id = require(
+            row.get("subject_descriptor_id"),
+            f"offscreen relationship row {index} subject_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("eyeline_target_descriptor_id"),
+            f"offscreen relationship row {index} eyeline_target_descriptor_id is required",
+        )
+        if subject_id not in descriptor_ids or target_id not in descriptor_ids:
+            raise ValueError(
+                f"offscreen relationship row {index} references unknown descriptor"
+            )
+        if subject_id != spatial["subject_descriptor_id"]:
+            raise ValueError(
+                f"offscreen relationship row {index} subject must match spatial-axis ledger"
+            )
+        if target_id != spatial["eyeline_target_descriptor_id"]:
+            raise ValueError(
+                f"offscreen relationship row {index} target must match spatial-axis ledger"
+            )
+        gaze_direction = require(
+            row.get("gaze_direction"),
+            f"offscreen relationship row {index} gaze_direction is required",
+        )
+        if gaze_direction != spatial["gaze_direction"]:
+            raise ValueError(
+                f"offscreen relationship row {index} gaze must match spatial-axis ledger"
+            )
+        visibility = require(
+            row.get("target_visibility"),
+            f"offscreen relationship row {index} target_visibility is required",
+        )
+        exit_visibility = require(
+            row.get("exit_visibility"),
+            f"offscreen relationship row {index} exit_visibility is required",
+        )
+        if visibility not in OFFSCREEN_VISIBILITY_STATES:
+            raise ValueError(f"unsupported target visibility: {visibility}")
+        if exit_visibility not in OFFSCREEN_VISIBILITY_STATES:
+            raise ValueError(f"unsupported exit visibility: {exit_visibility}")
+        evidence_type = require(
+            row.get("presence_evidence_type"),
+            f"offscreen relationship row {index} presence_evidence_type is required",
+        )
+        if evidence_type not in OFFSCREEN_EVIDENCE_TYPES:
+            raise ValueError(f"unsupported offscreen presence evidence: {evidence_type}")
+        evidence = require(
+            row.get("presence_evidence"),
+            f"offscreen relationship row {index} presence_evidence is required",
+        )
+        reveal_policy = require(
+            row.get("reveal_policy"),
+            f"offscreen relationship row {index} reveal_policy is required",
+        )
+        if reveal_policy not in OFFSCREEN_REVEAL_POLICIES:
+            raise ValueError(f"unsupported offscreen reveal policy: {reveal_policy}")
+        offscreen_side = row.get("offscreen_side")
+        reentry_trigger = row.get("reentry_trigger")
+        if visibility == "OFF_SCREEN":
+            if offscreen_side not in OFFSCREEN_SIDES:
+                raise ValueError(
+                    f"offscreen relationship row {index} requires a supported offscreen_side"
+                )
+            if evidence_type == "VISIBLE_FRAME_PRESENCE":
+                raise ValueError(
+                    f"offscreen relationship row {index} cannot use visible-frame evidence"
+                )
+            if reveal_policy == "STAY_OFFSCREEN":
+                if exit_visibility != "OFF_SCREEN" or reentry_trigger is not None:
+                    raise ValueError(
+                        f"offscreen relationship row {index} STAY_OFFSCREEN must remain offscreen"
+                    )
+            elif reveal_policy == "REENTER_ON_TRIGGER":
+                require(
+                    reentry_trigger,
+                    f"offscreen relationship row {index} reentry_trigger is required",
+                )
+                if exit_visibility != "ON_SCREEN":
+                    raise ValueError(
+                        f"offscreen relationship row {index} reentry must exit on-screen"
+                    )
+            else:
+                raise ValueError(
+                    f"offscreen relationship row {index} OFF_SCREEN target needs stay or reentry policy"
+                )
+        else:
+            if offscreen_side is not None or reentry_trigger is not None:
+                raise ValueError(
+                    f"offscreen relationship row {index} on-screen target cannot have offscreen fields"
+                )
+            if reveal_policy != "VISIBLE_HOLD" or exit_visibility != "ON_SCREEN":
+                raise ValueError(
+                    f"offscreen relationship row {index} on-screen target must use VISIBLE_HOLD"
+                )
+            if evidence_type != "VISIBLE_FRAME_PRESENCE":
+                raise ValueError(
+                    f"offscreen relationship row {index} on-screen target needs visible-frame evidence"
+                )
+        entry_state = require(
+            row.get("entry_state"),
+            f"offscreen relationship row {index} entry_state is required",
+        )
+        exit_state = require(
+            row.get("exit_state"),
+            f"offscreen relationship row {index} exit_state is required",
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"offscreen relationship row {index} entry/exit state must match cinematic segment"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "subject_descriptor_id": subject_id,
+            "eyeline_target_descriptor_id": target_id,
+            "gaze_direction": gaze_direction,
+            "target_visibility": visibility,
+            "offscreen_side": offscreen_side,
+            "presence_evidence_type": evidence_type,
+            "presence_evidence": evidence,
+            "reveal_policy": reveal_policy,
+            "reentry_trigger": reentry_trigger,
+            "exit_visibility": exit_visibility,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}：主体={row['subject_descriptor_id']}；"
+        f"视线={row['gaze_direction']}→{row['eyeline_target_descriptor_id']}；"
+        f"目标可见性={row['target_visibility']}"
+        f"{('@' + row['offscreen_side']) if row['offscreen_side'] else ''}；"
+        f"存在证据={row['presence_evidence_type']}:{row['presence_evidence']}；"
+        f"显影策略={row['reveal_policy']}；"
+        f"再入触发={row['reentry_trigger'] or '无'}；"
+        f"出口可见性={row['exit_visibility']}；入口={row['entry_state']}；出口={row['exit_state']}"
+        for row in compiled
+    ]
+    return (
+        "\n【OFFSCREEN RELATIONSHIP LEDGER｜画外目标方位、证据与再入】"
+        + "。".join(prompt_rows)
+        + "。OFF_SCREEN 目标在再入触发前严禁入画；不得用新增人物、错误视线或无来源声画线索替代已声明的画外存在。",
+        {
+            "version": "1.0.0",
+            "policy": OFFSCREEN_RELATIONSHIP_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height", "current_pose"
+            ],
+            "adapter": "HELL_GRIND_OFFSCREEN_RELATIONSHIP_PROMPT_RULE_ADAPTER_V12",
+        },
+    )
+
+
+def compile_shot_information_ladder(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict | None]:
+    """Bind each cut to one distinct, visible information unit and camera job."""
+    ladder = contract.get("shot_information_ladder")
+    if not ladder:
+        return "", None
+    if ladder.get("coverage_policy") != "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT":
+        raise ValueError(
+            "shot_information_ladder coverage_policy must be "
+            "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT"
+        )
+    rows = require(ladder.get("shots"), "shot_information_ladder shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("shot_information_ladder must exactly cover all compiled shots")
+
+    compiled, unit_ids, information_types = [], set(), set()
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"shot information row {index} shot_index is required"
+        ))
+        if shot_index != index:
+            raise ValueError("shot_information_ladder shot_index must match compiled shot order")
+        unit_id = require(
+            row.get("information_unit_id"),
+            f"shot information row {index} information_unit_id is required",
+        )
+        if unit_id in unit_ids:
+            raise ValueError(f"duplicate shot information unit: {unit_id}")
+        unit_ids.add(unit_id)
+        information_type = require(
+            row.get("information_type"),
+            f"shot information row {index} information_type is required",
+        )
+        if information_type not in SHOT_INFORMATION_TYPES:
+            raise ValueError(f"unsupported shot information type: {information_type}")
+        information_types.add(information_type)
+        entry_state = require(
+            row.get("entry_state"), f"shot information row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"shot information row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"shot information row {index} entry/exit state must match cinematic segment"
+            )
+        lens_mm = int(require(
+            row.get("lens_mm"), f"shot information row {index} lens_mm is required"
+        ))
+        if not 14 <= lens_mm <= 200:
+            raise ValueError(f"shot information row {index} lens_mm must be between 14 and 200")
+        visible_consequence = row.get("visible_consequence")
+        if information_type in {"contact_detail", "consequence", "resolution"}:
+            require(
+                visible_consequence,
+                f"shot information row {index} {information_type} requires visible_consequence",
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "information_unit_id": unit_id,
+            "information_type": information_type,
+            "subject_action": require(
+                row.get("subject_action"), f"shot information row {index} subject_action is required"
+            ),
+            "visible_evidence": require(
+                row.get("visible_evidence"), f"shot information row {index} visible_evidence is required"
+            ),
+            "visible_consequence": visible_consequence,
+            "shot_scale": require(
+                row.get("shot_scale"), f"shot information row {index} shot_scale is required"
+            ),
+            "lens_mm": lens_mm,
+            "camera_role": require(
+                row.get("camera_role"), f"shot information row {index} camera_role is required"
+            ),
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+    if len(compiled) >= 3 and len(information_types) < 3:
+        raise ValueError("shot_information_ladder needs at least three information types for 3+ shots")
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['information_unit_id']}/{row['information_type']}]："
+        f"主体动作={row['subject_action']}；可见证据={row['visible_evidence']}；"
+        f"可见后果={row['visible_consequence'] or '本镜不新增后果'}；"
+        f"景别={row['shot_scale']}，镜头={row['lens_mm']}mm，机位职责={row['camera_role']}；"
+        f"入口={row['entry_state']}，出口={row['exit_state']}"
+        for row in compiled
+    ]
+    return (
+        "\n【SHOT INFORMATION LADDER｜一镜一信息】" + "。".join(prompt_rows) + "。"
+        "每镜只承担一个主要可见信息单元；不得用换景别、换焦段或装饰运镜重复上一镜动作画面。",
+        {
+            "version": "1.0.0",
+            "coverage_policy": "ONE_PRIMARY_INFORMATION_UNIT_PER_SHOT",
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "unique_information_units": True,
+            "adapter": "HELL_GRIND_SHOT_INFORMATION_LADDER_PROMPT_RULE_ADAPTER_V9",
+        },
+    )
+
+
+def compile_shot_boundary_state_ledger(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict | None]:
+    """Prove each shot's declared entry on frame one and exit at the cut."""
+    ledger = contract.get("shot_boundary_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != SHOT_BOUNDARY_STATE_POLICY:
+        raise ValueError(
+            "shot_boundary_state_ledger policy must be "
+            f"{SHOT_BOUNDARY_STATE_POLICY}"
+        )
+    if ledger.get("reset_policy") != SHOT_BOUNDARY_RESET_POLICY:
+        raise ValueError(
+            "shot_boundary_state_ledger reset_policy must be "
+            f"{SHOT_BOUNDARY_RESET_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "shot_boundary_state_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "shot_boundary_state_ledger must exactly cover all compiled shots"
+        )
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"shot boundary row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "shot_boundary_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"shot boundary row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"shot boundary row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"shot boundary row {index} entry/exit state must match cinematic segment"
+            )
+        if row.get("entry_policy") != SHOT_BOUNDARY_ENTRY_POLICY:
+            raise ValueError(
+                f"shot boundary row {index} entry_policy must be "
+                f"{SHOT_BOUNDARY_ENTRY_POLICY}"
+            )
+        hold_seconds = float(require(
+            row.get("final_result_hold_seconds"),
+            f"shot boundary row {index} final_result_hold_seconds is required",
+        ))
+        shot_duration = segment["end_seconds"] - segment["start_seconds"]
+        if hold_seconds < 0.5 or hold_seconds > shot_duration:
+            raise ValueError(
+                f"shot boundary row {index} final result hold must be between 0.5s and shot duration"
+            )
+        handoff = row.get("handoff_target_shot_index")
+        expected_handoff = index + 1 if index < len(segments) else None
+        if handoff != expected_handoff:
+            raise ValueError(
+                f"shot boundary row {index} handoff target must be the next compiled shot or null"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "entry_state": entry_state,
+            "first_frame_evidence": require(
+                row.get("first_frame_evidence"),
+                f"shot boundary row {index} first_frame_evidence is required",
+            ),
+            "entry_policy": SHOT_BOUNDARY_ENTRY_POLICY,
+            "exit_state": exit_state,
+            "final_frame_evidence": require(
+                row.get("final_frame_evidence"),
+                f"shot boundary row {index} final_frame_evidence is required",
+            ),
+            "final_result_hold_seconds": hold_seconds,
+            "handoff_target_shot_index": handoff,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}：首帧入口={row['entry_state']}；"
+        f"首帧证据={row['first_frame_evidence']}；入口策略={row['entry_policy']}；"
+        f"末帧出口={row['exit_state']}；末帧证据={row['final_frame_evidence']}；"
+        f"结果至少保持{row['final_result_hold_seconds']:g}秒；"
+        f"交接={('镜头' + str(row['handoff_target_shot_index'])) if row['handoff_target_shot_index'] else '终镜'}"
+        for row in compiled
+    ]
+    return (
+        "\n【SHOT BOUNDARY STATE LOCK｜首帧既定状态、末帧结果与交接】"
+        + "。".join(prompt_rows)
+        + "。每次切入必须直接呈现已声明入口，不得重演起势或重置人物、道具、环境；"
+        "切出前必须让出口结果保持可读，并只交接到已声明的下一镜。",
+        {
+            "version": "1.0.0",
+            "policy": SHOT_BOUNDARY_STATE_POLICY,
+            "reset_policy": SHOT_BOUNDARY_RESET_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height", "depth_layers"
+            ],
+            "adapter": "HELL_GRIND_SHOT_BOUNDARY_STATE_PROMPT_RULE_ADAPTER_V13",
+        },
+    )
+
+
+def compile_depth_focus_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Bind focus ownership and any rack focus to a visible subject trigger."""
+    ledger = contract.get("depth_focus_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != DEPTH_FOCUS_POLICY:
+        raise ValueError(
+            "depth_focus_ledger policy must be "
+            f"{DEPTH_FOCUS_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "depth_focus_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("depth_focus_ledger must exactly cover all compiled shots")
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"depth focus row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "depth_focus_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"depth focus row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"depth focus row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"depth focus row {index} entry/exit state must match cinematic segment"
+            )
+        mode = require(
+            row.get("focus_mode"), f"depth focus row {index} focus_mode is required"
+        )
+        if mode not in DEPTH_FOCUS_MODES:
+            raise ValueError(f"unsupported depth focus mode: {mode}")
+        entry_id = require(
+            row.get("entry_focus_descriptor_id"),
+            f"depth focus row {index} entry_focus_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("target_focus_descriptor_id"),
+            f"depth focus row {index} target_focus_descriptor_id is required",
+        )
+        exit_id = require(
+            row.get("exit_focus_descriptor_id"),
+            f"depth focus row {index} exit_focus_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        for field, value in (
+            ("entry_focus_descriptor_id", entry_id),
+            ("target_focus_descriptor_id", target_id),
+            ("exit_focus_descriptor_id", exit_id),
+        ):
+            if value not in descriptor_ids or value not in segment_ids:
+                raise ValueError(
+                    f"depth focus row {index} {field} must reference a descriptor in its segment"
+                )
+        entry_plane = require(
+            row.get("entry_depth_plane"),
+            f"depth focus row {index} entry_depth_plane is required",
+        )
+        target_plane = require(
+            row.get("target_depth_plane"),
+            f"depth focus row {index} target_depth_plane is required",
+        )
+        if entry_plane not in DEPTH_FOCUS_PLANES or target_plane not in DEPTH_FOCUS_PLANES:
+            raise ValueError("unsupported depth focus plane")
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"depth focus row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"depth focus row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"depth focus row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"depth focus row {index} must hold the landed focus to shot end"
+            )
+        transfer_start = row.get("transfer_start_seconds")
+        transfer_end = row.get("transfer_end_seconds")
+        if mode == "LOCKED_FOCUS":
+            if transfer_start is not None or transfer_end is not None:
+                raise ValueError(
+                    f"depth focus row {index} locked focus cannot declare a transfer window"
+                )
+            if entry_id != target_id or target_id != exit_id or entry_plane != target_plane:
+                raise ValueError(
+                    f"depth focus row {index} locked focus must keep one subject and plane"
+                )
+        else:
+            if transfer_start is None or transfer_end is None:
+                raise ValueError(
+                    f"depth focus row {index} rack focus requires a transfer window"
+                )
+            transfer_start = float(transfer_start)
+            transfer_end = float(transfer_end)
+            if transfer_start < trigger_seconds:
+                raise ValueError(
+                    f"depth focus row {index} focus transfer cannot start before its trigger"
+                )
+            if not trigger_seconds <= transfer_start < transfer_end <= duration:
+                raise ValueError(
+                    f"depth focus row {index} transfer window must stay inside the shot"
+                )
+            if entry_id == target_id and entry_plane == target_plane:
+                raise ValueError(
+                    f"depth focus row {index} rack focus must change subject or depth plane"
+                )
+            if exit_id != target_id:
+                raise ValueError(
+                    f"depth focus row {index} exit focus must equal the declared target"
+                )
+        compiled.append({
+            "shot_index": shot_index,
+            "focus_mode": mode,
+            "entry_focus_descriptor_id": entry_id,
+            "entry_depth_plane": entry_plane,
+            "focus_trigger": require(
+                row.get("focus_trigger"),
+                f"depth focus row {index} focus_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_focus_descriptor_id": target_id,
+            "target_depth_plane": target_plane,
+            "transfer_start_seconds": transfer_start,
+            "transfer_end_seconds": transfer_end,
+            "stop_condition": require(
+                row.get("stop_condition"),
+                f"depth focus row {index} stop_condition is required",
+            ),
+            "exit_focus_descriptor_id": exit_id,
+            "visible_focus_evidence": require(
+                row.get("visible_focus_evidence"),
+                f"depth focus row {index} visible_focus_evidence is required",
+            ),
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['focus_mode']}]："
+        f"初始焦点={row['entry_focus_descriptor_id']}@{row['entry_depth_plane']}；"
+        f"触发={row['focus_trigger']}@{row['trigger_seconds']:g}秒；"
+        f"目标焦点={row['target_focus_descriptor_id']}@{row['target_depth_plane']}；"
+        f"转移={('保持锁焦' if row['transfer_start_seconds'] is None else str(row['transfer_start_seconds']) + '-' + str(row['transfer_end_seconds']) + '秒')}；"
+        f"停止条件={row['stop_condition']}；末焦={row['exit_focus_descriptor_id']}；"
+        f"锐度证据={row['visible_focus_evidence']}；保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【DEPTH-FOCUS TRANSFER LEDGER｜焦点主体、纵深层与触发式拉焦】"
+        + "。".join(prompt_rows)
+        + "。焦点不得抢在主体触发前转移，不得无动机搜索或漂移；"
+        "落焦后必须以可见锐度证据保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": DEPTH_FOCUS_POLICY,
+            "modes": sorted(DEPTH_FOCUS_MODES),
+            "depth_planes": sorted(DEPTH_FOCUS_PLANES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_DEPTH_FOCUS_TRANSFER_PROMPT_RULE_ADAPTER_V14",
+        },
+    )
+
+
+def compile_contact_force_state_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Bind physical contact ownership, force evidence, and cut-to-cut handoffs."""
+    ledger = contract.get("contact_force_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != CONTACT_FORCE_STATE_POLICY:
+        raise ValueError(
+            "contact_force_state_ledger policy must be "
+            f"{CONTACT_FORCE_STATE_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "contact_force_state_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "contact_force_state_ledger must exactly cover all compiled shots"
+        )
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"contact force row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "contact_force_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"contact force row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"contact force row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"contact force row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("contact_track_id"),
+            f"contact force row {index} contact_track_id is required",
+        )
+        mode = require(
+            row.get("contact_mode"),
+            f"contact force row {index} contact_mode is required",
+        )
+        if mode not in CONTACT_FORCE_STATE_MODES:
+            raise ValueError(f"unsupported contact force state mode: {mode}")
+        actor_id = require(
+            row.get("actor_descriptor_id"),
+            f"contact force row {index} actor_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("target_descriptor_id"),
+            f"contact force row {index} target_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        for field, value in (
+            ("actor_descriptor_id", actor_id),
+            ("target_descriptor_id", target_id),
+        ):
+            if value not in descriptor_ids or value not in segment_ids:
+                raise ValueError(
+                    f"contact force row {index} {field} must reference a descriptor in its segment"
+                )
+        entry_contact = require(
+            row.get("entry_contact_state"),
+            f"contact force row {index} entry_contact_state is required",
+        )
+        target_contact = require(
+            row.get("target_contact_state"),
+            f"contact force row {index} target_contact_state is required",
+        )
+        exit_contact = require(
+            row.get("exit_contact_state"),
+            f"contact force row {index} exit_contact_state is required",
+        )
+        prior_exit = prior_exit_by_track.get(track_id)
+        if prior_exit is not None and entry_contact != prior_exit:
+            raise ValueError(
+                f"contact force track {track_id} handoff mismatch: "
+                f"previous exit {prior_exit} but shot {shot_index} enters {entry_contact}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"contact force row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"contact force row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"contact force row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"contact force row {index} must hold the contact result to shot end"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "LOCKED_CONTACT":
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"contact force row {index} locked contact cannot declare a change window"
+                )
+            if entry_contact != target_contact or target_contact != exit_contact:
+                raise ValueError(
+                    f"contact force row {index} locked contact must preserve one state"
+                )
+        else:
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"contact force row {index} triggered change requires a change window"
+                )
+            change_start = float(change_start)
+            change_end = float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"contact force row {index} contact change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"contact force row {index} change window must stay inside the shot"
+                )
+            if entry_contact == target_contact:
+                raise ValueError(
+                    f"contact force row {index} triggered change must change contact state"
+                )
+            if exit_contact != target_contact:
+                raise ValueError(
+                    f"contact force row {index} exit contact must equal the declared target"
+                )
+        compiled.append({
+            "shot_index": shot_index,
+            "contact_track_id": track_id,
+            "contact_mode": mode,
+            "actor_descriptor_id": actor_id,
+            "target_descriptor_id": target_id,
+            "contact_anchor": require(
+                row.get("contact_anchor"),
+                f"contact force row {index} contact_anchor is required",
+            ),
+            "entry_contact_state": entry_contact,
+            "contact_trigger": require(
+                row.get("contact_trigger"),
+                f"contact force row {index} contact_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_contact_state": target_contact,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "force_evidence": require(
+                row.get("force_evidence"),
+                f"contact force row {index} force_evidence is required",
+            ),
+            "visible_contact_evidence": require(
+                row.get("visible_contact_evidence"),
+                f"contact force row {index} visible_contact_evidence is required",
+            ),
+            "exit_contact_state": exit_contact,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_contact
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['contact_track_id']}/{row['contact_mode']}]："
+        f"接触双方={row['actor_descriptor_id']}→{row['target_descriptor_id']}；"
+        f"接触锚点={row['contact_anchor']}；入口接触={row['entry_contact_state']}；"
+        f"触发={row['contact_trigger']}@{row['trigger_seconds']:g}秒；"
+        f"目标接触={row['target_contact_state']}；"
+        f"变化={('保持接触' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"受力证据={row['force_evidence']}；可见接触证据={row['visible_contact_evidence']}；"
+        f"出口接触={row['exit_contact_state']}；保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【CONTACT FORCE STATE LEDGER｜接触归属、受力证据与跨切延续】"
+        + "。".join(prompt_rows)
+        + "。接触变化不得抢在物理触发前发生；同一接触轨道的下一镜入口必须继承上一镜出口，"
+        "并以可见接触与受力证据保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": CONTACT_FORCE_STATE_POLICY,
+            "modes": sorted(CONTACT_FORCE_STATE_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
+        },
+    )
+
+
+def compile_material_emission_state_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Separate intrinsic material color from actual light emission across cuts."""
+    ledger = contract.get("material_emission_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != MATERIAL_EMISSION_POLICY:
+        raise ValueError(
+            "material_emission_state_ledger policy must be "
+            f"{MATERIAL_EMISSION_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "material_emission_state_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "material_emission_state_ledger must exactly cover all compiled shots"
+        )
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"material emission row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "material_emission_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"material emission row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"material emission row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"material emission row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("material_track_id"),
+            f"material emission row {index} material_track_id is required",
+        )
+        descriptor_id = require(
+            row.get("material_descriptor_id"),
+            f"material emission row {index} material_descriptor_id is required",
+        )
+        if descriptor_id not in descriptor_ids or descriptor_id not in set(segment["descriptor_ids"]):
+            raise ValueError(
+                f"material emission row {index} material_descriptor_id must reference a descriptor in its segment"
+            )
+        mode = require(row.get("material_mode"), f"material emission row {index} material_mode is required")
+        if mode not in MATERIAL_EMISSION_MODES:
+            raise ValueError(f"unsupported material emission mode: {mode}")
+        evidence = require(
+            row.get("light_evidence_policy"),
+            f"material emission row {index} light_evidence_policy is required",
+        )
+        if evidence not in MATERIAL_LIGHT_EVIDENCE:
+            raise ValueError(f"unsupported material light evidence policy: {evidence}")
+        entry_emission = require(
+            row.get("entry_emission_state"),
+            f"material emission row {index} entry_emission_state is required",
+        )
+        target_emission = require(
+            row.get("target_emission_state"),
+            f"material emission row {index} target_emission_state is required",
+        )
+        exit_emission = require(
+            row.get("exit_emission_state"),
+            f"material emission row {index} exit_emission_state is required",
+        )
+        prior_exit = prior_exit_by_track.get(track_id)
+        if prior_exit is not None and entry_emission != prior_exit:
+            raise ValueError(
+                f"material emission track {track_id} handoff mismatch: previous exit "
+                f"{prior_exit} but shot {shot_index} enters {entry_emission}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"material emission row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"material emission row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"material emission row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"material emission row {index} must hold the emission result to shot end"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "TRIGGERED_EMISSION_CHANGE":
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"material emission row {index} triggered change requires a change window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"material emission row {index} emission change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"material emission row {index} change window must stay inside the shot"
+                )
+            if entry_emission == target_emission:
+                raise ValueError(
+                    f"material emission row {index} triggered change must change emission state"
+                )
+        else:
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"material emission row {index} locked material cannot declare a change window"
+                )
+            if entry_emission != target_emission:
+                raise ValueError(
+                    f"material emission row {index} locked material must preserve one emission state"
+                )
+        if exit_emission != target_emission:
+            raise ValueError(
+                f"material emission row {index} exit emission must equal the declared target"
+            )
+        if mode == "INTRINSIC_NONEMISSIVE" and evidence != "AMBIENT_REFLECTION_ONLY":
+            raise ValueError(
+                f"material emission row {index} nonemissive material cannot claim cast-light evidence"
+            )
+        if mode == "EMISSIVE_SOURCE" and evidence != "VISIBLE_SOURCE_AND_CAST_LIGHT":
+            raise ValueError(
+                f"material emission row {index} emissive source requires visible source and cast-light evidence"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "material_track_id": track_id,
+            "material_descriptor_id": descriptor_id,
+            "material_mode": mode,
+            "intrinsic_color_evidence": require(
+                row.get("intrinsic_color_evidence"),
+                f"material emission row {index} intrinsic_color_evidence is required",
+            ),
+            "entry_emission_state": entry_emission,
+            "emission_trigger": require(
+                row.get("emission_trigger"),
+                f"material emission row {index} emission_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_emission_state": target_emission,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "light_evidence_policy": evidence,
+            "visible_light_evidence": require(
+                row.get("visible_light_evidence"),
+                f"material emission row {index} visible_light_evidence is required",
+            ),
+            "exit_emission_state": exit_emission,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_emission
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['material_track_id']}/{row['material_mode']}]："
+        f"材质={row['material_descriptor_id']}；本征色证据={row['intrinsic_color_evidence']}；"
+        f"入口发光={row['entry_emission_state']}；触发={row['emission_trigger']}@{row['trigger_seconds']:g}秒；"
+        f"目标发光={row['target_emission_state']}；"
+        f"变化={('保持发光状态' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"光证据策略={row['light_evidence_policy']}；可见光证据={row['visible_light_evidence']}；"
+        f"出口发光={row['exit_emission_state']}；保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【MATERIAL EMISSION STATE LEDGER｜本征材质色与真实发光分离】"
+        + "。".join(prompt_rows)
+        + "。高饱和材质色、透光和环境反射不得自动升级为内部发光；真实发光必须同时提供可见光源与投射光证据。"
+        "同一材质轨道的下一镜入口必须继承上一镜出口并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": MATERIAL_EMISSION_POLICY,
+            "modes": sorted(MATERIAL_EMISSION_MODES),
+            "light_evidence_policies": sorted(MATERIAL_LIGHT_EVIDENCE),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_MATERIAL_EMISSION_STATE_PROMPT_RULE_ADAPTER_V16",
+        },
+    )
+
+
+def compile_entity_form_state_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Lock identity while mutually exclusive character forms change or persist."""
+    ledger = contract.get("entity_form_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != ENTITY_FORM_STATE_POLICY:
+        raise ValueError(
+            "entity_form_state_ledger policy must be "
+            f"{ENTITY_FORM_STATE_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "entity_form_state_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("entity_form_state_ledger must exactly cover all compiled shots")
+
+    compiled, prior_exit_by_track, identity_by_track = [], {}, {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"entity form row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "entity_form_state_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"entity form row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"entity form row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"entity form row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("entity_track_id"), f"entity form row {index} entity_track_id is required"
+        )
+        descriptor_id = require(
+            row.get("entity_descriptor_id"),
+            f"entity form row {index} entity_descriptor_id is required",
+        )
+        if descriptor_id not in descriptor_ids or descriptor_id not in set(segment["descriptor_ids"]):
+            raise ValueError(
+                f"entity form row {index} entity_descriptor_id must reference a descriptor in its segment"
+            )
+        identity_anchor = require(
+            row.get("identity_anchor_id"),
+            f"entity form row {index} identity_anchor_id is required",
+        )
+        previous_identity = identity_by_track.get(track_id)
+        if previous_identity is not None and identity_anchor != previous_identity:
+            raise ValueError(
+                f"entity form track {track_id} identity anchor changed across cuts"
+            )
+        forms = require(
+            row.get("mutually_exclusive_forms"),
+            f"entity form row {index} mutually_exclusive_forms are required",
+        )
+        if not isinstance(forms, list) or len(forms) < 2 or len(set(forms)) != len(forms):
+            raise ValueError(
+                f"entity form row {index} requires at least two unique mutually exclusive forms"
+            )
+        mode = require(row.get("form_mode"), f"entity form row {index} form_mode is required")
+        if mode not in ENTITY_FORM_STATE_MODES:
+            raise ValueError(f"unsupported entity form mode: {mode}")
+        entry_form = require(
+            row.get("entry_form_state"),
+            f"entity form row {index} entry_form_state is required",
+        )
+        target_form = require(
+            row.get("target_form_state"),
+            f"entity form row {index} target_form_state is required",
+        )
+        exit_form = require(
+            row.get("exit_form_state"),
+            f"entity form row {index} exit_form_state is required",
+        )
+        if entry_form not in forms or target_form not in forms or exit_form not in forms:
+            raise ValueError(
+                f"entity form row {index} entry, target, and exit forms must be declared mutually exclusive forms"
+            )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_form != previous_exit:
+            raise ValueError(
+                f"entity form track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_form}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"entity form row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"entity form row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"entity form row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"entity form row {index} must hold the form result to shot end"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "TRIGGERED_FORM_CHANGE":
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"entity form row {index} triggered form change requires a change window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"entity form row {index} form change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"entity form row {index} change window must stay inside the shot"
+                )
+            if entry_form == target_form:
+                raise ValueError(
+                    f"entity form row {index} triggered change must change form state"
+                )
+        else:
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"entity form row {index} locked form cannot declare a change window"
+                )
+            if entry_form != target_form:
+                raise ValueError(
+                    f"entity form row {index} locked form must preserve one form state"
+                )
+        if exit_form != target_form:
+            raise ValueError(
+                f"entity form row {index} exit form must equal the declared target"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "entity_track_id": track_id,
+            "entity_descriptor_id": descriptor_id,
+            "identity_anchor_id": identity_anchor,
+            "form_mode": mode,
+            "mutually_exclusive_forms": forms,
+            "entry_form_state": entry_form,
+            "form_transition_trigger": require(
+                row.get("form_transition_trigger"),
+                f"entity form row {index} form_transition_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_form_state": target_form,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "visible_identity_evidence": require(
+                row.get("visible_identity_evidence"),
+                f"entity form row {index} visible_identity_evidence is required",
+            ),
+            "visible_form_evidence": require(
+                row.get("visible_form_evidence"),
+                f"entity form row {index} visible_form_evidence is required",
+            ),
+            "forbidden_form_evidence": require(
+                row.get("forbidden_form_evidence"),
+                f"entity form row {index} forbidden_form_evidence is required",
+            ),
+            "exit_form_state": exit_form,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        identity_by_track[track_id] = identity_anchor
+        prior_exit_by_track[track_id] = exit_form
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['entity_track_id']}/{row['form_mode']}]："
+        f"实体={row['entity_descriptor_id']}；身份锚点={row['identity_anchor_id']}；"
+        f"互斥形态={','.join(row['mutually_exclusive_forms'])}；入口形态={row['entry_form_state']}；"
+        f"触发={row['form_transition_trigger']}@{row['trigger_seconds']:g}秒；目标形态={row['target_form_state']}；"
+        f"变化={('锁定形态' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"身份证据={row['visible_identity_evidence']}；形态证据={row['visible_form_evidence']}；"
+        f"禁用形态证据={row['forbidden_form_evidence']}；出口形态={row['exit_form_state']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【ENTITY FORM STATE LEDGER｜实体互斥形态与身份锚点】"
+        + "。".join(prompt_rows)
+        + "。同一实体不得同时出现互斥形态；盔甲、头盔、体型和伤后服装不得未声明切换。"
+        "合法变形必须等待物理触发、落在声明窗口内，并以可见身份锚点证明仍为同一实体。"
+        "同一实体轨道的下一镜入口必须继承上一镜出口形态并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": ENTITY_FORM_STATE_POLICY,
+            "modes": sorted(ENTITY_FORM_STATE_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_ENTITY_FORM_STATE_PROMPT_RULE_ADAPTER_V17",
+        },
+    )
+
+
+def compile_damage_continuity_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Preserve cumulative wounds, severance, and damaged equipment across cuts."""
+    ledger = contract.get("damage_continuity_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != DAMAGE_CONTINUITY_POLICY:
+        raise ValueError(
+            "damage_continuity_ledger policy must be "
+            f"{DAMAGE_CONTINUITY_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "damage_continuity_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("damage_continuity_ledger must exactly cover all compiled shots")
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"damage continuity row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "damage_continuity_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"damage continuity row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"damage continuity row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"damage continuity row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("damage_track_id"),
+            f"damage continuity row {index} damage_track_id is required",
+        )
+        descriptor_id = require(
+            row.get("entity_descriptor_id"),
+            f"damage continuity row {index} entity_descriptor_id is required",
+        )
+        if descriptor_id not in descriptor_ids or descriptor_id not in set(segment["descriptor_ids"]):
+            raise ValueError(
+                f"damage continuity row {index} entity_descriptor_id must reference a descriptor in its segment"
+            )
+        mode = require(
+            row.get("damage_mode"), f"damage continuity row {index} damage_mode is required"
+        )
+        if mode not in DAMAGE_CONTINUITY_MODES:
+            raise ValueError(f"unsupported damage continuity mode: {mode}")
+        baseline = require(
+            row.get("baseline_damage_state"),
+            f"damage continuity row {index} baseline_damage_state is required",
+        )
+        entry_damage = require(
+            row.get("entry_damage_state"),
+            f"damage continuity row {index} entry_damage_state is required",
+        )
+        target_damage = require(
+            row.get("target_damage_state"),
+            f"damage continuity row {index} target_damage_state is required",
+        )
+        exit_damage = require(
+            row.get("exit_damage_state"),
+            f"damage continuity row {index} exit_damage_state is required",
+        )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_damage != previous_exit:
+            raise ValueError(
+                f"damage track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_damage}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"damage continuity row {index} trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"damage continuity row {index} trigger_seconds must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"damage continuity row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"damage continuity row {index} must hold damage evidence to shot end"
+            )
+        irreversible = row.get("irreversible_in_sequence")
+        if not isinstance(irreversible, bool):
+            raise ValueError(
+                f"damage continuity row {index} irreversible_in_sequence must be boolean"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        if mode == "TRIGGERED_DAMAGE_CHANGE":
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"damage continuity row {index} triggered damage change requires a change window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if change_start < trigger_seconds:
+                raise ValueError(
+                    f"damage continuity row {index} damage change cannot start before its trigger"
+                )
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"damage continuity row {index} change window must stay inside the shot"
+                )
+            if entry_damage == target_damage:
+                raise ValueError(
+                    f"damage continuity row {index} triggered change must change damage state"
+                )
+            if irreversible and entry_damage != baseline and target_damage == baseline:
+                raise ValueError(
+                    f"damage continuity row {index} irreversible damage cannot silently restore to baseline"
+                )
+        else:
+            if change_start is not None or change_end is not None:
+                raise ValueError(
+                    f"damage continuity row {index} locked damage cannot declare a change window"
+                )
+            if entry_damage != target_damage:
+                raise ValueError(
+                    f"damage continuity row {index} locked damage must preserve one damage state"
+                )
+        if exit_damage != target_damage:
+            raise ValueError(
+                f"damage continuity row {index} exit damage must equal the declared target"
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "damage_track_id": track_id,
+            "entity_descriptor_id": descriptor_id,
+            "damage_site": require(
+                row.get("damage_site"),
+                f"damage continuity row {index} damage_site is required",
+            ),
+            "damage_mode": mode,
+            "baseline_damage_state": baseline,
+            "entry_damage_state": entry_damage,
+            "damage_trigger": require(
+                row.get("damage_trigger"),
+                f"damage continuity row {index} damage_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_damage_state": target_damage,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "irreversible_in_sequence": irreversible,
+            "visible_damage_evidence": require(
+                row.get("visible_damage_evidence"),
+                f"damage continuity row {index} visible_damage_evidence is required",
+            ),
+            "forbidden_restoration_evidence": require(
+                row.get("forbidden_restoration_evidence"),
+                f"damage continuity row {index} forbidden_restoration_evidence is required",
+            ),
+            "exit_damage_state": exit_damage,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_damage
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['damage_track_id']}/{row['damage_mode']}]："
+        f"实体={row['entity_descriptor_id']}；损伤部位={row['damage_site']}；"
+        f"基线={row['baseline_damage_state']}；入口损伤={row['entry_damage_state']}；"
+        f"触发={row['damage_trigger']}@{row['trigger_seconds']:g}秒；目标损伤={row['target_damage_state']}；"
+        f"变化={('锁定损伤' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"序列内不可逆={row['irreversible_in_sequence']}；可见损伤证据={row['visible_damage_evidence']}；"
+        f"禁用恢复证据={row['forbidden_restoration_evidence']}；出口损伤={row['exit_damage_state']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【DAMAGE CONTINUITY LEDGER｜累积损伤与不可逆恢复约束】"
+        + "。".join(prompt_rows)
+        + "。伤口、断肢、破甲、裂纹与血迹必须按物理触发累积并提供可见证据；"
+        "序列内不可逆损伤不得在切镜、遮挡或换景后静默复原。"
+        "同一损伤轨道的下一镜入口必须继承上一镜出口并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": DAMAGE_CONTINUITY_POLICY,
+            "modes": sorted(DAMAGE_CONTINUITY_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_DAMAGE_CONTINUITY_PROMPT_RULE_ADAPTER_V18",
+        },
+    )
+
+
+def compile_action_resolution_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Resolve declared action intent to a visible completion, interruption, or hold."""
+    ledger = contract.get("action_resolution_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != ACTION_RESOLUTION_POLICY:
+        raise ValueError(
+            "action_resolution_ledger policy must be "
+            f"{ACTION_RESOLUTION_POLICY}"
+        )
+    rows = require(ledger.get("shots"), "action_resolution_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("action_resolution_ledger must exactly cover all compiled shots")
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"action resolution row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "action_resolution_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"), f"action resolution row {index} entry_state is required"
+        )
+        exit_state = require(
+            row.get("exit_state"), f"action resolution row {index} exit_state is required"
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"action resolution row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("action_track_id"),
+            f"action resolution row {index} action_track_id is required",
+        )
+        actor_id = require(
+            row.get("actor_descriptor_id"),
+            f"action resolution row {index} actor_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        if actor_id not in descriptor_ids or actor_id not in segment_ids:
+            raise ValueError(
+                f"action resolution row {index} actor_descriptor_id must reference a descriptor in its segment"
+            )
+        mode = require(
+            row.get("resolution_mode"),
+            f"action resolution row {index} resolution_mode is required",
+        )
+        if mode not in ACTION_RESOLUTION_MODES:
+            raise ValueError(f"unsupported action resolution mode: {mode}")
+        entry_action = require(
+            row.get("entry_action_state"),
+            f"action resolution row {index} entry_action_state is required",
+        )
+        intended_completion = require(
+            row.get("intended_completion_state"),
+            f"action resolution row {index} intended_completion_state is required",
+        )
+        exit_action = require(
+            row.get("exit_action_state"),
+            f"action resolution row {index} exit_action_state is required",
+        )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_action != previous_exit:
+            raise ValueError(
+                f"action track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_action}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("resolution_trigger_seconds"),
+            f"action resolution row {index} resolution_trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"action resolution row {index} resolution trigger must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"action resolution row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"action resolution row {index} must hold the resolved outcome to shot end"
+            )
+        resolve_start = row.get("resolution_start_seconds")
+        resolve_end = row.get("resolution_end_seconds")
+        interruptor_id = row.get("interruptor_descriptor_id")
+        interruption_action = row.get("interruption_action")
+        if mode == "HELD":
+            if resolve_start is not None or resolve_end is not None:
+                raise ValueError(
+                    f"action resolution row {index} held intent cannot declare a resolution window"
+                )
+            if interruptor_id is not None or interruption_action is not None:
+                raise ValueError(
+                    f"action resolution row {index} held intent cannot declare interruption"
+                )
+            if exit_action != entry_action:
+                raise ValueError(
+                    f"action resolution row {index} held intent must preserve its entry action state"
+                )
+        else:
+            if resolve_start is None or resolve_end is None:
+                raise ValueError(
+                    f"action resolution row {index} resolved action requires a resolution window"
+                )
+            resolve_start, resolve_end = float(resolve_start), float(resolve_end)
+            if not trigger_seconds <= resolve_start < resolve_end <= duration:
+                raise ValueError(
+                    f"action resolution row {index} resolution window must follow its trigger and stay inside the shot"
+                )
+            if mode == "COMPLETED":
+                if interruptor_id is not None or interruption_action is not None:
+                    raise ValueError(
+                        f"action resolution row {index} completed action cannot declare interruption"
+                    )
+                if exit_action != intended_completion:
+                    raise ValueError(
+                        f"action resolution row {index} completed action must reach intended completion state"
+                    )
+            else:
+                if not interruptor_id or interruptor_id not in descriptor_ids or interruptor_id not in segment_ids:
+                    raise ValueError(
+                        f"action resolution row {index} interrupted action requires an in-segment interruptor descriptor"
+                    )
+                if interruptor_id == actor_id:
+                    raise ValueError(
+                        f"action resolution row {index} interruptor must differ from actor"
+                    )
+                require(
+                    interruption_action,
+                    f"action resolution row {index} interruption_action is required",
+                )
+                if exit_action == intended_completion:
+                    raise ValueError(
+                        f"action resolution row {index} interrupted action cannot silently complete"
+                    )
+        compiled.append({
+            "shot_index": shot_index,
+            "action_track_id": track_id,
+            "actor_descriptor_id": actor_id,
+            "intended_action": require(
+                row.get("intended_action"),
+                f"action resolution row {index} intended_action is required",
+            ),
+            "entry_action_state": entry_action,
+            "visible_intent_evidence": require(
+                row.get("visible_intent_evidence"),
+                f"action resolution row {index} visible_intent_evidence is required",
+            ),
+            "resolution_mode": mode,
+            "resolution_trigger": require(
+                row.get("resolution_trigger"),
+                f"action resolution row {index} resolution_trigger is required",
+            ),
+            "resolution_trigger_seconds": trigger_seconds,
+            "resolution_start_seconds": resolve_start,
+            "resolution_end_seconds": resolve_end,
+            "intended_completion_state": intended_completion,
+            "interruptor_descriptor_id": interruptor_id,
+            "interruption_action": interruption_action,
+            "visible_outcome_evidence": require(
+                row.get("visible_outcome_evidence"),
+                f"action resolution row {index} visible_outcome_evidence is required",
+            ),
+            "forbidden_outcome_evidence": require(
+                row.get("forbidden_outcome_evidence"),
+                f"action resolution row {index} forbidden_outcome_evidence is required",
+            ),
+            "exit_action_state": exit_action,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_action
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['action_track_id']}/{row['resolution_mode']}]："
+        f"行动者={row['actor_descriptor_id']}；意图={row['intended_action']}；"
+        f"入口行动={row['entry_action_state']}；意图证据={row['visible_intent_evidence']}；"
+        f"裁决触发={row['resolution_trigger']}@{row['resolution_trigger_seconds']:g}秒；"
+        f"裁决窗口={('保持未决' if row['resolution_start_seconds'] is None else str(row['resolution_start_seconds']) + '-' + str(row['resolution_end_seconds']) + '秒')}；"
+        f"预期完成={row['intended_completion_state']}；干预者={row['interruptor_descriptor_id'] or '无'}；"
+        f"干预动作={row['interruption_action'] or '无'}；结果证据={row['visible_outcome_evidence']}；"
+        f"禁用结果={row['forbidden_outcome_evidence']}；出口行动={row['exit_action_state']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【ACTION RESOLUTION LEDGER｜行动意图、干预与可见结果裁决】"
+        + "。".join(prompt_rows)
+        + "。每个行动意图必须以可见完成、可见中断或显式保持未决收束；"
+        "被阻挡、制止、缴械或打断的行动不得在镜头末尾静默完成。"
+        "同一行动轨道的下一镜入口必须继承上一镜出口并保持结果可读。",
+        {
+            "version": "1.0.0",
+            "policy": ACTION_RESOLUTION_POLICY,
+            "modes": sorted(ACTION_RESOLUTION_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
+        },
+    )
+
+
+def compile_camera_action_coupling_ledger(
+    contract: dict, segments: list[dict]
+) -> tuple[str, dict | None]:
+    """Bind camera response timing to subject change and a readable result hold."""
+    ledger = contract.get("camera_action_coupling_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != CAMERA_ACTION_COUPLING_POLICY:
+        raise ValueError(
+            "camera_action_coupling_ledger policy must be "
+            f"{CAMERA_ACTION_COUPLING_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "camera_action_coupling_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "camera_action_coupling_ledger must exactly cover all compiled shots"
+        )
+
+    compiled = []
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"), f"camera coupling row {index} shot_index is required"
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "camera_action_coupling_ledger shot_index must match compiled shot order"
+            )
+        coupling_type = require(
+            row.get("coupling_type"),
+            f"camera coupling shot {shot_index} coupling_type is required",
+        )
+        if coupling_type not in CAMERA_ACTION_COUPLING_TYPES:
+            raise ValueError(f"unsupported camera coupling type: {coupling_type}")
+        response_type = require(
+            row.get("camera_response_type"),
+            f"camera coupling shot {shot_index} camera_response_type is required",
+        )
+        if response_type not in CAMERA_ACTION_RESPONSE_TYPES:
+            raise ValueError(f"unsupported camera response type: {response_type}")
+        motivation = require(
+            row.get("camera_motivation"),
+            f"camera coupling shot {shot_index} camera_motivation is required",
+        )
+        if motivation != segment["camera_motivation"]:
+            raise ValueError(
+                f"camera coupling shot {shot_index} camera_motivation must match its segment"
+            )
+        entry_state = require(
+            row.get("entry_state"),
+            f"camera coupling shot {shot_index} entry_state is required",
+        )
+        exit_state = require(
+            row.get("exit_state"),
+            f"camera coupling shot {shot_index} exit_state is required",
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"camera coupling shot {shot_index} entry/exit state must match its segment"
+            )
+        shot_duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"camera coupling shot {shot_index} trigger_seconds is required",
+        ))
+        result_hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"camera coupling shot {shot_index} result_hold_until_seconds is required",
+        ))
+        if not 0 <= trigger_seconds < shot_duration:
+            raise ValueError(
+                f"camera coupling shot {shot_index} trigger_seconds must be inside the shot"
+            )
+        if abs(result_hold_until - shot_duration) > 0.01:
+            raise ValueError(
+                f"camera coupling shot {shot_index} must hold the visible result to shot end"
+            )
+
+        movement_start = row.get("movement_start_seconds")
+        movement_end = row.get("movement_end_seconds")
+        if coupling_type == "LOCKED_HOLD":
+            if response_type not in {"LOCKED_FRAME", "HANDHELD_BREATHING"}:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} LOCKED_HOLD needs a locked response"
+                )
+            if movement_start is not None or movement_end is not None:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} LOCKED_HOLD cannot declare movement timing"
+                )
+        else:
+            if response_type in {"LOCKED_FRAME", "HANDHELD_BREATHING"}:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} SUBJECT_TRIGGERED_MOVE needs movement"
+                )
+            movement_start = float(require(
+                movement_start,
+                f"camera coupling shot {shot_index} movement_start_seconds is required",
+            ))
+            movement_end = float(require(
+                movement_end,
+                f"camera coupling shot {shot_index} movement_end_seconds is required",
+            ))
+            if movement_start < trigger_seconds:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} movement cannot start before its trigger"
+                )
+            if not movement_start < movement_end <= shot_duration:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} movement timing must stay inside the shot"
+                )
+            if result_hold_until - movement_end < 0.5:
+                raise ValueError(
+                    f"camera coupling shot {shot_index} needs at least 0.5s result hold"
+                )
+
+        compiled.append({
+            "shot_index": shot_index,
+            "coupling_type": coupling_type,
+            "physical_trigger": require(
+                row.get("physical_trigger"),
+                f"camera coupling shot {shot_index} physical_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "subject_change": require(
+                row.get("subject_change"),
+                f"camera coupling shot {shot_index} subject_change is required",
+            ),
+            "camera_response_type": response_type,
+            "camera_response": require(
+                row.get("camera_response"),
+                f"camera coupling shot {shot_index} camera_response is required",
+            ),
+            "movement_start_seconds": movement_start,
+            "movement_end_seconds": movement_end,
+            "camera_motivation": motivation,
+            "stop_condition": require(
+                row.get("stop_condition"),
+                f"camera coupling shot {shot_index} stop_condition is required",
+            ),
+            "visible_result": require(
+                row.get("visible_result"),
+                f"camera coupling shot {shot_index} visible_result is required",
+            ),
+            "result_hold_until_seconds": result_hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+
+    prompt_rows = []
+    for row in compiled:
+        movement = (
+            "全镜保持构图"
+            if row["coupling_type"] == "LOCKED_HOLD"
+            else f"{row['movement_start_seconds']:g}-{row['movement_end_seconds']:g}秒执行"
+        )
+        prompt_rows.append(
+            f"镜头{row['shot_index']}[{row['coupling_type']}]：{row['trigger_seconds']:g}秒"
+            f"主体触发={row['physical_trigger']}，主体变化={row['subject_change']}；"
+            f"镜头响应={row['camera_response_type']}({row['camera_response']})，{movement}；"
+            f"动机={row['camera_motivation']}；停止条件={row['stop_condition']}；"
+            f"可见结果={row['visible_result']}并保持到{row['result_hold_until_seconds']:g}秒；"
+            f"入口={row['entry_state']}，出口={row['exit_state']}"
+        )
+    return (
+        "\n【CAMERA-ACTION COUPLING LEDGER｜主体触发、镜头响应、结果停留】"
+        + "。".join(prompt_rows)
+        + "。镜头不得早于主体物理触发启动；到达停止条件后必须停住，并把可见结果保留到本镜结束。",
+        {
+            "version": "1.0.0",
+            "policy": CAMERA_ACTION_COUPLING_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "adapter": "HELL_GRIND_CAMERA_ACTION_COUPLING_PROMPT_RULE_ADAPTER_V11",
+        },
+    )
+
+
+def compile_cross_cut_state_ledger(
+    contract: dict, shot_count: int, descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Compile exact per-shot state handoffs so cuts cannot silently reset facts."""
+    ledger = contract.get("cross_cut_state_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("reset_policy") != "NO_UNDECLARED_RESET_ACROSS_CUTS":
+        raise ValueError(
+            "cross_cut_state_ledger reset_policy must be NO_UNDECLARED_RESET_ACROSS_CUTS"
+        )
+    tracks = require(ledger.get("tracks"), "cross_cut_state_ledger tracks are required")
+    if not isinstance(tracks, list) or not 1 <= len(tracks) <= 8:
+        raise ValueError("cross_cut_state_ledger must contain 1 to 8 tracks")
+
+    compiled, track_ids = [], set()
+    for track_index, track in enumerate(tracks, start=1):
+        track_id = require(track.get("track_id"), f"state track {track_index} track_id is required")
+        if track_id in track_ids:
+            raise ValueError(f"duplicate cross-cut state track: {track_id}")
+        track_ids.add(track_id)
+        continuity_class = require(
+            track.get("continuity_class"), f"state track {track_id} continuity_class is required"
+        )
+        if continuity_class not in CROSS_CUT_CONTINUITY_CLASSES:
+            raise ValueError(f"unsupported cross-cut continuity class: {continuity_class}")
+        subject_id = require(
+            track.get("subject_descriptor_id"),
+            f"state track {track_id} subject_descriptor_id is required",
+        )
+        if subject_id not in descriptor_ids:
+            raise ValueError(f"state track {track_id} references unknown descriptor: {subject_id}")
+        states = require(track.get("segment_states"), f"state track {track_id} segment_states are required")
+        if not isinstance(states, list) or len(states) != shot_count:
+            raise ValueError(f"state track {track_id} must exactly cover all compiled shots")
+
+        compiled_states, previous_exit = [], None
+        for state_index, state in enumerate(states, start=1):
+            shot_index = int(require(
+                state.get("shot_index"), f"state track {track_id} row {state_index} shot_index is required"
+            ))
+            if shot_index != state_index:
+                raise ValueError(f"state track {track_id} shot_index must match compiled shot order")
+            entry_state = require(
+                state.get("entry_state"), f"state track {track_id} shot {shot_index} entry_state is required"
+            )
+            exit_state = require(
+                state.get("exit_state"), f"state track {track_id} shot {shot_index} exit_state is required"
+            )
+            if previous_exit is not None and entry_state != previous_exit:
+                raise ValueError(
+                    f"cross-cut state handoff mismatch for {track_id}: "
+                    f"shot {shot_index - 1} exits {previous_exit} but shot {shot_index} enters {entry_state}"
+                )
+            compiled_states.append({
+                "shot_index": shot_index,
+                "entry_state": entry_state,
+                "exit_state": exit_state,
+                "visible_evidence": require(
+                    state.get("visible_evidence"),
+                    f"state track {track_id} shot {shot_index} visible_evidence is required",
+                ),
+            })
+            previous_exit = exit_state
+        terminal_state = require(
+            track.get("terminal_state"), f"state track {track_id} terminal_state is required"
+        )
+        if terminal_state != previous_exit:
+            raise ValueError(f"state track {track_id} terminal_state must match its final exit_state")
+        compiled.append({
+            "track_id": track_id,
+            "continuity_class": continuity_class,
+            "subject_descriptor_id": subject_id,
+            "segment_states": compiled_states,
+            "terminal_state": terminal_state,
+        })
+
+    track_rows = []
+    for track in compiled:
+        states = "；".join(
+            f"镜头{state['shot_index']}入口={state['entry_state']}，可见证据={state['visible_evidence']}，出口={state['exit_state']}"
+            for state in track["segment_states"]
+        )
+        track_rows.append(
+            f"{track['track_id']}[{track['continuity_class']}]绑定{track['subject_descriptor_id']}："
+            f"{states}；终态={track['terminal_state']}"
+        )
+    prompt = (
+        "\n【CROSS-CUT STATE LEDGER｜跨镜状态账本】" + "。".join(track_rows) + "。"
+        "相邻镜头必须原样继承上一镜出口状态；角色、伤势、道具、空间关系和环境结果均不得未声明复原。"
+    )
+    return prompt, {
+        "version": "1.0.0",
+        "reset_policy": "NO_UNDECLARED_RESET_ACROSS_CUTS",
+        "tracks": compiled,
+        "full_shot_coverage": True,
+        "adapter": "HELL_GRIND_CROSS_CUT_STATE_LEDGER_PROMPT_RULE_ADAPTER_V8",
+    }
+
 
 def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tuple[str, dict | None]:
     """Compile a descriptor-first, time-coded shot prompt without mixing concerns."""
@@ -151,6 +2458,43 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     negatives = require(contract.get("negative_constraints"), "cinematic negative_constraints are required")
     if not isinstance(negatives, list) or not negatives:
         raise ValueError("cinematic negative_constraints must be a non-empty list")
+    state_ledger_prompt, state_ledger = compile_cross_cut_state_ledger(
+        contract, shot_count, descriptor_ids
+    )
+    information_ladder_prompt, information_ladder = compile_shot_information_ladder(
+        contract, compiled
+    )
+    spatial_axis_prompt, spatial_axis_ledger = compile_spatial_axis_ledger(
+        contract, compiled, descriptor_ids
+    )
+    offscreen_prompt, offscreen_ledger = compile_offscreen_relationship_ledger(
+        contract, compiled, descriptor_ids, spatial_axis_ledger
+    )
+    depth_focus_prompt, depth_focus_ledger = compile_depth_focus_ledger(
+        contract, compiled, descriptor_ids
+    )
+    contact_force_prompt, contact_force_ledger = compile_contact_force_state_ledger(
+        contract, compiled, descriptor_ids
+    )
+    material_emission_prompt, material_emission_ledger = compile_material_emission_state_ledger(
+        contract, compiled, descriptor_ids
+    )
+    entity_form_prompt, entity_form_ledger = compile_entity_form_state_ledger(
+        contract, compiled, descriptor_ids
+    )
+    damage_continuity_prompt, damage_continuity_ledger = compile_damage_continuity_ledger(
+        contract, compiled, descriptor_ids
+    )
+    action_resolution_prompt, action_resolution_ledger = compile_action_resolution_ledger(
+        contract, compiled, descriptor_ids
+    )
+    boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
+        contract, compiled
+    )
+    camera_style_prompt, camera_style_plan = compile_camera_style_plan(contract, compiled)
+    coupling_prompt, coupling_ledger = compile_camera_action_coupling_ledger(
+        contract, compiled
+    )
     segment_rows = [
         f"{row['start_seconds']:g}-{row['end_seconds']:g}秒 / 镜头{row['shot_index']}：目的={row['narrative_purpose']}；"
         f"入口={row['entry_state']}；出口={row['exit_state']}；引用={','.join(row['descriptor_ids'])}；"
@@ -162,6 +2506,19 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     prompt = (
         "\n\n【LOCKED DESCRIPTORS｜逐镜原文复用】" + "；".join(descriptor_rows)
         + "。\n【SCENE PURPOSE / GEOMETRY / TIME-CODED CUTS】\n" + "\n".join(segment_rows)
+        + camera_style_prompt
+        + coupling_prompt
+        + spatial_axis_prompt
+        + offscreen_prompt
+        + depth_focus_prompt
+        + contact_force_prompt
+        + material_emission_prompt
+        + entity_form_prompt
+        + damage_continuity_prompt
+        + action_resolution_prompt
+        + boundary_prompt
+        + information_ladder_prompt
+        + state_ledger_prompt
         + "\n【KEY RULES】" + "；".join(rules)
         + f"。\n【ATMOSPHERE STATE】{atmosphere}。\n【STYLE PREFIX】{style}。"
         + "\n【NEGATIVE CONSTRAINTS】" + " / ".join(negatives) + "。"
@@ -170,7 +2527,33 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "camera_style_plan": camera_style_plan,
+        "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
+        "camera_action_coupling_ledger": coupling_ledger,
+        "camera_action_coupling_gate": "PASS_TRIGGER_RESPONSE_RESULT_HOLD" if coupling_ledger else "NOT_APPLICABLE",
+        "spatial_axis_ledger": spatial_axis_ledger,
+        "spatial_axis_gate": "PASS_SCREEN_DIRECTION_EYELINE_AND_BACKGROUND_COVERAGE" if spatial_axis_ledger else "NOT_APPLICABLE",
+        "offscreen_relationship_ledger": offscreen_ledger,
+        "offscreen_relationship_gate": "PASS_TARGET_VISIBILITY_EVIDENCE_AND_REENTRY" if offscreen_ledger else "NOT_APPLICABLE",
+        "depth_focus_ledger": depth_focus_ledger,
+        "depth_focus_gate": "PASS_TRIGGERED_FOCUS_TRANSFER_AND_TERMINAL_HOLD" if depth_focus_ledger else "NOT_APPLICABLE",
+        "contact_force_state_ledger": contact_force_ledger,
+        "contact_force_state_gate": "PASS_CONTACT_OWNERSHIP_FORCE_AND_CUT_HANDOFF" if contact_force_ledger else "NOT_APPLICABLE",
+        "material_emission_state_ledger": material_emission_ledger,
+        "material_emission_state_gate": "PASS_INTRINSIC_COLOR_EMISSION_EVIDENCE_AND_CUT_HANDOFF" if material_emission_ledger else "NOT_APPLICABLE",
+        "entity_form_state_ledger": entity_form_ledger,
+        "entity_form_state_gate": "PASS_IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_HANDOFF" if entity_form_ledger else "NOT_APPLICABLE",
+        "damage_continuity_ledger": damage_continuity_ledger,
+        "damage_continuity_gate": "PASS_CUMULATIVE_DAMAGE_EVIDENCE_AND_CUT_HANDOFF" if damage_continuity_ledger else "NOT_APPLICABLE",
+        "action_resolution_ledger": action_resolution_ledger,
+        "action_resolution_gate": "PASS_INTENT_INTERRUPTION_OUTCOME_AND_CUT_HANDOFF" if action_resolution_ledger else "NOT_APPLICABLE",
+        "shot_boundary_state_ledger": boundary_ledger,
+        "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
+        "shot_information_ladder": information_ladder,
+        "shot_information_gate": "PASS_UNIQUE_FULL_COVERAGE" if information_ladder else "NOT_APPLICABLE",
+        "cross_cut_state_ledger": state_ledger,
+        "cross_cut_state_gate": "PASS_EXACT_HANDOFF_AND_FULL_COVERAGE" if state_ledger else "NOT_APPLICABLE",
         "source_method": "HELL_GRIND_LICENSED_PRODUCTION_METHODOLOGY",
     }
 
@@ -250,6 +2633,180 @@ def compile_combat_camera_language(
         "stable_observation_between_dynamic_seconds": 1.0 if is_long_take else 0.0,
         "unplanned_time_policy": "LOCKED_CAMERA", "selection_gate": "PASS_MOTIVATED_ONLY",
     }
+
+
+def compile_combat_continuity_ladders(
+    contract: dict, beats: list[dict], camera_contract: dict
+) -> tuple[str, list[dict]]:
+    """Bind causal evidence and a resolving composition across combat beats."""
+    plans = require(contract.get("continuity_ladders"), "combat continuity_ladders are required")
+    if not isinstance(plans, list) or not 1 <= len(plans) <= 3:
+        raise ValueError("combat continuity_ladders must contain 1 to 3 plans")
+    camera_segments = camera_contract["segments"]
+    compiled, seen_methods = [], set()
+    for index, row in enumerate(plans, start=1):
+        method_id = require(row.get("method_id"), f"continuity ladder {index} method_id is required")
+        method = COMBAT_CONTINUITY_METHODS.get(method_id)
+        if method is None:
+            raise ValueError(f"unsupported combat continuity method: {method_id}")
+        if method_id in seen_methods:
+            raise ValueError(f"duplicate combat continuity method: {method_id}")
+        seen_methods.add(method_id)
+        beat_indexes = require(row.get("beat_indexes"), f"continuity ladder {index} beat_indexes are required")
+        if (
+            not isinstance(beat_indexes, list)
+            or len(beat_indexes) < method["min_beats"]
+            or beat_indexes != sorted(set(beat_indexes))
+            or any(not isinstance(value, int) or not 1 <= value <= len(beats) for value in beat_indexes)
+        ):
+            raise ValueError(
+                f"continuity method {method_id} requires at least {method['min_beats']} ordered valid beat indexes"
+            )
+        evidence_rows = require(
+            row.get("evidence_beats"), f"continuity ladder {index} evidence_beats are required"
+        )
+        if not isinstance(evidence_rows, list) or not evidence_rows:
+            raise ValueError(f"continuity method {method_id} evidence_beats must be non-empty")
+        evidence_types, evidence_signatures, compiled_evidence = set(), set(), []
+        for evidence_index, evidence in enumerate(evidence_rows, start=1):
+            beat_index = int(require(
+                evidence.get("action_beat_index"),
+                f"continuity ladder {index} evidence {evidence_index} action_beat_index is required",
+            ))
+            evidence_type = require(
+                evidence.get("evidence_type"),
+                f"continuity ladder {index} evidence {evidence_index} evidence_type is required",
+            )
+            if beat_index not in beat_indexes:
+                raise ValueError(f"continuity method {method_id} evidence must bind one of its beat_indexes")
+            if evidence_type not in COMBAT_EVIDENCE_TYPES:
+                raise ValueError(f"unsupported combat continuity evidence type: {evidence_type}")
+            signature = (beat_index, evidence_type)
+            if signature in evidence_signatures:
+                raise ValueError(f"duplicate combat continuity evidence: {signature}")
+            evidence_signatures.add(signature)
+            evidence_types.add(evidence_type)
+            compiled_evidence.append({
+                "action_beat_index": beat_index,
+                "evidence_type": evidence_type,
+                "visible_result": require(
+                    evidence.get("visible_result"),
+                    f"continuity ladder {index} evidence {evidence_index} visible_result is required",
+                ),
+            })
+        missing = sorted(method["required_evidence"] - evidence_types)
+        if missing:
+            raise ValueError(f"continuity method {method_id} missing required evidence: {','.join(missing)}")
+
+        measurement = row.get("spatial_measurement")
+        if method["measurement_required"]:
+            measurement = require(measurement, f"continuity method {method_id} spatial_measurement is required")
+        compiled_measurement = None
+        if measurement:
+            kind = require(measurement.get("kind"), f"continuity method {method_id} measurement kind is required")
+            unit = require(measurement.get("unit"), f"continuity method {method_id} measurement unit is required")
+            value = float(require(measurement.get("value"), f"continuity method {method_id} measurement value is required"))
+            if kind not in COMBAT_MEASUREMENT_KINDS or unit not in COMBAT_MEASUREMENT_UNITS or value <= 0:
+                raise ValueError(f"continuity method {method_id} has invalid spatial_measurement")
+            compiled_measurement = {"kind": kind, "value": value, "unit": unit}
+
+        promoted_state_id = row.get("promoted_state_id")
+        if method.get("state_promotion_required") and not promoted_state_id:
+            raise ValueError(f"continuity method {method_id} promoted_state_id is required")
+        resolution = require(
+            row.get("camera_resolution"), f"continuity method {method_id} camera_resolution is required"
+        )
+        resolution_technique = require(
+            resolution.get("technique_id"), f"continuity method {method_id} camera technique is required"
+        )
+        resolution_beat = int(require(
+            resolution.get("action_beat_index"), f"continuity method {method_id} camera beat is required"
+        ))
+        if resolution_beat not in beat_indexes or not any(
+            segment["technique_id"] == resolution_technique
+            and segment["action_beat_index"] == resolution_beat
+            for segment in camera_segments
+        ):
+            raise ValueError(
+                f"continuity method {method_id} camera_resolution must match a declared camera segment"
+            )
+        compiled.append({
+            "method_id": method_id, "label": method["label"], "beat_indexes": beat_indexes,
+            "entry_state": require(row.get("entry_state"), f"continuity method {method_id} entry_state is required"),
+            "exit_state": require(row.get("exit_state"), f"continuity method {method_id} exit_state is required"),
+            "persistent_evidence": compiled_evidence,
+            "spatial_measurement": compiled_measurement,
+            "promoted_state_id": promoted_state_id,
+            "final_relational_frame": require(
+                row.get("final_relational_frame"),
+                f"continuity method {method_id} final_relational_frame is required",
+            ),
+            "camera_resolution": {
+                "technique_id": resolution_technique,
+                "action_beat_index": resolution_beat,
+                "narrative_purpose": require(
+                    resolution.get("narrative_purpose"),
+                    f"continuity method {method_id} camera narrative_purpose is required",
+                ),
+            },
+        })
+
+    handoffs = []
+    for previous, current in zip(compiled, compiled[1:]):
+        previous_last_beat = previous["beat_indexes"][-1]
+        current_first_beat = current["beat_indexes"][0]
+        if current_first_beat < previous_last_beat:
+            raise ValueError(
+                "combat continuity ladders must be ordered by their causal handoff beats"
+            )
+        if previous["exit_state"] != current["entry_state"]:
+            raise ValueError(
+                "combat continuity ladder state handoff mismatch: "
+                f"{previous['method_id']} exits {previous['exit_state']} but "
+                f"{current['method_id']} enters {current['entry_state']}"
+            )
+        handoff = {
+            "from_method_id": previous["method_id"],
+            "to_method_id": current["method_id"],
+            "shared_state": previous["exit_state"],
+            "from_action_beat_index": previous_last_beat,
+            "to_action_beat_index": current_first_beat,
+        }
+        previous["handoff_to_next"] = handoff
+        current["handoff_from_previous"] = handoff
+        handoffs.append(handoff)
+
+    rows = []
+    for row in compiled:
+        evidence = "、".join(
+            f"动作拍{item['action_beat_index']}的{item['evidence_type']}={item['visible_result']}"
+            for item in row["persistent_evidence"]
+        )
+        measurement = row["spatial_measurement"]
+        measured = (
+            f"；量化变化={measurement['kind']} {measurement['value']:g}{measurement['unit']}"
+            if measurement else ""
+        )
+        promoted = f"；状态晋升={row['promoted_state_id']}" if row["promoted_state_id"] else ""
+        rows.append(
+            f"{row['label']}({row['method_id']})绑定动作拍{','.join(map(str, row['beat_indexes']))}："
+            f"入口={row['entry_state']}；持续证据={evidence}{measured}{promoted}；出口={row['exit_state']}；"
+            f"收束构图={row['final_relational_frame']}；镜头只用{row['camera_resolution']['technique_id']}"
+            f"完成{row['camera_resolution']['narrative_purpose']}"
+        )
+    prompt = (
+        "\n【因果连续性阶梯】" + "；".join(rows) + "。"
+        "每个接触必须留下可见后果，证据跨拍保留，量化空间变化不得凭空重置；"
+        "最后一帧必须恢复人物、受力方向、路径与环境结果的关系读取。"
+    )
+    if handoffs:
+        prompt += "跨阶梯状态交接：" + "；".join(
+            f"{row['from_method_id']}@动作拍{row['from_action_beat_index']}"
+            f"→{row['to_method_id']}@动作拍{row['to_action_beat_index']}"
+            f"共享状态={row['shared_state']}"
+            for row in handoffs
+        ) + "。后续阶梯必须继承上一阶梯出口状态，禁止人物、伤势、道具或空间关系重置。"
+    return prompt, compiled
 
 
 def _verified_asset(asset: dict, label: str) -> tuple[Path, str]:
@@ -414,6 +2971,9 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
     camera_prompt, camera_contract = compile_combat_camera_language(
         contract, beats, float(spec["duration_seconds"]), spec["mode"]
     )
+    continuity_prompt, continuity_ladders = compile_combat_continuity_ladders(
+        contract, beats, camera_contract
+    )
 
     winner = require(contract.get("winner"), "combat winner is required")
     restrained = require(contract.get("restrained_actor"), "combat restrained_actor is required")
@@ -425,6 +2985,7 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "@视频1只参考动作节拍、真实重心转移和受力反馈，不继承人物、服装、场景、胜负或运镜。"
         "\n【逐拍动作因果】" + "；".join(beat_rows) + "。"
         + camera_prompt
+        + continuity_prompt
         + f"\n【胜负终态硬锁】胜者={winner}；被制服者={restrained}；终局画面={terminal}。"
         "禁止互换身份、禁止攻守倒置、禁止让胜者被按住、禁止橡皮肢体、假摔、无接触挥舞和重复招式。"
     )
@@ -437,6 +2998,8 @@ def compile_combat_choreography_contract(spec: dict, actor_roster: list[str]) ->
         "restrained_actor": restrained,
         "terminal_identity_hold": terminal,
         "camera_language_plan": camera_contract,
+        "continuity_ladders": continuity_ladders,
+        "continuity_adapter": "HELL_GRIND_COMBAT_CONTINUITY_PROMPT_RULE_ADAPTER_V7",
     }
 
 
@@ -858,6 +3421,7 @@ def compile_multi_keyframe_long_take(spec: dict) -> tuple[str, dict]:
                   "FULL_VISIBLE_ACTOR_MOTION_COVERAGE",
                   "EPISODE_CHARACTER_ASSETS_FROZEN_AND_UNIQUE",
                   "COMBAT_IDENTITY_CHOREOGRAPHY_AND_OUTCOME" if combat_contract else "NO_COMBAT_CONTRACT",
+                  "COMBAT_CAUSAL_CONTINUITY_LADDER" if combat_contract else "NO_COMBAT_CONTINUITY_CONTRACT",
                   "LOCAL_LORA_FAILURE_MEMORY_PRECOMPILED",
                   "PROMPT_LITERAL_GLYPH_SCAN" if spec.get("text_layer_post_only") else "NO_POST_ONLY_GLYPH_CONTRACT"],
         "text_layer_post_only": bool(spec.get("text_layer_post_only")),
@@ -949,6 +3513,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "episode_character_registry": character_registry,
         "combat_choreography_contract": combat_contract,
         "combat_camera_language_gate": "PASS_MOTIVATED_ONLY" if combat_contract else "NOT_APPLICABLE",
+        "combat_continuity_ladder_gate": "PASS_EVIDENCE_AND_RELATIONAL_CLOSE" if combat_contract else "NOT_APPLICABLE",
         "cinematic_shot_language_contract": cinematic_contract,
         "cinematic_shot_language_gate": "PASS_SECTIONED_AND_TIME_CODED" if cinematic_contract else "NOT_APPLICABLE",
     }
