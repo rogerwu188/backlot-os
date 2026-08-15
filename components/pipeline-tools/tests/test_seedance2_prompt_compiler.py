@@ -15,6 +15,7 @@ from tools.seedance2_prompt_compiler import (
     compile_material_emission_state_ledger,
     compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
+    compile_progressive_contact_ledger,
     compile_prompt,
     compile_shot_boundary_state_ledger,
     default_local_lora_memory,
@@ -554,6 +555,83 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hold the contact result to shot end"):
             compile_contact_force_state_ledger(
                 contract, segments, {"@fighter", "@monster", "@sword"}
+            )
+
+    def progressive_contact_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1, "start_seconds": 0.0, "end_seconds": 5.0,
+            "entry_state": "blade tip is shallowly embedded at the throat base",
+            "exit_state": "blade is several centimeters deeper and held",
+            "descriptor_ids": ["@roco", "@monster", "@sword"],
+        }]
+        row = {
+            "shot_index": 1,
+            "contact_track_id": "sword-throat-depth",
+            "progress_mode": "TRIGGERED_DEPTH_CHANGE",
+            "actor_descriptor_id": "@roco",
+            "target_descriptor_id": "@monster",
+            "contact_object_descriptor_id": "@sword",
+            "contact_anchor": "sword tip at the base of the monster's throat",
+            "entry_depth_state": "SHALLOW_EMBEDDED",
+            "escalation_trigger": "Roco drives his full upper-body weight through his right arm",
+            "escalation_trigger_seconds": 1.0,
+            "target_depth_state": "DEEPLY_EMBEDDED",
+            "change_start_seconds": 1.0,
+            "change_end_seconds": 2.5,
+            "measurable_depth_delta": "+3 cm; exposed blade length shrinks by 3 cm",
+            "full_body_force_evidence": "shoulder, torso, and right arm lurch forward as one force chain",
+            "visible_progress_evidence": "throat dimple deepens and the exposed blade length visibly shrinks",
+            "target_response_evidence": "the monster hard-jolts and releases a wet gasp",
+            "exit_depth_state": "DEEPLY_EMBEDDED",
+            "result_hold_until_seconds": 5.0,
+            "entry_state": segments[0]["entry_state"],
+            "exit_state": segments[0]["exit_state"],
+        }
+        row.update(overrides)
+        return {
+            "progressive_contact_ledger": {
+                "policy": "CONTACT_DEPTH_ESCALATION_REQUIRES_MEASURABLE_VISIBLE_PROGRESS",
+                "shots": [row],
+            },
+        }, segments
+
+    def test_progressive_contact_binds_depth_delta_force_reaction_and_hold(self):
+        contract, segments = self.progressive_contact_fixture()
+        prompt, manifest = compile_progressive_contact_ledger(
+            contract, segments, {"@roco", "@monster", "@sword"}
+        )
+        self.assertIn("【PROGRESSIVE CONTACT LEDGER", prompt)
+        self.assertIn("不得只有动作表演而接触量不变", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_PROGRESSIVE_CONTACT_PROMPT_RULE_ADAPTER_V20",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_progressive_contact_rejects_change_before_force_trigger(self):
+        contract, segments = self.progressive_contact_fixture(change_start_seconds=0.5)
+        with self.assertRaisesRegex(ValueError, "must follow its trigger"):
+            compile_progressive_contact_ledger(
+                contract, segments, {"@roco", "@monster", "@sword"}
+            )
+
+    def test_progressive_contact_rejects_motion_without_depth_change(self):
+        contract, segments = self.progressive_contact_fixture(
+            target_depth_state="SHALLOW_EMBEDDED",
+            exit_depth_state="SHALLOW_EMBEDDED",
+        )
+        with self.assertRaisesRegex(ValueError, "must visibly change depth"):
+            compile_progressive_contact_ledger(
+                contract, segments, {"@roco", "@monster", "@sword"}
+            )
+
+    def test_progressive_contact_rejects_missing_terminal_hold(self):
+        contract, segments = self.progressive_contact_fixture(
+            result_hold_until_seconds=4.5
+        )
+        with self.assertRaisesRegex(ValueError, "hold the depth result to shot end"):
+            compile_progressive_contact_ledger(
+                contract, segments, {"@roco", "@monster", "@sword"}
             )
 
     def material_emission_fixture(self, **overrides):

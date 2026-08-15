@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Upgrade the licensed Hell Grind prompt/rule adapter to V20 with a typed
+  progressive-contact ledger for task2-1 video prompts. Every shot binds the
+  contact object and physical anchor, inherited entry depth, force trigger and
+  exact change window, measurable depth delta, full-body force chain, visible
+  progress, target response, exit depth, and terminal hold. Pushing, pressing,
+  penetrating, or deforming contact cannot be portrayed as effort without a
+  corresponding physical state change, and depth cannot reset across cuts.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V19 with a typed
   action-resolution ledger for task2-1 video prompts. Every shot declares the
   actor's intent, visible intent evidence, resolution trigger and window,

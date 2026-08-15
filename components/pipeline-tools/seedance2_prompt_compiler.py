@@ -220,6 +220,8 @@ DEPTH_FOCUS_MODES = {"LOCKED_FOCUS", "SUBJECT_TRIGGERED_RACK_FOCUS"}
 DEPTH_FOCUS_PLANES = {"FOREGROUND", "MIDGROUND", "BACKGROUND"}
 CONTACT_FORCE_STATE_POLICY = "CONTACT_OWNERSHIP_FORCE_AND_RESULT_PERSIST_ACROSS_CUTS"
 CONTACT_FORCE_STATE_MODES = {"LOCKED_CONTACT", "TRIGGERED_CONTACT_CHANGE"}
+PROGRESSIVE_CONTACT_POLICY = "CONTACT_DEPTH_ESCALATION_REQUIRES_MEASURABLE_VISIBLE_PROGRESS"
+PROGRESSIVE_CONTACT_MODES = {"HOLD_DEPTH", "TRIGGERED_DEPTH_CHANGE"}
 MATERIAL_EMISSION_POLICY = "INTRINSIC_MATERIAL_COLOR_SEPARATE_FROM_EMISSION_ACROSS_CUTS"
 MATERIAL_EMISSION_MODES = {
     "INTRINSIC_NONEMISSIVE", "EMISSIVE_SOURCE", "TRIGGERED_EMISSION_CHANGE",
@@ -1279,6 +1281,222 @@ def compile_contact_force_state_ledger(
                 "depth_layers", "current_pose",
             ],
             "adapter": "HELL_GRIND_CONTACT_FORCE_STATE_PROMPT_RULE_ADAPTER_V15",
+        },
+    )
+
+
+def compile_progressive_contact_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Bind contact-depth escalation to visible force, progress, and reaction."""
+    ledger = contract.get("progressive_contact_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != PROGRESSIVE_CONTACT_POLICY:
+        raise ValueError(
+            "progressive_contact_ledger policy must be "
+            f"{PROGRESSIVE_CONTACT_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "progressive_contact_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "progressive_contact_ledger must exactly cover all compiled shots"
+        )
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"progressive contact row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "progressive_contact_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"),
+            f"progressive contact row {index} entry_state is required",
+        )
+        exit_state = require(
+            row.get("exit_state"),
+            f"progressive contact row {index} exit_state is required",
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"progressive contact row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("contact_track_id"),
+            f"progressive contact row {index} contact_track_id is required",
+        )
+        mode = require(
+            row.get("progress_mode"),
+            f"progressive contact row {index} progress_mode is required",
+        )
+        if mode not in PROGRESSIVE_CONTACT_MODES:
+            raise ValueError(f"unsupported progressive contact mode: {mode}")
+        segment_ids = set(segment["descriptor_ids"])
+        actor_id = require(
+            row.get("actor_descriptor_id"),
+            f"progressive contact row {index} actor_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("target_descriptor_id"),
+            f"progressive contact row {index} target_descriptor_id is required",
+        )
+        object_id = require(
+            row.get("contact_object_descriptor_id"),
+            f"progressive contact row {index} contact_object_descriptor_id is required",
+        )
+        for field, value in (
+            ("actor_descriptor_id", actor_id),
+            ("target_descriptor_id", target_id),
+            ("contact_object_descriptor_id", object_id),
+        ):
+            if value not in descriptor_ids or value not in segment_ids:
+                raise ValueError(
+                    f"progressive contact row {index} {field} must reference a descriptor in its segment"
+                )
+        entry_depth = require(
+            row.get("entry_depth_state"),
+            f"progressive contact row {index} entry_depth_state is required",
+        )
+        target_depth = require(
+            row.get("target_depth_state"),
+            f"progressive contact row {index} target_depth_state is required",
+        )
+        exit_depth = require(
+            row.get("exit_depth_state"),
+            f"progressive contact row {index} exit_depth_state is required",
+        )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_depth != previous_exit:
+            raise ValueError(
+                f"progressive contact track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_depth}"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("escalation_trigger_seconds"),
+            f"progressive contact row {index} escalation_trigger_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration:
+            raise ValueError(
+                f"progressive contact row {index} escalation trigger must be inside the shot"
+            )
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"progressive contact row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"progressive contact row {index} must hold the depth result to shot end"
+            )
+        change_start = row.get("change_start_seconds")
+        change_end = row.get("change_end_seconds")
+        depth_delta = row.get("measurable_depth_delta")
+        if mode == "HOLD_DEPTH":
+            if change_start is not None or change_end is not None or depth_delta is not None:
+                raise ValueError(
+                    f"progressive contact row {index} held depth cannot declare a change"
+                )
+            if entry_depth != target_depth or target_depth != exit_depth:
+                raise ValueError(
+                    f"progressive contact row {index} held depth must preserve one state"
+                )
+        else:
+            if change_start is None or change_end is None:
+                raise ValueError(
+                    f"progressive contact row {index} triggered depth change requires a window"
+                )
+            change_start, change_end = float(change_start), float(change_end)
+            if not trigger_seconds <= change_start < change_end <= duration:
+                raise ValueError(
+                    f"progressive contact row {index} depth change must follow its trigger and stay inside the shot"
+                )
+            if entry_depth == target_depth:
+                raise ValueError(
+                    f"progressive contact row {index} escalation must visibly change depth"
+                )
+            if exit_depth != target_depth:
+                raise ValueError(
+                    f"progressive contact row {index} exit depth must equal the declared target"
+                )
+            require(
+                depth_delta,
+                f"progressive contact row {index} measurable_depth_delta is required",
+            )
+        compiled.append({
+            "shot_index": shot_index,
+            "contact_track_id": track_id,
+            "progress_mode": mode,
+            "actor_descriptor_id": actor_id,
+            "target_descriptor_id": target_id,
+            "contact_object_descriptor_id": object_id,
+            "contact_anchor": require(
+                row.get("contact_anchor"),
+                f"progressive contact row {index} contact_anchor is required",
+            ),
+            "entry_depth_state": entry_depth,
+            "escalation_trigger": require(
+                row.get("escalation_trigger"),
+                f"progressive contact row {index} escalation_trigger is required",
+            ),
+            "escalation_trigger_seconds": trigger_seconds,
+            "target_depth_state": target_depth,
+            "change_start_seconds": change_start,
+            "change_end_seconds": change_end,
+            "measurable_depth_delta": depth_delta,
+            "full_body_force_evidence": require(
+                row.get("full_body_force_evidence"),
+                f"progressive contact row {index} full_body_force_evidence is required",
+            ),
+            "visible_progress_evidence": require(
+                row.get("visible_progress_evidence"),
+                f"progressive contact row {index} visible_progress_evidence is required",
+            ),
+            "target_response_evidence": require(
+                row.get("target_response_evidence"),
+                f"progressive contact row {index} target_response_evidence is required",
+            ),
+            "exit_depth_state": exit_depth,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_depth
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['contact_track_id']}/{row['progress_mode']}]："
+        f"接触={row['actor_descriptor_id']}用{row['contact_object_descriptor_id']}作用于{row['target_descriptor_id']}；"
+        f"锚点={row['contact_anchor']}；入口深度={row['entry_depth_state']}；"
+        f"触发={row['escalation_trigger']}@{row['escalation_trigger_seconds']:g}秒；"
+        f"目标深度={row['target_depth_state']}；"
+        f"变化={('保持深度' if row['change_start_seconds'] is None else str(row['change_start_seconds']) + '-' + str(row['change_end_seconds']) + '秒')}；"
+        f"量化增量={row['measurable_depth_delta'] or '无'}；全身受力={row['full_body_force_evidence']}；"
+        f"推进证据={row['visible_progress_evidence']}；受体反应={row['target_response_evidence']}；"
+        f"出口深度={row['exit_depth_state']}；保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【PROGRESSIVE CONTACT LEDGER｜接触深度升级、量化推进与受体反应】"
+        + "。".join(prompt_rows)
+        + "。加压、推进、刺入或压陷必须产生可量化且可见的深度变化，不得只有动作表演而接触量不变；"
+        "受体必须给出同步物理反应，下一镜必须继承上一镜出口深度并保持到切出。",
+        {
+            "version": "1.0.0",
+            "policy": PROGRESSIVE_CONTACT_POLICY,
+            "modes": sorted(PROGRESSIVE_CONTACT_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_PROGRESSIVE_CONTACT_PROMPT_RULE_ADAPTER_V20",
         },
     )
 
@@ -2476,6 +2694,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     contact_force_prompt, contact_force_ledger = compile_contact_force_state_ledger(
         contract, compiled, descriptor_ids
     )
+    progressive_contact_prompt, progressive_contact_ledger = compile_progressive_contact_ledger(
+        contract, compiled, descriptor_ids
+    )
     material_emission_prompt, material_emission_ledger = compile_material_emission_state_ledger(
         contract, compiled, descriptor_ids
     )
@@ -2512,6 +2733,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + offscreen_prompt
         + depth_focus_prompt
         + contact_force_prompt
+        + progressive_contact_prompt
         + material_emission_prompt
         + entity_form_prompt
         + damage_continuity_prompt
@@ -2527,7 +2749,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "PROGRESSIVE_CONTACT_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -2540,6 +2762,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "depth_focus_gate": "PASS_TRIGGERED_FOCUS_TRANSFER_AND_TERMINAL_HOLD" if depth_focus_ledger else "NOT_APPLICABLE",
         "contact_force_state_ledger": contact_force_ledger,
         "contact_force_state_gate": "PASS_CONTACT_OWNERSHIP_FORCE_AND_CUT_HANDOFF" if contact_force_ledger else "NOT_APPLICABLE",
+        "progressive_contact_ledger": progressive_contact_ledger,
+        "progressive_contact_gate": "PASS_MEASURABLE_CONTACT_DEPTH_ESCALATION_AND_TARGET_RESPONSE" if progressive_contact_ledger else "NOT_APPLICABLE",
         "material_emission_state_ledger": material_emission_ledger,
         "material_emission_state_gate": "PASS_INTRINSIC_COLOR_EMISSION_EVIDENCE_AND_CUT_HANDOFF" if material_emission_ledger else "NOT_APPLICABLE",
         "entity_form_state_ledger": entity_form_ledger,
