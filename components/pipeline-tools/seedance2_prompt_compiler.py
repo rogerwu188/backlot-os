@@ -222,6 +222,7 @@ CONTACT_FORCE_STATE_POLICY = "CONTACT_OWNERSHIP_FORCE_AND_RESULT_PERSIST_ACROSS_
 CONTACT_FORCE_STATE_MODES = {"LOCKED_CONTACT", "TRIGGERED_CONTACT_CHANGE"}
 PROGRESSIVE_CONTACT_POLICY = "CONTACT_DEPTH_ESCALATION_REQUIRES_MEASURABLE_VISIBLE_PROGRESS"
 PROGRESSIVE_CONTACT_MODES = {"HOLD_DEPTH", "TRIGGERED_DEPTH_CHANGE"}
+PHYSICS_COHERENCE_POLICY = "CONTACT_PROGRESS_AND_ACTION_RESOLUTION_SHARE_ONE_CAUSAL_CHAIN"
 MATERIAL_EMISSION_POLICY = "INTRINSIC_MATERIAL_COLOR_SEPARATE_FROM_EMISSION_ACROSS_CUTS"
 MATERIAL_EMISSION_MODES = {
     "INTRINSIC_NONEMISSIVE", "EMISSIVE_SOURCE", "TRIGGERED_EMISSION_CHANGE",
@@ -2323,6 +2324,201 @@ def compile_action_resolution_ledger(
     )
 
 
+def compile_physics_coherence_ledger(
+    contract: dict,
+    segments: list[dict],
+    descriptor_ids: set[str],
+    contact_force_ledger: dict | None,
+    progressive_contact_ledger: dict | None,
+    action_resolution_ledger: dict | None,
+) -> tuple[str, dict | None]:
+    """Cross-check contact, progress, and resolution as one physical chain."""
+    ledger = contract.get("physics_coherence_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != PHYSICS_COHERENCE_POLICY:
+        raise ValueError(
+            "physics_coherence_ledger policy must be "
+            f"{PHYSICS_COHERENCE_POLICY}"
+        )
+    if not contact_force_ledger or not progressive_contact_ledger or not action_resolution_ledger:
+        raise ValueError(
+            "physics_coherence_ledger requires contact-force, progressive-contact, "
+            "and action-resolution ledgers"
+        )
+    rows = require(ledger.get("shots"), "physics_coherence_ledger shots are required")
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError("physics_coherence_ledger must exactly cover all compiled shots")
+
+    compiled = []
+    contact_rows = contact_force_ledger["shots"]
+    progress_rows = progressive_contact_ledger["shots"]
+    action_rows = action_resolution_ledger["shots"]
+    for index, (row, segment, contact, progress, action) in enumerate(
+        zip(rows, segments, contact_rows, progress_rows, action_rows), start=1
+    ):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"physics coherence row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "physics_coherence_ledger shot_index must match compiled shot order"
+            )
+        actor_id = require(
+            row.get("actor_descriptor_id"),
+            f"physics coherence row {index} actor_descriptor_id is required",
+        )
+        target_id = require(
+            row.get("target_descriptor_id"),
+            f"physics coherence row {index} target_descriptor_id is required",
+        )
+        object_id = require(
+            row.get("interaction_object_descriptor_id"),
+            f"physics coherence row {index} interaction_object_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        for field, value in (
+            ("actor_descriptor_id", actor_id),
+            ("target_descriptor_id", target_id),
+            ("interaction_object_descriptor_id", object_id),
+        ):
+            if value not in descriptor_ids or value not in segment_ids:
+                raise ValueError(
+                    f"physics coherence row {index} {field} must reference a descriptor in its segment"
+                )
+        if actor_id != contact["actor_descriptor_id"] or actor_id != progress["actor_descriptor_id"] or actor_id != action["actor_descriptor_id"]:
+            raise ValueError(
+                f"physics coherence row {index} actor must match all linked ledgers"
+            )
+        if target_id != contact["target_descriptor_id"] or target_id != progress["target_descriptor_id"]:
+            raise ValueError(
+                f"physics coherence row {index} target must match contact and progress ledgers"
+            )
+        if object_id != progress["contact_object_descriptor_id"]:
+            raise ValueError(
+                f"physics coherence row {index} interaction object must match progressive contact"
+            )
+        contact_track_id = require(
+            row.get("contact_track_id"),
+            f"physics coherence row {index} contact_track_id is required",
+        )
+        progress_track_id = require(
+            row.get("progress_track_id"),
+            f"physics coherence row {index} progress_track_id is required",
+        )
+        action_track_id = require(
+            row.get("action_track_id"),
+            f"physics coherence row {index} action_track_id is required",
+        )
+        if contact_track_id != contact["contact_track_id"]:
+            raise ValueError(
+                f"physics coherence row {index} contact track does not match contact-force ledger"
+            )
+        if progress_track_id != progress["contact_track_id"]:
+            raise ValueError(
+                f"physics coherence row {index} progress track does not match progressive-contact ledger"
+            )
+        if action_track_id != action["action_track_id"]:
+            raise ValueError(
+                f"physics coherence row {index} action track does not match action-resolution ledger"
+            )
+        contact_seconds = float(contact["trigger_seconds"])
+        progress_seconds = float(progress["escalation_trigger_seconds"])
+        resolution_seconds = float(action["resolution_trigger_seconds"])
+        if not contact_seconds <= progress_seconds <= resolution_seconds:
+            raise ValueError(
+                f"physics coherence row {index} cause order must be contact, progress, then resolution"
+            )
+        target_response = require(
+            row.get("target_response_evidence"),
+            f"physics coherence row {index} target_response_evidence is required",
+        )
+        if target_response != progress["target_response_evidence"]:
+            raise ValueError(
+                f"physics coherence row {index} target response must match progressive contact"
+            )
+        visible_outcome = require(
+            row.get("visible_outcome_evidence"),
+            f"physics coherence row {index} visible_outcome_evidence is required",
+        )
+        if visible_outcome != action["visible_outcome_evidence"]:
+            raise ValueError(
+                f"physics coherence row {index} visible outcome must match action resolution"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"physics coherence row {index} result_hold_until_seconds is required",
+        ))
+        if abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"physics coherence row {index} must hold the coherent result to shot end"
+            )
+        for linked in (contact, progress, action):
+            if abs(float(linked["result_hold_until_seconds"]) - hold_until) > 0.01:
+                raise ValueError(
+                    f"physics coherence row {index} result hold must match all linked ledgers"
+                )
+        compiled.append({
+            "shot_index": shot_index,
+            "coherence_chain_id": require(
+                row.get("coherence_chain_id"),
+                f"physics coherence row {index} coherence_chain_id is required",
+            ),
+            "actor_descriptor_id": actor_id,
+            "target_descriptor_id": target_id,
+            "interaction_object_descriptor_id": object_id,
+            "contact_track_id": contact_track_id,
+            "progress_track_id": progress_track_id,
+            "action_track_id": action_track_id,
+            "contact_trigger_seconds": contact_seconds,
+            "progress_trigger_seconds": progress_seconds,
+            "resolution_trigger_seconds": resolution_seconds,
+            "causal_chain_evidence": require(
+                row.get("causal_chain_evidence"),
+                f"physics coherence row {index} causal_chain_evidence is required",
+            ),
+            "target_response_evidence": target_response,
+            "visible_outcome_evidence": visible_outcome,
+            "terminal_state_alignment_evidence": require(
+                row.get("terminal_state_alignment_evidence"),
+                f"physics coherence row {index} terminal_state_alignment_evidence is required",
+            ),
+            "result_hold_until_seconds": hold_until,
+        })
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['coherence_chain_id']}]："
+        f"主体={row['actor_descriptor_id']}；受体={row['target_descriptor_id']}；"
+        f"作用物={row['interaction_object_descriptor_id']}；"
+        f"轨道={row['contact_track_id']}→{row['progress_track_id']}→{row['action_track_id']}；"
+        f"因果时序={row['contact_trigger_seconds']:g}→{row['progress_trigger_seconds']:g}→{row['resolution_trigger_seconds']:g}秒；"
+        f"因果证据={row['causal_chain_evidence']}；受体反应={row['target_response_evidence']}；"
+        f"可见结果={row['visible_outcome_evidence']}；终态对齐={row['terminal_state_alignment_evidence']}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【PHYSICS COHERENCE LEDGER｜接触、推进与行动裁决的同一因果链】"
+        + "。".join(prompt_rows)
+        + "。接触、推进与行动结果不得各自成立却互相矛盾；主体、受体、作用物、轨道、"
+        "触发顺序、受体反应、可见结果与终态保持必须逐镜一致。",
+        {
+            "version": "1.0.0",
+            "policy": PHYSICS_COHERENCE_POLICY,
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "forbidden_keyframe_fields": [
+                "composition", "shot_scale", "lens_mm", "camera_height",
+                "depth_layers", "current_pose",
+            ],
+            "adapter": "HELL_GRIND_PHYSICS_COHERENCE_PROMPT_RULE_ADAPTER_V21",
+        },
+    )
+
+
 def compile_camera_action_coupling_ledger(
     contract: dict, segments: list[dict]
 ) -> tuple[str, dict | None]:
@@ -2709,6 +2905,14 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     action_resolution_prompt, action_resolution_ledger = compile_action_resolution_ledger(
         contract, compiled, descriptor_ids
     )
+    physics_coherence_prompt, physics_coherence_ledger = compile_physics_coherence_ledger(
+        contract,
+        compiled,
+        descriptor_ids,
+        contact_force_ledger,
+        progressive_contact_ledger,
+        action_resolution_ledger,
+    )
     boundary_prompt, boundary_ledger = compile_shot_boundary_state_ledger(
         contract, compiled
     )
@@ -2738,6 +2942,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + entity_form_prompt
         + damage_continuity_prompt
         + action_resolution_prompt
+        + physics_coherence_prompt
         + boundary_prompt
         + information_ladder_prompt
         + state_ledger_prompt
@@ -2749,7 +2954,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "PROGRESSIVE_CONTACT_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "PROGRESSIVE_CONTACT_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "PHYSICS_COHERENCE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -2772,6 +2977,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "damage_continuity_gate": "PASS_CUMULATIVE_DAMAGE_EVIDENCE_AND_CUT_HANDOFF" if damage_continuity_ledger else "NOT_APPLICABLE",
         "action_resolution_ledger": action_resolution_ledger,
         "action_resolution_gate": "PASS_INTENT_INTERRUPTION_OUTCOME_AND_CUT_HANDOFF" if action_resolution_ledger else "NOT_APPLICABLE",
+        "physics_coherence_ledger": physics_coherence_ledger,
+        "physics_coherence_gate": "PASS_CONTACT_PROGRESS_RESOLUTION_CAUSAL_CHAIN" if physics_coherence_ledger else "NOT_APPLICABLE",
         "shot_boundary_state_ledger": boundary_ledger,
         "shot_boundary_state_gate": "PASS_FIRST_FRAME_ENTRY_AND_FINAL_FRAME_EXIT_EVIDENCE" if boundary_ledger else "NOT_APPLICABLE",
         "shot_information_ladder": information_ladder,

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Close the licensed Hell Grind Scene 70C catalog at 2,225/2,225 and upgrade
+  the task2-1 prompt/rule adapter to V21 with an optional cross-ledger physics
+  coherence gate. When contact-force, progressive-contact, and action-resolution
+  ledgers are composed, every shot must agree on actor, target, interaction
+  object, track ownership, cause ordering, target response, visible outcome,
+  and terminal hold. Independently valid ledgers can no longer describe
+  contradictory physical chains.
 - Upgrade the licensed Hell Grind prompt/rule adapter to V20 with a typed
   progressive-contact ledger for task2-1 video prompts. Every shot binds the
   contact object and physical anchor, inherited entry depth, force trigger and

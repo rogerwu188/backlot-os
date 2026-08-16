@@ -15,6 +15,7 @@ from tools.seedance2_prompt_compiler import (
     compile_material_emission_state_ledger,
     compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
+    compile_physics_coherence_ledger,
     compile_progressive_contact_ledger,
     compile_prompt,
     compile_shot_boundary_state_ledger,
@@ -632,6 +633,93 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hold the depth result to shot end"):
             compile_progressive_contact_ledger(
                 contract, segments, {"@roco", "@monster", "@sword"}
+            )
+
+    def physics_coherence_fixture(self, **overrides):
+        segments = [{
+            "shot_index": 1, "start_seconds": 0.0, "end_seconds": 5.0,
+            "descriptor_ids": ["@roco", "@monster", "@sword"],
+        }]
+        contact = {"shots": [{
+            "contact_track_id": "sword-throat-contact",
+            "actor_descriptor_id": "@roco", "target_descriptor_id": "@monster",
+            "trigger_seconds": 0.5, "result_hold_until_seconds": 5.0,
+        }]}
+        progress = {"shots": [{
+            "contact_track_id": "sword-throat-depth",
+            "actor_descriptor_id": "@roco", "target_descriptor_id": "@monster",
+            "contact_object_descriptor_id": "@sword",
+            "escalation_trigger_seconds": 1.0,
+            "target_response_evidence": "monster jolts and releases a wet gasp",
+            "result_hold_until_seconds": 5.0,
+        }]}
+        action = {"shots": [{
+            "action_track_id": "roco-drive-sword",
+            "actor_descriptor_id": "@roco", "resolution_trigger_seconds": 2.0,
+            "visible_outcome_evidence": "blade remains visibly deeper at cut-out",
+            "result_hold_until_seconds": 5.0,
+        }]}
+        row = {
+            "shot_index": 1, "coherence_chain_id": "roco-sword-throat-chain",
+            "actor_descriptor_id": "@roco", "target_descriptor_id": "@monster",
+            "interaction_object_descriptor_id": "@sword",
+            "contact_track_id": "sword-throat-contact",
+            "progress_track_id": "sword-throat-depth",
+            "action_track_id": "roco-drive-sword",
+            "causal_chain_evidence": "contact locks, force deepens the blade, then the drive resolves",
+            "target_response_evidence": "monster jolts and releases a wet gasp",
+            "visible_outcome_evidence": "blade remains visibly deeper at cut-out",
+            "terminal_state_alignment_evidence": "contact, depth, and completed drive remain aligned",
+            "result_hold_until_seconds": 5.0,
+        }
+        row.update(overrides)
+        contract = {
+            "physics_coherence_ledger": {
+                "policy": "CONTACT_PROGRESS_AND_ACTION_RESOLUTION_SHARE_ONE_CAUSAL_CHAIN",
+                "shots": [row],
+            },
+        }
+        return contract, segments, contact, progress, action
+
+    def test_physics_coherence_binds_contact_progress_and_resolution(self):
+        contract, segments, contact, progress, action = self.physics_coherence_fixture()
+        prompt, manifest = compile_physics_coherence_ledger(
+            contract, segments, {"@roco", "@monster", "@sword"},
+            contact, progress, action,
+        )
+        self.assertIn("【PHYSICS COHERENCE LEDGER", prompt)
+        self.assertIn("不得各自成立却互相矛盾", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_PHYSICS_COHERENCE_PROMPT_RULE_ADAPTER_V21",
+        )
+        self.assertTrue(manifest["video_side_only"])
+
+    def test_physics_coherence_rejects_actor_drift(self):
+        contract, segments, contact, progress, action = self.physics_coherence_fixture(
+            actor_descriptor_id="@monster"
+        )
+        with self.assertRaisesRegex(ValueError, "actor must match all linked ledgers"):
+            compile_physics_coherence_ledger(
+                contract, segments, {"@roco", "@monster", "@sword"},
+                contact, progress, action,
+            )
+
+    def test_physics_coherence_rejects_out_of_order_resolution(self):
+        contract, segments, contact, progress, action = self.physics_coherence_fixture()
+        action["shots"][0]["resolution_trigger_seconds"] = 0.75
+        with self.assertRaisesRegex(ValueError, "cause order"):
+            compile_physics_coherence_ledger(
+                contract, segments, {"@roco", "@monster", "@sword"},
+                contact, progress, action,
+            )
+
+    def test_physics_coherence_requires_all_linked_ledgers(self):
+        contract, segments, contact, progress, action = self.physics_coherence_fixture()
+        with self.assertRaisesRegex(ValueError, "requires contact-force"):
+            compile_physics_coherence_ledger(
+                contract, segments, {"@roco", "@monster", "@sword"},
+                contact, progress, None,
             )
 
     def material_emission_fixture(self, **overrides):
