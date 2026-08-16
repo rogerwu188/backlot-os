@@ -230,6 +230,8 @@ MATERIAL_EMISSION_MODES = {
 MATERIAL_LIGHT_EVIDENCE = {"AMBIENT_REFLECTION_ONLY", "VISIBLE_SOURCE_AND_CAST_LIGHT"}
 ENTITY_FORM_STATE_POLICY = "IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_STATE_ACROSS_CUTS"
 ENTITY_FORM_STATE_MODES = {"LOCKED_FORM", "TRIGGERED_FORM_CHANGE"}
+FORM_TRANSITION_PROGRESS_POLICY = "ORDERED_VISIBLE_FORM_STAGES_GATE_INTERACTION_ACROSS_CUTS"
+FORM_TRANSITION_PROGRESS_MODES = {"HOLD_STAGE", "TRIGGERED_STAGE_CHANGE"}
 DAMAGE_CONTINUITY_POLICY = "CUMULATIVE_DAMAGE_EVIDENCE_PERSISTS_ACROSS_CUTS"
 DAMAGE_CONTINUITY_MODES = {"LOCKED_DAMAGE", "TRIGGERED_DAMAGE_CHANGE"}
 ACTION_RESOLUTION_POLICY = "DECLARED_INTENT_RESOLVES_TO_VISIBLE_OUTCOME"
@@ -1938,6 +1940,201 @@ def compile_entity_form_state_ledger(
     )
 
 
+def compile_form_transition_progress_ledger(
+    contract: dict, segments: list[dict], descriptor_ids: set[str]
+) -> tuple[str, dict | None]:
+    """Preserve ordered, visible transformation progress and interaction gates."""
+    ledger = contract.get("form_transition_progress_ledger")
+    if not ledger:
+        return "", None
+    if ledger.get("policy") != FORM_TRANSITION_PROGRESS_POLICY:
+        raise ValueError(
+            "form_transition_progress_ledger policy must be "
+            f"{FORM_TRANSITION_PROGRESS_POLICY}"
+        )
+    rows = require(
+        ledger.get("shots"), "form_transition_progress_ledger shots are required"
+    )
+    if not isinstance(rows, list) or len(rows) != len(segments):
+        raise ValueError(
+            "form_transition_progress_ledger must exactly cover all compiled shots"
+        )
+
+    compiled, prior_exit_by_track = [], {}
+    for index, (row, segment) in enumerate(zip(rows, segments), start=1):
+        shot_index = int(require(
+            row.get("shot_index"),
+            f"form transition progress row {index} shot_index is required",
+        ))
+        if shot_index != index or shot_index != segment["shot_index"]:
+            raise ValueError(
+                "form_transition_progress_ledger shot_index must match compiled shot order"
+            )
+        entry_state = require(
+            row.get("entry_state"),
+            f"form transition progress row {index} entry_state is required",
+        )
+        exit_state = require(
+            row.get("exit_state"),
+            f"form transition progress row {index} exit_state is required",
+        )
+        if entry_state != segment["entry_state"] or exit_state != segment["exit_state"]:
+            raise ValueError(
+                f"form transition progress row {index} entry/exit state must match cinematic segment"
+            )
+        track_id = require(
+            row.get("transition_track_id"),
+            f"form transition progress row {index} transition_track_id is required",
+        )
+        entity_id = require(
+            row.get("entity_descriptor_id"),
+            f"form transition progress row {index} entity_descriptor_id is required",
+        )
+        segment_ids = set(segment["descriptor_ids"])
+        if entity_id not in descriptor_ids or entity_id not in segment_ids:
+            raise ValueError(
+                f"form transition progress row {index} entity must be present in its segment"
+            )
+        total_stages = int(require(
+            row.get("total_stages"),
+            f"form transition progress row {index} total_stages is required",
+        ))
+        entry_stage = int(require(
+            row.get("entry_stage_index"),
+            f"form transition progress row {index} entry_stage_index is required",
+        ))
+        target_stage = int(require(
+            row.get("target_stage_index"),
+            f"form transition progress row {index} target_stage_index is required",
+        ))
+        exit_stage = int(require(
+            row.get("exit_stage_index"),
+            f"form transition progress row {index} exit_stage_index is required",
+        ))
+        if total_stages < 2 or not 0 <= entry_stage <= target_stage < total_stages:
+            raise ValueError(
+                f"form transition progress row {index} stages must advance monotonically inside total_stages"
+            )
+        previous_exit = prior_exit_by_track.get(track_id)
+        if previous_exit is not None and entry_stage != previous_exit:
+            raise ValueError(
+                f"form transition track {track_id} handoff mismatch: previous exit "
+                f"{previous_exit} but shot {shot_index} enters {entry_stage}"
+            )
+        mode = require(
+            row.get("progress_mode"),
+            f"form transition progress row {index} progress_mode is required",
+        )
+        if mode not in FORM_TRANSITION_PROGRESS_MODES:
+            raise ValueError(f"unsupported form transition progress mode: {mode}")
+        if mode == "HOLD_STAGE" and entry_stage != target_stage:
+            raise ValueError(
+                f"form transition progress row {index} HOLD_STAGE cannot advance"
+            )
+        if mode == "TRIGGERED_STAGE_CHANGE" and target_stage <= entry_stage:
+            raise ValueError(
+                f"form transition progress row {index} triggered change must advance"
+            )
+        if exit_stage != target_stage:
+            raise ValueError(
+                f"form transition progress row {index} exit stage must equal target stage"
+            )
+        duration = segment["end_seconds"] - segment["start_seconds"]
+        trigger_seconds = float(require(
+            row.get("trigger_seconds"),
+            f"form transition progress row {index} trigger_seconds is required",
+        ))
+        hold_until = float(require(
+            row.get("result_hold_until_seconds"),
+            f"form transition progress row {index} result_hold_until_seconds is required",
+        ))
+        if not 0 <= trigger_seconds <= duration or abs(hold_until - duration) > 0.01:
+            raise ValueError(
+                f"form transition progress row {index} trigger must be in-shot and result held to shot end"
+            )
+        interaction = row.get("interaction_precondition")
+        if interaction is not None:
+            interaction_id = require(
+                interaction.get("object_descriptor_id"),
+                f"form transition progress row {index} interaction object is required",
+            )
+            if interaction_id not in descriptor_ids or interaction_id not in segment_ids:
+                raise ValueError(
+                    f"form transition progress row {index} interaction object must be present in its segment"
+                )
+            required_stage = int(require(
+                interaction.get("required_stage_index"),
+                f"form transition progress row {index} required interaction stage is required",
+            ))
+            if not 0 <= required_stage < total_stages:
+                raise ValueError(
+                    f"form transition progress row {index} required interaction stage must be declared"
+                )
+            satisfied = interaction.get("satisfied")
+            if not isinstance(satisfied, bool) or satisfied != (target_stage >= required_stage):
+                raise ValueError(
+                    f"form transition progress row {index} interaction precondition must match visible target stage"
+                )
+            interaction = {
+                "object_descriptor_id": interaction_id,
+                "required_stage_index": required_stage,
+                "satisfied": satisfied,
+                "visible_evidence": require(
+                    interaction.get("visible_evidence"),
+                    f"form transition progress row {index} interaction evidence is required",
+                ),
+            }
+        compiled.append({
+            "shot_index": shot_index,
+            "transition_track_id": track_id,
+            "entity_descriptor_id": entity_id,
+            "progress_mode": mode,
+            "total_stages": total_stages,
+            "entry_stage_index": entry_stage,
+            "transition_trigger": require(
+                row.get("transition_trigger"),
+                f"form transition progress row {index} transition_trigger is required",
+            ),
+            "trigger_seconds": trigger_seconds,
+            "target_stage_index": target_stage,
+            "visible_stage_evidence": require(
+                row.get("visible_stage_evidence"),
+                f"form transition progress row {index} visible_stage_evidence is required",
+            ),
+            "interaction_precondition": interaction,
+            "exit_stage_index": exit_stage,
+            "result_hold_until_seconds": hold_until,
+            "entry_state": entry_state,
+            "exit_state": exit_state,
+        })
+        prior_exit_by_track[track_id] = exit_stage
+
+    prompt_rows = [
+        f"镜头{row['shot_index']}[{row['transition_track_id']}/{row['progress_mode']}]："
+        f"实体={row['entity_descriptor_id']}；阶段={row['entry_stage_index']}→{row['target_stage_index']}/"
+        f"{row['total_stages'] - 1}；触发={row['transition_trigger']}@{row['trigger_seconds']:g}秒；"
+        f"可见证据={row['visible_stage_evidence']}；"
+        f"交互门={('无' if row['interaction_precondition'] is None else row['interaction_precondition']['object_descriptor_id'] + ':' + ('满足' if row['interaction_precondition']['satisfied'] else '未满足'))}；"
+        f"保持至{row['result_hold_until_seconds']:g}秒"
+        for row in compiled
+    ]
+    return (
+        "\n【FORM TRANSITION PROGRESS LEDGER｜变形阶段与交互前置门】"
+        + "。".join(prompt_rows)
+        + "。变形必须按可见阶段单调推进，下一镜继承上一镜出口阶段；道具抓取、接触或使用"
+        "必须等待相关肢体或形态达到声明阶段，禁止盔甲瞬间消失、阶段回退或提前交互。",
+        {
+            "version": "1.0.0",
+            "policy": FORM_TRANSITION_PROGRESS_POLICY,
+            "modes": sorted(FORM_TRANSITION_PROGRESS_MODES),
+            "shots": compiled,
+            "full_shot_coverage": True,
+            "video_side_only": True,
+            "adapter": "HELL_GRIND_FORM_TRANSITION_PROGRESS_PROMPT_RULE_ADAPTER_V22",
+        },
+    )
+
+
 def compile_damage_continuity_ledger(
     contract: dict, segments: list[dict], descriptor_ids: set[str]
 ) -> tuple[str, dict | None]:
@@ -2929,6 +3126,9 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     entity_form_prompt, entity_form_ledger = compile_entity_form_state_ledger(
         contract, compiled, descriptor_ids
     )
+    form_transition_prompt, form_transition_ledger = compile_form_transition_progress_ledger(
+        contract, compiled, descriptor_ids
+    )
     damage_continuity_prompt, damage_continuity_ledger = compile_damage_continuity_ledger(
         contract, compiled, descriptor_ids
     )
@@ -2970,6 +3170,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         + progressive_contact_prompt
         + material_emission_prompt
         + entity_form_prompt
+        + form_transition_prompt
         + damage_continuity_prompt
         + action_resolution_prompt
         + physics_coherence_prompt
@@ -2984,7 +3185,7 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
     return prompt, {
         "version": "1.0.0", "descriptor_count": len(descriptors), "segments": compiled,
         "full_duration_coverage": True, "descriptor_policy": "VERBATIM_EVERY_SHOT",
-        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "PROGRESSIVE_CONTACT_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "PHYSICS_COHERENCE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
+        "section_order": ["LOCKED_DESCRIPTORS", "PURPOSE_GEOMETRY_TIME_CUTS", "CAMERA_STYLE_PROFILE", "CAMERA_ACTION_COUPLING_LEDGER", "SPATIAL_AXIS_LEDGER", "OFFSCREEN_RELATIONSHIP_LEDGER", "DEPTH_FOCUS_TRANSFER_LEDGER", "CONTACT_FORCE_STATE_LEDGER", "PROGRESSIVE_CONTACT_LEDGER", "MATERIAL_EMISSION_STATE_LEDGER", "ENTITY_FORM_STATE_LEDGER", "FORM_TRANSITION_PROGRESS_LEDGER", "DAMAGE_CONTINUITY_LEDGER", "ACTION_RESOLUTION_LEDGER", "PHYSICS_COHERENCE_LEDGER", "SHOT_BOUNDARY_STATE_LOCK", "SHOT_INFORMATION_LADDER", "CROSS_CUT_STATE_LEDGER", "KEY_RULES", "AUDIO", "ATMOSPHERE", "STYLE", "NEGATIVES"],
         "camera_style_plan": camera_style_plan,
         "camera_style_gate": "PASS_PER_SHOT_GENRE_AWARE_STYLE_PROVENANCE",
         "camera_action_coupling_ledger": coupling_ledger,
@@ -3003,6 +3204,8 @@ def compile_cinematic_shot_language_contract(spec: dict, shot_count: int) -> tup
         "material_emission_state_gate": "PASS_INTRINSIC_COLOR_EMISSION_EVIDENCE_AND_CUT_HANDOFF" if material_emission_ledger else "NOT_APPLICABLE",
         "entity_form_state_ledger": entity_form_ledger,
         "entity_form_state_gate": "PASS_IDENTITY_ANCHORED_MUTUALLY_EXCLUSIVE_FORM_HANDOFF" if entity_form_ledger else "NOT_APPLICABLE",
+        "form_transition_progress_ledger": form_transition_ledger,
+        "form_transition_progress_gate": "PASS_ORDERED_VISIBLE_STAGE_HANDOFF_AND_INTERACTION_PRECONDITION" if form_transition_ledger else "NOT_APPLICABLE",
         "damage_continuity_ledger": damage_continuity_ledger,
         "damage_continuity_gate": "PASS_CUMULATIVE_DAMAGE_EVIDENCE_AND_CUT_HANDOFF" if damage_continuity_ledger else "NOT_APPLICABLE",
         "action_resolution_ledger": action_resolution_ledger,

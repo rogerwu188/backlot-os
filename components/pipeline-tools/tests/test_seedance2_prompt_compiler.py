@@ -13,6 +13,7 @@ from tools.seedance2_prompt_compiler import (
     compile_contact_force_state_ledger,
     compile_damage_continuity_ledger,
     compile_entity_form_state_ledger,
+    compile_form_transition_progress_ledger,
     compile_material_emission_state_ledger,
     compile_depth_focus_ledger,
     compile_offscreen_relationship_ledger,
@@ -26,6 +27,65 @@ from tools.seedance2_prompt_compiler import (
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
+    def form_transition_fixture(self, second_entry=1, satisfied=True):
+        segments = [
+            {"shot_index": 1, "start_seconds": 0.0, "end_seconds": 3.0,
+             "entry_state": "full armor", "exit_state": "hand exposed",
+             "descriptor_ids": ["@roco", "@crystal"]},
+            {"shot_index": 2, "start_seconds": 3.0, "end_seconds": 6.0,
+             "entry_state": "hand exposed", "exit_state": "armor dissolved",
+             "descriptor_ids": ["@roco", "@crystal"]},
+        ]
+        rows = [
+            {"shot_index": 1, "transition_track_id": "armor-dissolve",
+             "entity_descriptor_id": "@roco", "progress_mode": "TRIGGERED_STAGE_CHANGE",
+             "total_stages": 3, "entry_stage_index": 0, "target_stage_index": 1,
+             "exit_stage_index": 1, "transition_trigger": "armor starts dissolving",
+             "trigger_seconds": 0.5, "visible_stage_evidence": "bare right hand visible",
+             "result_hold_until_seconds": 3.0, "entry_state": "full armor",
+             "exit_state": "hand exposed"},
+            {"shot_index": 2, "transition_track_id": "armor-dissolve",
+             "entity_descriptor_id": "@roco", "progress_mode": "TRIGGERED_STAGE_CHANGE",
+             "total_stages": 3, "entry_stage_index": second_entry, "target_stage_index": 2,
+             "exit_stage_index": 2, "transition_trigger": "dissolution continues",
+             "trigger_seconds": 0.2, "visible_stage_evidence": "civilian clothes fully visible",
+             "interaction_precondition": {"object_descriptor_id": "@crystal",
+                 "required_stage_index": 2, "satisfied": satisfied,
+                 "visible_evidence": "bare hand closes around crystal"},
+             "result_hold_until_seconds": 3.0, "entry_state": "hand exposed",
+             "exit_state": "armor dissolved"},
+        ]
+        return {"form_transition_progress_ledger": {
+            "policy": "ORDERED_VISIBLE_FORM_STAGES_GATE_INTERACTION_ACROSS_CUTS",
+            "shots": rows,
+        }}, segments
+
+    def test_form_transition_progress_gates_interaction_after_visible_stage(self):
+        contract, segments = self.form_transition_fixture()
+        prompt, manifest = compile_form_transition_progress_ledger(
+            contract, segments, {"@roco", "@crystal"}
+        )
+        self.assertIn("FORM TRANSITION PROGRESS LEDGER", prompt)
+        self.assertIn("禁止盔甲瞬间消失", prompt)
+        self.assertEqual(
+            manifest["adapter"],
+            "HELL_GRIND_FORM_TRANSITION_PROGRESS_PROMPT_RULE_ADAPTER_V22",
+        )
+
+    def test_form_transition_progress_rejects_cut_handoff_reset(self):
+        contract, segments = self.form_transition_fixture(second_entry=0)
+        with self.assertRaisesRegex(ValueError, "handoff mismatch"):
+            compile_form_transition_progress_ledger(
+                contract, segments, {"@roco", "@crystal"}
+            )
+
+    def test_form_transition_progress_rejects_early_interaction(self):
+        contract, segments = self.form_transition_fixture(satisfied=False)
+        with self.assertRaisesRegex(ValueError, "interaction precondition"):
+            compile_form_transition_progress_ledger(
+                contract, segments, {"@roco", "@crystal"}
+            )
+
     def test_default_memory_resolves_installed_production_layout(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

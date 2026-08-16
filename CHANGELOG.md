@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Close the licensed Hell Grind Scene 71.1 catalog at 65/65 and upgrade the
+  task2-1 prompt/rule adapter to V22 with an ordered form-transition progress
+  ledger. Multi-cut transformations now inherit a monotonic visible stage,
+  retain terminal-stage evidence through each cut, and gate prop contact or
+  use until the required body/form stage is visibly reached. Armor dissolution,
+  costume reveal, and similar transformations cannot jump, regress, or enable
+  an interaction before the relevant hand or form is available.
 - Activate the first double-reviewed `EASTERN_KUNGFU` task2-1 camera-style
   routing batch from five qualified full-video references. The production
   profile is bound to immutable registry snapshot
