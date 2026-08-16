@@ -162,8 +162,8 @@ through the cut. Adapter V14 rejects autofocus hunting, anticipatory focus
 pulls, unregistered focus targets, wrong-subject exits, and focus loss before
 the result is readable. Composition, shot scale, focal length, camera height,
 depth-layer layout, and current pose remain keyframe responsibilities. The rule
-is labeled `AMERICAN_HOLLYWOOD`; Eastern wuxia and kung-fu profiles remain
-reserved and unloaded.
+is labeled `AMERICAN_HOLLYWOOD` and is not inherited by the independently
+registered Eastern wuxia or kung-fu profiles.
 
 The contact-force state ledger is video-side continuity only. Every shot names
 the two contact owners, their physical anchor, the inherited entry contact, and
@@ -174,8 +174,9 @@ visible contact evidence until the cut. Repeated contact tracks inherit the
 previous shot's exit contact exactly. Adapter V15 rejects anticipatory changes,
 silent grip/contact resets, wrong exits, and early result loss. Composition,
 shot scale, focal length, camera height, depth-layer layout, and current pose
-remain keyframe responsibilities. The rule is labeled `AMERICAN_HOLLYWOOD`;
-Eastern wuxia and kung-fu profiles remain reserved and unloaded.
+remain keyframe responsibilities. The rule is labeled `AMERICAN_HOLLYWOOD` and
+is not inherited by the independently registered Eastern wuxia or kung-fu
+profiles.
 
 The damage-continuity ledger is video-side state only. Every row names one
 entity descriptor and damage site, the inherited entry damage, baseline state,
@@ -187,7 +188,8 @@ regrown severed anatomy, restored armor, vanished cracks, and disappearing blood
 traces after a cut, occlusion, or location change. Composition, shot scale,
 focal length, camera height, depth-layer layout, and current pose remain
 keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
-not model weights; Eastern wuxia and kung-fu profiles remain reserved.
+not model weights and not part of either independently registered Eastern
+profile lineage.
 
 The action-resolution ledger is video-side state only. Every row names an
 actor, one intended action, its visible intent evidence, a resolution trigger
@@ -199,16 +201,17 @@ advance, blocked strike, restraint, disarm, or other interrupted intent from
 silently completing at the end of a shot or after a cut. Composition, shot
 scale, focal length, camera height, depth-layer layout, and current pose remain
 keyframe responsibilities. This is an `AMERICAN_HOLLYWOOD` prompt/rule adapter,
-not model weights; Eastern wuxia and kung-fu profiles remain reserved.
+not model weights and not part of either independently registered Eastern
+profile lineage.
 
 Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a
 profile per shot using `PER_SHOT_GENRE_AWARE`, so the same narrative shot can
 select a different registered grammar when its genre changes. `EASTERN_WUXIA`
-and `EASTERN_KUNGFU` are reserved identifiers only: they remain blocked from
-production until separately licensed source material has completed adaptation,
-QA, and deployment. This prevents Hell Grind's Hollywood grammar from silently
-becoming a universal default or being mislabeled as an Eastern action style.
+and `EASTERN_KUNGFU` are independently production-enabled from their first
+immutable, double-reviewed five-video task2-1 batches; each routed shot carries
+its registry and production-request hashes. Hell Grind's Hollywood grammar
+remains the unchanged default and is never relabeled as an Eastern action style.
 
 For multi-cut scenes with persistent character, prop, spatial, or environment
 facts, add `cross_cut_state_ledger`. Each typed track must cover every compiled

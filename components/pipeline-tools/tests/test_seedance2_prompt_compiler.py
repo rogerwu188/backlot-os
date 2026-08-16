@@ -262,22 +262,44 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertEqual(style_plan["selection_policy"], "PER_SHOT_GENRE_AWARE")
         self.assertEqual(style_plan["shots"][0]["style_profile_id"], "AMERICAN_HOLLYWOOD")
         self.assertEqual(style_plan["shots"][0]["style_label_zh"], "美式好莱坞")
-        self.assertIn("EASTERN_WUXIA", style_plan["reserved_not_adapted_profiles"])
+        self.assertNotIn("EASTERN_WUXIA", style_plan["reserved_not_adapted_profiles"])
+        self.assertNotIn("EASTERN_KUNGFU", style_plan["reserved_not_adapted_profiles"])
 
-    def test_camera_style_plan_rejects_reserved_unadapted_style(self):
-        segments = [{"shot_index": 1}]
-        contract = {
-            "camera_style_plan": {
-                "selection_policy": "PER_SHOT_GENRE_AWARE",
-                "shots": [{
-                    "shot_index": 1,
-                    "style_profile_id": "EASTERN_WUXIA",
-                    "selection_reason": "武侠题材",
-                }],
+    def test_camera_style_plan_routes_double_reviewed_eastern_wuxia_batch(self):
+        prompt, plan = compile_camera_style_plan(
+            {
+                "camera_style_plan": {
+                    "selection_policy": "PER_SHOT_GENRE_AWARE",
+                    "shots": [{
+                        "shot_index": 1,
+                        "style_profile_id": "EASTERN_WUXIA",
+                        "selection_reason": "东方武侠动作场景",
+                    }],
+                },
             },
-        }
-        with self.assertRaisesRegex(ValueError, "not adapted for production"):
-            compile_camera_style_plan(contract, segments)
+            [{"shot_index": 1}],
+        )
+        shot = plan["shots"][0]
+        self.assertIn("运镜风格=东方武侠[EASTERN_WUXIA]", prompt)
+        self.assertEqual(shot["style_profile_id"], "EASTERN_WUXIA")
+        self.assertEqual(
+            shot["provenance"],
+            "TASK2_1_EASTERN_WUXIA_DOUBLE_REVIEWED_REGISTRY",
+        )
+        self.assertEqual(shot["production_upgrade_batch"], "EASTERN_WUXIA.batch-0001")
+        self.assertEqual(
+            shot["production_upgrade_request_sha256"],
+            "eddb8a698030af40b575ec1bdd14207d5580801b1e0cd1c72b9bad6b856f2232",
+        )
+        self.assertEqual(shot["qualified_video_links"], 5)
+        self.assertEqual(shot["double_reviewed_video_links"], 5)
+        self.assertEqual(
+            shot["registry_snapshot_sha256"],
+            "a483b363dfb40e179179237a9f2dc5c6eef7560bd625eb030cfb718e8e947b3d",
+        )
+        self.assertFalse(shot["source_full_videos_bundled"])
+        self.assertNotIn("EASTERN_WUXIA", plan["reserved_not_adapted_profiles"])
+        self.assertNotIn("EASTERN_KUNGFU", plan["reserved_not_adapted_profiles"])
 
     def test_camera_style_plan_routes_double_reviewed_eastern_kungfu_batch(self):
         prompt, plan = compile_camera_style_plan(
@@ -307,7 +329,7 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
             "e2dd0ad2a94c9402f2773414de850fb28aed005d33bf1f9f8255c5b09086c98d",
         )
         self.assertFalse(shot["source_full_videos_bundled"])
-        self.assertIn("EASTERN_WUXIA", plan["reserved_not_adapted_profiles"])
+        self.assertNotIn("EASTERN_WUXIA", plan["reserved_not_adapted_profiles"])
         self.assertNotIn("EASTERN_KUNGFU", plan["reserved_not_adapted_profiles"])
 
     def test_american_hollywood_profile_and_selected_route_are_unchanged(self):

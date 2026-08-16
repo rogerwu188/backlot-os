@@ -258,14 +258,42 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
         ],
     },
-    # Keep the remaining reserved identifier explicit; each Eastern profile is
-    # activated independently only after its own immutable reviewed batch clears.
+    # Each Eastern profile is activated independently only after its own
+    # immutable double-reviewed batch clears the centralized production gate.
     "EASTERN_WUXIA": {
         "label_zh": "东方武侠",
         "cultural_tradition": "EASTERN_WUXIA",
-        "provenance": None,
-        "deployment_status": "RESERVED_NOT_ADAPTED",
-        "adapter_lineage": [],
+        "provenance": "TASK2_1_EASTERN_WUXIA_DOUBLE_REVIEWED_REGISTRY",
+        "deployment_status": "ADAPTED",
+        "adapter_lineage": [
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T152754Z-eastern_wuxia-850c2955",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T153526Z-eastern_wuxia-e996ab6a",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T160757Z-eastern_wuxia-3371ed5c",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T162205Z-eastern_wuxia-ce17424c",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T163839Z-eastern_wuxia-e1932baa",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T172517Z-eastern_wuxia-e45b5e06",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T181755Z-eastern_wuxia-216f75f3",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T205040Z-eastern_wuxia-3ac98793",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260809T232801Z-eastern_wuxia-f6f7c8d9",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260810T163205Z-eastern_wuxia-534a3dd9",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T173636Z-eastern_wuxia-3704f1dc",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260815T201533Z-eastern_wuxia-64178ff4",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T015413Z-eastern_wuxia-02fc6c7f",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T082408Z-eastern_wuxia-3dfe7c9a",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T090441Z-eastern_wuxia-9d8c42b1",
+            "TASK2_1_EASTERN_KEYFRAME_REFERENCE_V1",
+            "TASK2_1_EASTERN_VIDEO_PROMPT_REFERENCE_V1",
+        ],
+        "production_upgrade_batch": "EASTERN_WUXIA.batch-0001",
+        "production_upgrade_request_sha256": (
+            "eddb8a698030af40b575ec1bdd14207d5580801b1e0cd1c72b9bad6b856f2232"
+        ),
+        "registry_snapshot_sha256": (
+            "a483b363dfb40e179179237a9f2dc5c6eef7560bd625eb030cfb718e8e947b3d"
+        ),
+        "qualified_video_links": 5,
+        "double_reviewed_video_links": 5,
+        "source_full_videos_bundled": False,
     },
     "EASTERN_KUNGFU": {
         "label_zh": "东方功夫",
