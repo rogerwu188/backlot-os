@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools.seedance2_prompt_compiler import (
+    CAMERA_STYLE_PROFILES,
     compile_action_resolution_ledger,
     compile_camera_action_coupling_ledger,
     compile_camera_style_plan,
@@ -217,6 +218,66 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "not adapted for production"):
             compile_camera_style_plan(contract, segments)
+
+    def test_camera_style_plan_routes_double_reviewed_eastern_kungfu_batch(self):
+        prompt, plan = compile_camera_style_plan(
+            {
+                "camera_style_plan": {
+                    "selection_policy": "PER_SHOT_GENRE_AWARE",
+                    "shots": [{
+                        "shot_index": 1,
+                        "style_profile_id": "EASTERN_KUNGFU",
+                        "selection_reason": "东方功夫动作场景",
+                    }],
+                },
+            },
+            [{"shot_index": 1}],
+        )
+        shot = plan["shots"][0]
+        self.assertIn("运镜风格=东方功夫[EASTERN_KUNGFU]", prompt)
+        self.assertEqual(shot["style_profile_id"], "EASTERN_KUNGFU")
+        self.assertEqual(
+            shot["provenance"],
+            "TASK2_1_EASTERN_KUNGFU_DOUBLE_REVIEWED_REGISTRY",
+        )
+        self.assertEqual(shot["qualified_video_links"], 5)
+        self.assertEqual(shot["double_reviewed_video_links"], 5)
+        self.assertEqual(
+            shot["registry_snapshot_sha256"],
+            "e2dd0ad2a94c9402f2773414de850fb28aed005d33bf1f9f8255c5b09086c98d",
+        )
+        self.assertFalse(shot["source_full_videos_bundled"])
+        self.assertIn("EASTERN_WUXIA", plan["reserved_not_adapted_profiles"])
+        self.assertNotIn("EASTERN_KUNGFU", plan["reserved_not_adapted_profiles"])
+
+    def test_american_hollywood_profile_and_selected_route_are_unchanged(self):
+        profile_payload = (
+            json.dumps(
+                CAMERA_STYLE_PROFILES["AMERICAN_HOLLYWOOD"],
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ) + "\n"
+        ).encode()
+        self.assertEqual(
+            hashlib.sha256(profile_payload).hexdigest(),
+            "9cd9eb063a65b5430f4884275b188de56c61fb182d88529071f7a4996e6c9e62",
+        )
+        prompt, plan = compile_camera_style_plan(
+            {}, [{"shot_index": 1}, {"shot_index": 2}]
+        )
+        selected_payload = (
+            json.dumps(
+                {"prompt": prompt, "shots": plan["shots"]},
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ) + "\n"
+        ).encode()
+        self.assertEqual(
+            hashlib.sha256(selected_payload).hexdigest(),
+            "da26507a33f5d016f34f918bbb9fb35f97f66b1e2611cdf63ce07d9a7e3efa9f",
+        )
 
     def shot_boundary_fixture(self, **overrides):
         segments = [{

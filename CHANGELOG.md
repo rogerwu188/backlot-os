@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Activate the first double-reviewed `EASTERN_KUNGFU` task2-1 camera-style
+  routing batch from five qualified full-video references. The production
+  profile is bound to immutable registry snapshot
+  `e2dd0ad2a94c9402f2773414de850fb28aed005d33bf1f9f8255c5b09086c98d`;
+  `EASTERN_WUXIA` remains reserved, and hash-locked tests prove the existing
+  `AMERICAN_HOLLYWOOD` profile and selected-shot prompt output are unchanged.
 - Close the licensed Hell Grind Scene 70C catalog at 2,225/2,225 and upgrade
   the task2-1 prompt/rule adapter to V21 with an optional cross-ledger physics
   coherence gate. When contact-force, progressive-contact, and action-resolution

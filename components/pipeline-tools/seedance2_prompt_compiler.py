@@ -256,8 +256,8 @@ CAMERA_STYLE_PROFILES = {
             "HELL_GRIND_ACTION_RESOLUTION_PROMPT_RULE_ADAPTER_V19",
         ],
     },
-    # Reserved identifiers make the selection boundary explicit without claiming
-    # that these traditions have already been learned or cleared for production.
+    # Keep the remaining reserved identifier explicit; each Eastern profile is
+    # activated independently only after its own immutable reviewed batch clears.
     "EASTERN_WUXIA": {
         "label_zh": "东方武侠",
         "cultural_tradition": "EASTERN_WUXIA",
@@ -268,9 +268,28 @@ CAMERA_STYLE_PROFILES = {
     "EASTERN_KUNGFU": {
         "label_zh": "东方功夫",
         "cultural_tradition": "EASTERN_KUNGFU",
-        "provenance": None,
-        "deployment_status": "RESERVED_NOT_ADAPTED",
-        "adapter_lineage": [],
+        "provenance": "TASK2_1_EASTERN_KUNGFU_DOUBLE_REVIEWED_REGISTRY",
+        "deployment_status": "ADAPTED",
+        "adapter_lineage": [
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T023603Z-eastern_kungfu-4892bae9",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T033249Z-eastern_kungfu-d528555f",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T043754Z-eastern_kungfu-09f6a251",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T121844Z-eastern_kungfu-344f7aa2",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T131318Z-eastern_kungfu-61051d32",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260814T154821Z-eastern_kungfu-2e818744",
+            "TASK2_1_EASTERN_KEYFRAME_REFERENCE_V1",
+            "TASK2_1_EASTERN_VIDEO_PROMPT_REFERENCE_V1",
+        ],
+        "production_upgrade_batch": "EASTERN_KUNGFU.batch-0001",
+        "production_upgrade_request_sha256": (
+            "ef9fc368248955a9727c077a952aab12c2b0eb68cac94232d693db11d31d08d4"
+        ),
+        "registry_snapshot_sha256": (
+            "e2dd0ad2a94c9402f2773414de850fb28aed005d33bf1f9f8255c5b09086c98d"
+        ),
+        "qualified_video_links": 5,
+        "double_reviewed_video_links": 5,
+        "source_full_videos_bundled": False,
     },
 }
 
@@ -320,7 +339,7 @@ def compile_camera_style_plan(
             row.get("selection_reason"),
             f"camera style row {index} selection_reason is required",
         )
-        compiled.append({
+        compiled_row = {
             "shot_index": shot_index,
             "style_profile_id": profile_id,
             "style_label_zh": profile["label_zh"],
@@ -328,7 +347,18 @@ def compile_camera_style_plan(
             "selection_reason": reason,
             "provenance": profile["provenance"],
             "adapter_lineage": profile["adapter_lineage"],
-        })
+        }
+        for provenance_field in (
+            "production_upgrade_batch",
+            "production_upgrade_request_sha256",
+            "registry_snapshot_sha256",
+            "qualified_video_links",
+            "double_reviewed_video_links",
+            "source_full_videos_bundled",
+        ):
+            if provenance_field in profile:
+                compiled_row[provenance_field] = profile[provenance_field]
+        compiled.append(compiled_row)
 
     prompt_rows = [
         f"镜头{row['shot_index']}：运镜风格={row['style_label_zh']}"
