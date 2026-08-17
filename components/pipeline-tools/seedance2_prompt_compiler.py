@@ -281,18 +281,25 @@ CAMERA_STYLE_PROFILES = {
             "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T015413Z-eastern_wuxia-02fc6c7f",
             "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T082408Z-eastern_wuxia-3dfe7c9a",
             "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T090441Z-eastern_wuxia-9d8c42b1",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T094528Z-eastern_wuxia-09105cfb",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T102139Z-eastern_wuxia-bcf3ad42",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T111139Z-eastern_wuxia-aa78cef4",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T173459Z-eastern_wuxia-e2c5a08a",
             "TASK2_1_EASTERN_KEYFRAME_REFERENCE_V1",
             "TASK2_1_EASTERN_VIDEO_PROMPT_REFERENCE_V1",
         ],
-        "production_upgrade_batch": "EASTERN_WUXIA.batch-0001",
+        "production_upgrade_batch": "EASTERN_WUXIA.batch-0002",
         "production_upgrade_request_sha256": (
-            "eddb8a698030af40b575ec1bdd14207d5580801b1e0cd1c72b9bad6b856f2232"
+            "abe6947c731891bebabbcacdbe8410427fdbe32c92fa92a8cf7b3393e2acebfd"
         ),
         "registry_snapshot_sha256": (
-            "a483b363dfb40e179179237a9f2dc5c6eef7560bd625eb030cfb718e8e947b3d"
+            "bfe3cd43734658ce73282a5535ae213c83cdb559af46fe74faf8995c7c2c607b"
         ),
-        "qualified_video_links": 5,
-        "double_reviewed_video_links": 5,
+        "qualified_video_links": 10,
+        "double_reviewed_video_links": 10,
+        "keyframe_reference_count": 396,
+        "video_reference_count": 396,
+        "next_production_upgrade_threshold": 15,
         "source_full_videos_bundled": False,
     },
     "EASTERN_KUNGFU": {
@@ -384,6 +391,9 @@ def compile_camera_style_plan(
             "registry_snapshot_sha256",
             "qualified_video_links",
             "double_reviewed_video_links",
+            "keyframe_reference_count",
+            "video_reference_count",
+            "next_production_upgrade_threshold",
             "source_full_videos_bundled",
         ):
             if provenance_field in profile:

@@ -208,10 +208,12 @@ Every Hell Grind-derived camera rule is labeled `AMERICAN_HOLLYWOOD` / “美式
 好莱坞” by `TASK2_1_CULTURAL_CAMERA_STYLE_ROUTER_V1`. The router assigns a
 profile per shot using `PER_SHOT_GENRE_AWARE`, so the same narrative shot can
 select a different registered grammar when its genre changes. `EASTERN_WUXIA`
-and `EASTERN_KUNGFU` are independently production-enabled from their first
-immutable, double-reviewed five-video task2-1 batches; each routed shot carries
-its registry and production-request hashes. Hell Grind's Hollywood grammar
-remains the unchanged default and is never relabeled as an Eastern action style.
+and `EASTERN_KUNGFU` are independently production-enabled from immutable,
+double-reviewed task2-1 batches; each routed shot carries its registry and
+production-request hashes. Wuxia currently routes batch 0002 from ten qualified
+full-video references, while kung-fu remains independently pinned to its first
+five-video batch. Hell Grind's Hollywood grammar remains the unchanged default
+and is never relabeled as an Eastern action style.
 
 For multi-cut scenes with persistent character, prop, spatial, or environment
 facts, add `cross_cut_state_ledger`. Each typed track must cover every compiled

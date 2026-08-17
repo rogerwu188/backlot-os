@@ -286,16 +286,19 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
             shot["provenance"],
             "TASK2_1_EASTERN_WUXIA_DOUBLE_REVIEWED_REGISTRY",
         )
-        self.assertEqual(shot["production_upgrade_batch"], "EASTERN_WUXIA.batch-0001")
+        self.assertEqual(shot["production_upgrade_batch"], "EASTERN_WUXIA.batch-0002")
         self.assertEqual(
             shot["production_upgrade_request_sha256"],
-            "eddb8a698030af40b575ec1bdd14207d5580801b1e0cd1c72b9bad6b856f2232",
+            "abe6947c731891bebabbcacdbe8410427fdbe32c92fa92a8cf7b3393e2acebfd",
         )
-        self.assertEqual(shot["qualified_video_links"], 5)
-        self.assertEqual(shot["double_reviewed_video_links"], 5)
+        self.assertEqual(shot["qualified_video_links"], 10)
+        self.assertEqual(shot["double_reviewed_video_links"], 10)
+        self.assertEqual(shot["keyframe_reference_count"], 396)
+        self.assertEqual(shot["video_reference_count"], 396)
+        self.assertEqual(shot["next_production_upgrade_threshold"], 15)
         self.assertEqual(
             shot["registry_snapshot_sha256"],
-            "a483b363dfb40e179179237a9f2dc5c6eef7560bd625eb030cfb718e8e947b3d",
+            "bfe3cd43734658ce73282a5535ae213c83cdb559af46fe74faf8995c7c2c607b",
         )
         self.assertFalse(shot["source_full_videos_bundled"])
         self.assertNotIn("EASTERN_WUXIA", plan["reserved_not_adapted_profiles"])
