@@ -3,6 +3,14 @@
 ## Unreleased
 
 - Upgrade the independently routed `EASTERN_WUXIA` task2-1 camera-style
+  profile to double-reviewed batch 0003 from fifteen qualified full-video
+  references and 434 keyframe/video prompt references. The route is pinned to
+  immutable registry snapshot
+  `16ebea79c306f706c1447fc1a0c4ab2f2db66465999d1cf037c2968d9d0b4409`;
+  the `AMERICAN_HOLLYWOOD` profile and default selected-shot output remain
+  hash-locked and unchanged.
+
+- Upgrade the independently routed `EASTERN_WUXIA` task2-1 camera-style
   profile to double-reviewed batch 0002 from ten qualified full-video
   references and 396 keyframe/video prompt references. The route is pinned to
   immutable registry snapshot

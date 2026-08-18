@@ -285,21 +285,26 @@ CAMERA_STYLE_PROFILES = {
             "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T102139Z-eastern_wuxia-bcf3ad42",
             "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T111139Z-eastern_wuxia-aa78cef4",
             "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260816T173459Z-eastern_wuxia-e2c5a08a",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260817T212515Z-eastern_wuxia-7664191021778307697",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260818T021811Z-eastern_wuxia-788937b3",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260818T051508Z-eastern_wuxia-cd879afe",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260818T130924Z-eastern_wuxia-b622e5cc",
+            "EASTERN_ACTION_CAMERA_INFERRED_CORPUS_20260818T135208Z-eastern_wuxia-a2601971",
             "TASK2_1_EASTERN_KEYFRAME_REFERENCE_V1",
             "TASK2_1_EASTERN_VIDEO_PROMPT_REFERENCE_V1",
         ],
-        "production_upgrade_batch": "EASTERN_WUXIA.batch-0002",
+        "production_upgrade_batch": "EASTERN_WUXIA.batch-0003",
         "production_upgrade_request_sha256": (
-            "abe6947c731891bebabbcacdbe8410427fdbe32c92fa92a8cf7b3393e2acebfd"
+            "06935b64ad488e49d84912146450c6d619bc41a0817b827f7827a963c7fb8236"
         ),
         "registry_snapshot_sha256": (
-            "bfe3cd43734658ce73282a5535ae213c83cdb559af46fe74faf8995c7c2c607b"
+            "16ebea79c306f706c1447fc1a0c4ab2f2db66465999d1cf037c2968d9d0b4409"
         ),
-        "qualified_video_links": 10,
-        "double_reviewed_video_links": 10,
-        "keyframe_reference_count": 396,
-        "video_reference_count": 396,
-        "next_production_upgrade_threshold": 15,
+        "qualified_video_links": 15,
+        "double_reviewed_video_links": 15,
+        "keyframe_reference_count": 434,
+        "video_reference_count": 434,
+        "next_production_upgrade_threshold": 20,
         "source_full_videos_bundled": False,
     },
     "EASTERN_KUNGFU": {
