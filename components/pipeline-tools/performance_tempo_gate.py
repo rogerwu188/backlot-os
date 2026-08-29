@@ -123,7 +123,14 @@ def evaluate_batch(tasks: list[dict[str, Any]]) -> dict[str, Any]:
         duration = float(task.get("duration_seconds") or task.get("duration") or 0.0)
         contract = task.get("performance_tempo_contract") or {}
         fight_or_chase = _fight_or_chase(text, task)
-        rows.append({"task_key": key, "duration_seconds": duration, "fight_or_chase": fight_or_chase, "contract": contract})
+        semantic_grouped = task.get("semantic_video_unit") is True
+        rows.append({
+            "task_key": key,
+            "duration_seconds": duration,
+            "fight_or_chase": fight_or_chase,
+            "semantic_grouped": semantic_grouped,
+            "contract": contract,
+        })
         if task.get("action_unit") is not True:
             failures.append({"code": "ACTION_UNIT_CLASSIFICATION_MISSING", "task_key": key})
         if not contract:
@@ -131,11 +138,15 @@ def evaluate_batch(tasks: list[dict[str, Any]]) -> dict[str, Any]:
             continue
         if contract.get("playback_speed") != "REAL_TIME_1X":
             failures.append({"code": "ACTION_NOT_AUTHORED_AT_REAL_TIME", "task_key": key})
-        max_action = float(contract.get("primary_action_complete_by_seconds") or 0.0)
-        if max_action <= 0.0 or max_action > 2.0:
-            failures.append({"code": "ATOMIC_ACTION_COMPLETION_WINDOW_INVALID", "task_key": key, "actual_seconds": max_action, "maximum_seconds": 2.0})
-        if duration > 4.0:
-            failures.append({"code": "ATOMIC_ACTION_DURATION_INVITES_SLOW_MOTION", "task_key": key, "actual_seconds": duration, "maximum_seconds": 4.0})
+        if semantic_grouped:
+            if duration > 15.0:
+                failures.append({"code": "GROUPED_SEMANTIC_UNIT_TOO_LONG", "task_key": key, "actual_seconds": duration, "maximum_seconds": 15.0})
+        else:
+            max_action = float(contract.get("primary_action_complete_by_seconds") or 0.0)
+            if max_action <= 0.0 or max_action > 2.0:
+                failures.append({"code": "ATOMIC_ACTION_COMPLETION_WINDOW_INVALID", "task_key": key, "actual_seconds": max_action, "maximum_seconds": 2.0})
+            if duration > 4.0:
+                failures.append({"code": "ATOMIC_ACTION_DURATION_INVITES_SLOW_MOTION", "task_key": key, "actual_seconds": duration, "maximum_seconds": 4.0})
         if float(contract.get("result_hold_seconds") or 0.0) > 0.75:
             failures.append({"code": "ACTION_RESULT_HOLD_TOO_LONG", "task_key": key})
         failures.extend(_evaluate_atomic_windows(key, contract, fight_or_chase=fight_or_chase))
@@ -147,6 +158,7 @@ def evaluate_batch(tasks: list[dict[str, Any]]) -> dict[str, Any]:
         "policy": (
             "Action-like prompts cannot bypass classification. Atomic contact completes within 2.0s "
             "at real-time 1x; fight/chase beats complete within 1.2s and begin by 0.5s; "
-            "total atomic unit <=4.0s; result hold <=0.75s."
+            "a standalone atomic unit is <=4.0s, while a semantic grouped unit may run up to 15s "
+            "only when it retains contiguous <=2.0s atomic windows (<=1.2s for fight/chase); result hold <=0.75s."
         ),
     }

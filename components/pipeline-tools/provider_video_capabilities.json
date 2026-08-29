@@ -1,6 +1,6 @@
 {
   "schema": "backlotos.provider_video_capabilities.v1",
-  "recorded_at": "2026-08-09T06:28:54Z",
+  "recorded_at": "2026-08-29T08:00:00Z",
   "providers": {
     "giggle": {
       "status": "VERIFIED_FROM_OFFICIAL_API_DOCS",
@@ -9,7 +9,8 @@
       "pricing_url": "https://apidocs.giggle.pro/8562698m0",
       "supported_models": [
         "seedance-2.0-pro",
-        "seedance-2.0-fast"
+        "seedance-2.0-fast",
+        "MiniMax-H3"
       ],
       "model_capabilities": {
         "seedance-2.0-fast": {
@@ -25,6 +26,15 @@
             "480p"
           ],
           "source": "https://apidocs.giggle.pro/445520569e0"
+        },
+        "MiniMax-H3": {
+          "resolutions": [
+            "768p",
+            "480p"
+          ],
+          "maximum_duration_seconds": 15,
+          "maximum_omni_images": 9,
+          "source": "https://github.com/giggle-official/skills/tree/main/skills/giggle-minimax-h3-gen"
         }
       },
       "unsupported_logical_models": [
@@ -40,7 +50,7 @@
           "exact_first_frame": false
         }
       },
-      "evidence": "The official Omni API model enum and pricing table list Pro and Fast only, and the request schema explicitly limits resolution to 720p or 480p. A live isolated standard request returned no task_id and failed before billing with model price record not found; an E40 Fast 1080p request returned an invalid-resolution failure and was fully refunded."
+      "evidence": "Giggle official Seedance documentation verifies Pro/Fast at 720p or 480p. Giggle's official MiniMax-H3 skill verifies MiniMax-H3 video and omni generation at 480p or 768p, 3-15 seconds, with at most 9 omni images."
     }
   }
 }

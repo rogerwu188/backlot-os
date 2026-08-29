@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Durable Fast-only Giggle video submitter with exact-frame transport."""
+"""Durable episode-policy Giggle video submitter with exact-frame transport."""
 
 from __future__ import annotations
 
@@ -91,9 +91,16 @@ def normalized_han(value: str) -> str:
 def validate_source_caption_safe_dialogue(task: dict[str, Any], prompt_text: str) -> None:
     if task.get("native_dialogue_required") is not True or task.get("source_subtitle_policy", "FORBID") != "FORBID":
         return
+    lines = [str(value) for value in task.get("dialogue_lines") or []]
+    if task.get("dialogue_transport") == "MODEL_NATIVE_TEXT_DIALOGUE":
+        if task.get("model_native_text_dialogue") is not True or not lines:
+            raise ValueError(f"{task['task_key']} native text dialogue contract is incomplete")
+        prompt = normalized_han(prompt_text)
+        if any(normalized_han(line) not in prompt for line in lines):
+            raise ValueError(f"{task['task_key']} canonical native text dialogue is missing from prompt")
+        return
     if task.get("dialogue_transport") != "EXACT_LINE_AUDIO_REFERENCE":
         raise ValueError(f"{task['task_key']} source-caption-forbidden dialogue requires exact-line audio")
-    lines = [str(value) for value in task.get("dialogue_lines") or []]
     exact_assets = task.get("exact_dialogue_audio_asset_ids") or []
     if not lines or len(exact_assets) != len(lines):
         raise ValueError(f"{task['task_key']} requires one ordered exact-line audio asset per line")
@@ -116,12 +123,21 @@ def validate_task(task: dict[str, Any]) -> str:
     for path, expected in zip(references, task["reference_sha256"]):
         if not path.is_file() or sha256(path) != expected:
             raise ValueError(f"{task['task_key']} reference SHA mismatch: {portable(path)}")
-    if task.get("model") != "seedance-2.0-fast":
-        raise ValueError(f"{task['task_key']} requires seedance-2.0-fast")
-    if task.get("resolution") != "720p":
-        raise ValueError(f"{task['task_key']} requires provider-native 720p")
-    if not 4 <= int(task.get("duration_seconds", 0)) <= 15:
-        raise ValueError(f"{task['task_key']} duration outside 4-15 seconds")
+    episode = str(task.get("episode") or "")
+    episode_number = int(episode[1:]) if episode.startswith("E") and episode[1:].isdigit() else 0
+    required_model = "MiniMax-H3" if episode_number >= 45 else (
+        "seedance-2.0-pro" if episode_number >= 41 else "seedance-2.0-fast"
+    )
+    if task.get("model") != required_model:
+        raise ValueError(f"{task['task_key']} requires {required_model} for {episode or 'this episode'}")
+    required_resolution = "768p" if required_model == "MiniMax-H3" else "720p"
+    if task.get("resolution") != required_resolution:
+        raise ValueError(f"{task['task_key']} requires provider-native {required_resolution}")
+    minimum_duration = 3 if required_model == "MiniMax-H3" else 4
+    if not minimum_duration <= int(task.get("duration_seconds", 0)) <= 15:
+        raise ValueError(f"{task['task_key']} duration outside {minimum_duration}-15 seconds")
+    if required_model == "MiniMax-H3" and len(references) > 9:
+        raise ValueError(f"{task['task_key']} MiniMax-H3 omni accepts at most 9 images")
     validate_source_caption_safe_dialogue(task, prompt_text)
     return prompt_text
 

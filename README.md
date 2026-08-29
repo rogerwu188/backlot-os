@@ -97,10 +97,12 @@ health report keeps that boundary explicit instead of claiming a false PASS.
 RapidOCR is bundled in the isolated installation and is discovered
 automatically; StoryClaw users do not need to configure a separate OCR Python.
 
-Provider defaults are Giggle `gpt2img` for images and `seedance-2.0-pro`
-(Seedance 2) for video. The Story Agent requires a configured Claude 4.8-or-
-newer model. Actual provider/model IDs are recorded in receipts; credentials
-are accepted only through deployment environment variables.
+Provider defaults are Giggle `gpt2img` for images. Video admission is governed
+by the episode migration contract: E40 and earlier use `seedance-2.0-fast`,
+E41-E44 use `seedance-2.0-pro`, and E45 onward use `MiniMax-H3`. Actual
+provider/model IDs are recorded in receipts; credentials are accepted only
+through deployment environment variables. The Story Agent requires a
+configured Claude 4.8-or-newer model.
 
 ## Pre-generation action and music contracts
 

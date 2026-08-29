@@ -35,6 +35,7 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
                     "model_capabilities": {
                         "seedance-2.0-fast": {"resolutions": ["720p", "480p"]},
                         "seedance-2.0-pro": {"resolutions": ["720p", "480p"]},
+                        "MiniMax-H3": {"resolutions": ["768p", "480p"]},
                     },
                 }
             },
@@ -115,6 +116,37 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
                 {row["code"] for row in report["failures"]},
             )
 
+    def test_e45_h3_768p_passes_provider_model_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root)
+            manifest["episode"] = "E45"
+            manifest["allowed_video_models"] = ["MiniMax-H3"]
+            manifest["tasks"][0].update({"model": "MiniMax-H3", "resolution": "768p"})
+            report = self.evaluate(
+                manifest,
+                root,
+                supported_models=["seedance-2.0-fast", "seedance-2.0-pro", "MiniMax-H3"],
+            )
+            self.assertEqual(report["provider_capability"]["status"], "PASS", report)
+
+    def test_e45_sd2_is_rejected_by_episode_migration_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root)
+            manifest["episode"] = "E45"
+            manifest["allowed_video_models"] = ["seedance-2.0-pro"]
+            manifest["tasks"][0].update({"model": "seedance-2.0-pro", "resolution": "720p"})
+            report = self.evaluate(
+                manifest,
+                root,
+                supported_models=["seedance-2.0-fast", "seedance-2.0-pro", "MiniMax-H3"],
+            )
+            self.assertIn(
+                "PRODUCTION_MODEL_POLICY_EXPANSION_FORBIDDEN",
+                {row["code"] for row in report["failures"]},
+            )
+
     def test_atomic_real_time_task_passes(self):
         contract = {
             "playback_speed": "REAL_TIME_1X",
@@ -129,6 +161,25 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             report = self.evaluate(self.manifest(root, action_unit=True, contract=contract, duration=4), root)
+            self.assertEqual(report["status"], "PASS", report)
+
+    def test_grouped_semantic_unit_may_exceed_four_seconds_with_atomic_windows(self):
+        contract = {
+            "playback_speed": "REAL_TIME_1X",
+            "result_hold_seconds": 0.0,
+            "atomic_action_windows": [
+                {"start_seconds": 0.0, "end_seconds": 1.2, "action": "起身"},
+                {"start_seconds": 1.2, "end_seconds": 2.4, "action": "转身"},
+                {"start_seconds": 2.4, "end_seconds": 3.6, "action": "落座"},
+                {"start_seconds": 3.6, "end_seconds": 4.8, "action": "端碗"},
+                {"start_seconds": 4.8, "end_seconds": 6.0, "action": "停稳"},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = self.manifest(root, action_unit=True, contract=contract, duration=6)
+            manifest["tasks"][0]["semantic_video_unit"] = True
+            report = self.evaluate(manifest, root)
             self.assertEqual(report["status"], "PASS", report)
 
     def test_fast_but_incoherent_combat_is_rejected(self):

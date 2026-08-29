@@ -9,7 +9,18 @@ from pathlib import Path
 from typing import Any
 
 
-PRODUCTION_ALLOWED_MODELS = ("seedance-2.0-fast",)
+PRODUCTION_ALLOWED_MODELS = ("seedance-2.0-fast", "seedance-2.0-pro", "MiniMax-H3")
+
+
+def _episode_allowed_models(manifest: dict[str, Any]) -> set[str]:
+    """Apply the series model migration contract at the paid gate itself."""
+    episode = str(manifest.get("episode") or "")
+    number = int(episode[1:]) if episode.startswith("E") and episode[1:].isdigit() else 0
+    if number >= 45:
+        return {"MiniMax-H3"}
+    if number >= 41:
+        return {"seedance-2.0-pro"}
+    return {"seedance-2.0-fast"}
 
 
 def _sha256(path: Path) -> str:
@@ -25,10 +36,10 @@ def evaluate_provider_capability(
     path = Path(registry_path) if registry_path else Path(__file__).with_name("provider_video_capabilities.json")
     failures: list[dict[str, Any]] = []
     provider = str(manifest.get("provider") or "giggle")
-    production_allowed_models = set(PRODUCTION_ALLOWED_MODELS)
+    production_allowed_models = _episode_allowed_models(manifest)
     requested_models = {
         str(value)
-        for value in (manifest.get("allowed_video_models") or PRODUCTION_ALLOWED_MODELS)
+        for value in (manifest.get("allowed_video_models") or sorted(production_allowed_models))
         if str(value)
     }
     policy_expansion = requested_models - production_allowed_models
@@ -129,5 +140,5 @@ def evaluate_provider_capability(
         "registry_sha256": _sha256(path) if path.is_file() else None,
         "provider_evidence": provider_row if isinstance(provider_row, dict) else None,
         "failures": failures,
-        "policy": "Paid video preflight fails before provider POST unless the current task model is seedance-2.0-fast, is requested by the manifest, is verified as supported by the selected provider, and uses a resolution explicitly allowed for that provider/model. Pro, Mini, and the unpriced bare seedance-2.0 SKU cannot be enabled by a manifest.",
+        "policy": "Paid video preflight binds the series migration contract: E40 and earlier use seedance-2.0-fast, E41-E44 use seedance-2.0-pro, and E45 onward use MiniMax-H3. The selected model must also be present in the verified provider registry and use an explicitly supported native resolution. Mini and the unpriced bare seedance-2.0 SKU remain forbidden.",
     }

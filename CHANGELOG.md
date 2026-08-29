@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 0.2.50
+
+- Migrate the governed series video route by episode: E40 and earlier remain
+  on Seedance 2 Fast at 720p, E41-E44 use Seedance 2 Pro at 720p, and E45 onward
+  use MiniMax-H3 at provider-native 768p. The paid manifest gate, provider
+  capability registry, durable submitter, and low-level HTTP transport now
+  agree on the registered routes while continuing to reject Mini, bare
+  `seedance-2.0`, unknown models, and manifest-level policy expansion.
+- Admit semantic grouped video units up to the provider's 15-second ceiling
+  without weakening action tempo: every authored atomic window remains bounded
+  to two seconds, or 1.2 seconds for fight/chase beats, with the existing onset,
+  idle-gap, real-time playback, and terminal-result checks intact.
+- Add regression coverage for E45 MiniMax-H3 admission, cross-episode model
+  rejection, grouped semantic timing, and transport-level allowlist parity so a
+  stale Fast-only client cannot silently block an otherwise valid paid batch.
+
 ## 0.2.49
 
 - Make task-lane liveness scoped and fail-closed: RUNNING now requires a live

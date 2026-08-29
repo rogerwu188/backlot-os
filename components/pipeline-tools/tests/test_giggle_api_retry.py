@@ -135,22 +135,24 @@ class GiggleRetryTest(unittest.TestCase):
 
     @mock.patch.object(client, "_headers", return_value={})
     @mock.patch.object(client.urllib.request, "urlopen")
-    def test_fast_is_the_only_video_model_allowed_at_http_client(self, urlopen, _headers):
+    def test_registered_video_models_are_allowed_at_http_client(self, urlopen, _headers):
         urlopen.return_value = Response({"code": 200, "data": {"task_id": "test"}})
-        result = client._request(
-            "/api/v1/generation/omni-video",
-            {"prompt": "test", "model": "seedance-2.0-fast"},
-        )
-        self.assertEqual(result["data"]["task_id"], "test")
-        self.assertEqual(urlopen.call_count, 1)
-        for forbidden in ("seedance-2.0", "seedance-2.0-pro", "seedance-2.0-mini"):
+        for model in ("seedance-2.0-fast", "seedance-2.0-pro", "MiniMax-H3"):
+            with self.subTest(model=model):
+                result = client._request(
+                    "/api/v1/generation/omni-video",
+                    {"prompt": "test", "model": model},
+                )
+                self.assertEqual(result["data"]["task_id"], "test")
+        self.assertEqual(urlopen.call_count, 3)
+        for forbidden in ("seedance-2.0", "seedance-2.0-mini", "unknown-video-model"):
             with self.subTest(forbidden=forbidden):
-                with self.assertRaisesRegex(SystemExit, "seedance-2.0-fast"):
+                with self.assertRaisesRegex(SystemExit, "MiniMax-H3"):
                     client._request(
                         "/api/v1/generation/omni-video",
                         {"prompt": "test", "model": forbidden},
                     )
-        self.assertEqual(urlopen.call_count, 1)
+        self.assertEqual(urlopen.call_count, 3)
 
 
 if __name__ == "__main__":
