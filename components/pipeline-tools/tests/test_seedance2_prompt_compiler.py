@@ -5,7 +5,12 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.seedance2_prompt_compiler import compile_prompt, default_local_lora_memory, load_local_lora_memory
+from tools.seedance2_prompt_compiler import (
+    TASK2_1_REFERENCE_LIBRARY_ID,
+    compile_prompt,
+    default_local_lora_memory,
+    load_local_lora_memory,
+)
 
 
 class Seedance2PromptCompilerTest(unittest.TestCase):
@@ -60,6 +65,48 @@ class Seedance2PromptCompilerTest(unittest.TestCase):
         self.assertIn("{谁提的？}", prompt)
         self.assertEqual(manifest["route"], "/api/v1/generation/omni-video")
         self.assertEqual(manifest["shot_count"], 2)
+
+    def test_western_martial_action_reference_is_opt_in_sha_bound_and_profile_isolated(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard",
+            "task2_1_reference_library": {
+                "library_id": TASK2_1_REFERENCE_LIBRARY_ID,
+                "expected_sha256": "f04e1b2f95cb8f7511022723e690bfcb4d29b00dc6fa0e9ace9cca38dc7bdbf9",
+            },
+            "shots": [
+                {"framing": "双人中景", "camera": "侧向跟拍", "action": "对手绕过桌面后出拳", "expression_arc": "试探到交手", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "陈迹格挡并将对手逼退", "expression_arc": "交手到掌控", "cut_reason": "结果接"},
+            ],
+        })
+        prompt, manifest = compile_prompt(spec)
+        reference = manifest["task2_1_reference_library"]
+        self.assertIn("西方武侠打斗参考包", prompt)
+        self.assertIn("WMA-001", prompt)
+        self.assertEqual(reference["profile_id"], "AMERICAN_HOLLYWOOD")
+        self.assertIsNone(reference["model_weights_sha256"])
+        self.assertTrue(reference["library_sha256"])
+        self.assertEqual(
+            manifest["task2_1_reference_library_gate"],
+            "PASS_SHA_BOUND_AMERICAN_HOLLYWOOD_ONLY",
+        )
+
+    def test_western_martial_action_reference_rejects_eastern_profile(self):
+        spec = self.base()
+        spec.update({
+            "mode": "storyboard",
+            "task2_1_reference_library": {
+                "library_id": TASK2_1_REFERENCE_LIBRARY_ID,
+                "profile_id": "EASTERN_WUXIA",
+                "expected_sha256": "f04e1b2f95cb8f7511022723e690bfcb4d29b00dc6fa0e9ace9cca38dc7bdbf9",
+            },
+            "shots": [
+                {"framing": "中景", "camera": "固定", "action": "A", "expression_arc": "A到B", "cut_reason": "动作接"},
+                {"framing": "近景", "camera": "固定", "action": "B", "expression_arc": "B到C", "cut_reason": "结果接"},
+            ],
+        })
+        with self.assertRaisesRegex(ValueError, "AMERICAN_HOLLYWOOD"):
+            compile_prompt(spec)
 
     def test_licensed_cinematic_shot_language_compiles_sectioned_time_coded_prompt(self):
         hero = "负伤同伴：深色战衣，右肩破损渗血，面部与发型保持参考资产一致。"

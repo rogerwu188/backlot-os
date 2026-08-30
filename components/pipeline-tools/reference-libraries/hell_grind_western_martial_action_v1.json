@@ -1,0 +1,33 @@
+{
+  "schema": "backlotos.task2_1.reference_library.v1",
+  "library_id": "HELL_GRIND_WESTERN_MARTIAL_ACTION_REFERENCE_V1",
+  "status": "APPROVED_FOR_TASK2_1_REFERENCE",
+  "training_target": "PROMPT_RULE_ADAPTER_NOT_MODEL_WEIGHTS",
+  "profile_id": "AMERICAN_HOLLYWOOD",
+  "reference_kind": "WESTERN_MARTIAL_ACTION",
+  "label_zh": "西方武侠打斗参考包",
+  "source_lineage": {
+    "library_id": "HELL_GRIND_CAMERA_REFERENCE_LIBRARY_V1",
+    "adapter_lineage_prefix": "HELL_GRIND_",
+    "source_use": "abstracted_action_direction_rules_only",
+    "raw_source_prompts_embedded": false,
+    "model_weights_sha256": null,
+    "model_weights_reason": "Seedance/video model weights are not trained or distributed by this reference library."
+  },
+  "forbidden_profile_ids": [
+    "EASTERN_WUXIA",
+    "EASTERN_KUNGFU"
+  ],
+  "rule_set": [
+    {"id": "WMA-001", "instruction": "把每次交手写成可见因果链：起势、目标、接触、受力、反应、落点；不要用抽象招式名替代结果。"},
+    {"id": "WMA-002", "instruction": "开打前先交代双方距离、朝向、障碍物和可用路线；每次位移后都更新站位与屏幕方向。"},
+    {"id": "WMA-003", "instruction": "镜头只为读清发力、躲闪、接触或结果而移动；禁止装饰性环绕、漂移和无动机摇摆。"},
+    {"id": "WMA-004", "instruction": "动作节奏采用短暂蓄力、清晰接触、可见余震和结果停顿；高强度不等于持续快速剪切。"},
+    {"id": "WMA-005", "instruction": "保持180度动作轴，只有在画面内完成转向、穿越或明确重建空间时才改变机位侧。"},
+    {"id": "WMA-006", "instruction": "强调演员相对构图：攻击者、目标和关键道具在同一可读空间内，关键接触不可被无理由遮挡。"},
+    {"id": "WMA-007", "instruction": "让环境参与打斗：门框、栏杆、楼梯、桌面或地面材质应提供受力、绕行或破坏后的连续证据。"},
+    {"id": "WMA-008", "instruction": "每个动作段只突出一个决定性变化；后续镜头必须承接上一段的身体朝向、武器位置、伤势和环境结果。"},
+    {"id": "WMA-009", "instruction": "使用写实、具重量感的西方类型动作语汇；若有夸张身法，也必须保留起跳、轨迹、落地和后果。"},
+    {"id": "WMA-010", "instruction": "结尾给出可验证终态，例如被逼退的距离、失去的武器、封住的出口或重新建立的对峙，而不是无结果摆姿。"}
+  ]
+}
