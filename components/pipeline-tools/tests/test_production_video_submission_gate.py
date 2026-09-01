@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from production_video_submission_gate import evaluate_manifest
+from provider_video_capability_gate import evaluate_provider_capability
 
 
 class ProductionVideoSubmissionGateTests(unittest.TestCase):
@@ -146,6 +147,59 @@ class ProductionVideoSubmissionGateTests(unittest.TestCase):
                 "PRODUCTION_MODEL_POLICY_EXPANSION_FORBIDDEN",
                 {row["code"] for row in report["failures"]},
             )
+
+    def test_exact_owner_scoped_e50_sd2_override_passes_provider_gate(self):
+        task = {
+            "task_key": "E50-VU-001-VIDEO-A1",
+            "model": "seedance-2.0-pro",
+            "resolution": "720p",
+            "owner_scoped_model_override": {
+                "schema": "backlotos.owner_scoped_video_model_override.v1",
+                "status": "AUTHORIZED",
+                "owner_authorized": True,
+                "authorization_ref": "ROGER-E50-SD2",
+                "task_key": "E50-VU-001-VIDEO-A1",
+                "model": "seedance-2.0-pro",
+            },
+        }
+        manifest = {
+            "episode": "E50",
+            "provider": "giggle",
+            "allowed_video_models": ["seedance-2.0-pro"],
+            "production_model_override": {
+                "schema": "backlotos.owner_scoped_video_model_override.v1",
+                "status": "AUTHORIZED",
+                "owner_authorized": True,
+                "authorization_ref": "ROGER-E50-SD2",
+                "task_keys": ["E50-VU-001-VIDEO-A1"],
+                "allowed_models": ["seedance-2.0-pro"],
+            },
+        }
+        result = evaluate_provider_capability(manifest, [task])
+        self.assertEqual(result["status"], "PASS", result)
+        self.assertTrue(result["owner_scoped_override_applied"])
+
+    def test_partial_owner_scoped_override_is_rejected(self):
+        tasks = [
+            {"task_key": "A", "model": "seedance-2.0-pro", "resolution": "720p"},
+            {"task_key": "B", "model": "seedance-2.0-pro", "resolution": "720p"},
+        ]
+        manifest = {
+            "episode": "E50",
+            "provider": "giggle",
+            "allowed_video_models": ["seedance-2.0-pro"],
+            "production_model_override": {
+                "schema": "backlotos.owner_scoped_video_model_override.v1",
+                "status": "AUTHORIZED",
+                "owner_authorized": True,
+                "authorization_ref": "ROGER-E50-SD2",
+                "task_keys": ["A"],
+                "allowed_models": ["seedance-2.0-pro"],
+            },
+        }
+        result = evaluate_provider_capability(manifest, tasks)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("OWNER_MODEL_OVERRIDE_SCOPE_MISMATCH", {row["code"] for row in result["failures"]})
 
     def test_atomic_real_time_task_passes(self):
         contract = {

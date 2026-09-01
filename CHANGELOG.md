@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.53
+
+- Carry the already-supported exact owner-scoped model override through the
+  provider capability gate. Manifest and per-task authority, task scope, model
+  set, and authorization reference must all match before the episode default
+  can be replaced; partial or stale overrides fail closed.
+
 ## 0.2.52
 
 - Make explicit structured `fight_or_chase` / `combat_or_chase` booleans
