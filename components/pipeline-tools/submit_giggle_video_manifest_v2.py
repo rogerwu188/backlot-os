@@ -131,7 +131,13 @@ def run_project_prompt_lineage_gate(task: dict[str, Any]) -> None:
     if spec is None or spec.loader is None:
         raise ValueError(f"{task.get('task_key', 'UNKNOWN')} cannot load project prompt lineage gate")
     project_root = str(ROOT)
+    project_tools = str(ROOT / "tools")
+    # The installed runtime itself may already have imported a top-level
+    # ``tools`` package.  Put the project's tools directory first so the
+    # project hook can resolve its sibling modules without being shadowed by
+    # the installed Backlot namespace.
     sys.path.insert(0, project_root)
+    sys.path.insert(0, project_tools)
     try:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -140,8 +146,9 @@ def run_project_prompt_lineage_gate(task: dict[str, Any]) -> None:
             raise ValueError(f"{task.get('task_key', 'UNKNOWN')} project prompt lineage validator missing")
         validator(task)
     finally:
-        if sys.path and sys.path[0] == project_root:
-            sys.path.pop(0)
+        for value in (project_tools, project_root):
+            if value in sys.path:
+                sys.path.remove(value)
 
 
 def validate_task(task: dict[str, Any]) -> str:
