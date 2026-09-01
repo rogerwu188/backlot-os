@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.2.52
+
+- Make explicit structured `fight_or_chase` / `combat_or_chase` booleans
+  authoritative at the paid boundary. Negative prompt constraints such as
+  “禁止战斗化表演” can no longer be misread as positive combat evidence.
+- Retain keyword-based combat discovery only for legacy manifests that carry no
+  structured classification, with regression coverage for both paths.
+
 ## 0.2.51
 
 - Close the installed-runtime prompt-lineage bypass for E50+ Seedance 2 Pro

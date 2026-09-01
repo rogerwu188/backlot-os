@@ -74,6 +74,15 @@ class ActionGenerationPreSubmitGateTests(unittest.TestCase):
         self.assertIn("FIGHT_ACTION_ONSET_TOO_LATE", codes)
         self.assertIn("ATOMIC_ACTION_WINDOW_TOO_LONG", codes)
 
+    def test_explicit_noncombat_outranks_negative_combat_wording(self):
+        task = action("N1", 1, "S0", "S1")
+        task["fight_or_chase"] = False
+        task["combat_or_chase"] = False
+        task["prompt"] = "人物端起茶杯，禁止战斗化表演。"
+        result = tempo_gate([task])
+        self.assertEqual(result["status"], "PASS", result)
+        self.assertFalse(result["rows"][0]["fight_or_chase"])
+
     def test_missing_or_overlong_assembly_window_fails(self):
         task = action("A1", 1, "S0", "S1")
         task.pop("assembly_window_contract")
