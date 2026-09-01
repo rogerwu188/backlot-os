@@ -23,6 +23,59 @@ def _episode_allowed_models(manifest: dict[str, Any]) -> set[str]:
     return {"seedance-2.0-fast"}
 
 
+def _owner_scoped_allowed_models(
+    manifest: dict[str, Any], tasks: list[dict[str, Any]]
+) -> tuple[set[str] | None, list[dict[str, Any]]]:
+    """Validate an exact-batch owner model override without widening policy.
+
+    The durable submitter already validates each task-level override.  The
+    provider gate runs earlier, so it must recognize the same contract while
+    failing closed on partial, stale, or mismatched scopes.
+    """
+    override = manifest.get("production_model_override")
+    if override is None:
+        return None, []
+    failures: list[dict[str, Any]] = []
+    if not isinstance(override, dict):
+        return None, [{"code": "OWNER_MODEL_OVERRIDE_INVALID", "reason": "NOT_OBJECT"}]
+    authorization_ref = str(override.get("authorization_ref") or "").strip()
+    allowed = {str(value) for value in override.get("allowed_models") or [] if str(value)}
+    task_keys = {str(task.get("task_key") or "") for task in tasks}
+    scoped_keys = {str(value) for value in override.get("task_keys") or [] if str(value)}
+    if (
+        override.get("schema") != "backlotos.owner_scoped_video_model_override.v1"
+        or override.get("status") != "AUTHORIZED"
+        or override.get("owner_authorized") is not True
+        or not authorization_ref
+    ):
+        failures.append({"code": "OWNER_MODEL_OVERRIDE_INVALID", "reason": "AUTHORITY_CONTRACT"})
+    if not allowed or not allowed.issubset(set(PRODUCTION_ALLOWED_MODELS)):
+        failures.append({"code": "OWNER_MODEL_OVERRIDE_INVALID", "reason": "MODEL_SET", "models": sorted(allowed)})
+    if not task_keys or scoped_keys != task_keys:
+        failures.append({
+            "code": "OWNER_MODEL_OVERRIDE_SCOPE_MISMATCH",
+            "expected_task_keys": sorted(task_keys),
+            "scoped_task_keys": sorted(scoped_keys),
+        })
+    for task in tasks:
+        key = str(task.get("task_key") or "")
+        model = str(task.get("model") or "")
+        scoped = task.get("owner_scoped_model_override")
+        valid = (
+            isinstance(scoped, dict)
+            and scoped.get("schema") == "backlotos.owner_scoped_video_model_override.v1"
+            and scoped.get("status") == "AUTHORIZED"
+            and scoped.get("owner_authorized") is True
+            and str(scoped.get("authorization_ref") or "").strip() == authorization_ref
+            and str(scoped.get("task_key") or "") == key
+            and str(scoped.get("model") or "") == model
+            and model in allowed
+        )
+        if not valid:
+            failures.append({"code": "TASK_OWNER_MODEL_OVERRIDE_INVALID", "task_key": key})
+    return (allowed if not failures else None), failures
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -37,6 +90,10 @@ def evaluate_provider_capability(
     failures: list[dict[str, Any]] = []
     provider = str(manifest.get("provider") or "giggle")
     production_allowed_models = _episode_allowed_models(manifest)
+    scoped_allowed_models, override_failures = _owner_scoped_allowed_models(manifest, tasks)
+    failures.extend(override_failures)
+    if scoped_allowed_models is not None:
+        production_allowed_models = scoped_allowed_models
     requested_models = {
         str(value)
         for value in (manifest.get("allowed_video_models") or sorted(production_allowed_models))
@@ -139,6 +196,7 @@ def evaluate_provider_capability(
         "registry_path": str(path.resolve()),
         "registry_sha256": _sha256(path) if path.is_file() else None,
         "provider_evidence": provider_row if isinstance(provider_row, dict) else None,
+        "owner_scoped_override_applied": scoped_allowed_models is not None,
         "failures": failures,
         "policy": "Paid video preflight binds the series migration contract: E40 and earlier use seedance-2.0-fast, E41-E44 use seedance-2.0-pro, and E45 onward use MiniMax-H3. The selected model must also be present in the verified provider registry and use an explicitly supported native resolution. Mini and the unpriced bare seedance-2.0 SKU remain forbidden.",
     }
