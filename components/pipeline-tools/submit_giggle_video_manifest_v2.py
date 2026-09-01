@@ -19,11 +19,11 @@ from typing import Any
 
 try:
     from exact_first_frame_transport import build_provider_request, raw_rgb_sha256, transport_fingerprint
-    from giggle_api_client import _b64, _request
+    from giggle_api_client import _b64, _request, paid_video_submission_context
     from giggle_credit_statements import fetch_pay_statements, reconcile_rows
 except ModuleNotFoundError:
     from tools.exact_first_frame_transport import build_provider_request, raw_rgb_sha256, transport_fingerprint
-    from tools.giggle_api_client import _b64, _request
+    from tools.giggle_api_client import _b64, _request, paid_video_submission_context
     from tools.giggle_credit_statements import fetch_pay_statements, reconcile_rows
 
 
@@ -109,6 +109,41 @@ def validate_source_caption_safe_dialogue(task: dict[str, Any], prompt_text: str
         raise ValueError(f"{task['task_key']} literal dialogue leaked into visual prompt")
 
 
+def run_project_prompt_lineage_gate(task: dict[str, Any]) -> None:
+    """Require the project-owned rich prompt gate at the deployed paid boundary.
+
+    BacklotOS deliberately stays project-agnostic, but an E50+ Qingshan SD2
+    task may only be paid after the active project has recompiled and checked
+    every writer/director field.  Importing the project hook here means calling
+    the installed submitter directly cannot bypass that contract.
+    """
+    episode = str(task.get("episode") or "")
+    number = int(episode[1:]) if episode.startswith("E") and episode[1:].isdigit() else 0
+    if number < 50 or str(task.get("model") or "").strip().lower() != "seedance-2.0-pro":
+        return
+    hook_path = ROOT / "tools" / "submit_giggle_video_manifest_v2.py"
+    if not hook_path.is_file() or hook_path.resolve() == Path(__file__).resolve():
+        raise ValueError(
+            f"{task.get('task_key', 'UNKNOWN')} project-owned paid prompt lineage gate is unavailable"
+        )
+    module_name = "backlotos_project_video_prompt_lineage_gate"
+    spec = importlib.util.spec_from_file_location(module_name, hook_path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"{task.get('task_key', 'UNKNOWN')} cannot load project prompt lineage gate")
+    project_root = str(ROOT)
+    sys.path.insert(0, project_root)
+    try:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        validator = getattr(module, "validate_task", None)
+        if not callable(validator):
+            raise ValueError(f"{task.get('task_key', 'UNKNOWN')} project prompt lineage validator missing")
+        validator(task)
+    finally:
+        if sys.path and sys.path[0] == project_root:
+            sys.path.pop(0)
+
+
 def validate_task(task: dict[str, Any]) -> str:
     for field in ("task_key", "prompt_file", "prompt_sha256", "reference_images", "reference_sha256"):
         if not task.get(field):
@@ -128,6 +163,18 @@ def validate_task(task: dict[str, Any]) -> str:
     required_model = "MiniMax-H3" if episode_number >= 45 else (
         "seedance-2.0-pro" if episode_number >= 41 else "seedance-2.0-fast"
     )
+    scoped_override = task.get("owner_scoped_model_override") or {}
+    override_applies = (
+        scoped_override.get("schema") == "backlotos.owner_scoped_video_model_override.v1"
+        and scoped_override.get("status") == "AUTHORIZED"
+        and scoped_override.get("owner_authorized") is True
+        and str(scoped_override.get("task_key") or "") == str(task.get("task_key") or "")
+        and str(scoped_override.get("model") or "") == str(task.get("model") or "")
+        and bool(str(scoped_override.get("authorization_ref") or "").strip())
+        and task.get("model") in {"seedance-2.0-fast", "seedance-2.0-pro", "MiniMax-H3"}
+    )
+    if override_applies:
+        required_model = str(task["model"])
     if task.get("model") != required_model:
         raise ValueError(f"{task['task_key']} requires {required_model} for {episode or 'this episode'}")
     required_resolution = "768p" if required_model == "MiniMax-H3" else "720p"
@@ -139,6 +186,7 @@ def validate_task(task: dict[str, Any]) -> str:
     if required_model == "MiniMax-H3" and len(references) > 9:
         raise ValueError(f"{task['task_key']} MiniMax-H3 omni accepts at most 9 images")
     validate_source_caption_safe_dialogue(task, prompt_text)
+    run_project_prompt_lineage_gate(task)
     return prompt_text
 
 
@@ -230,7 +278,8 @@ def submit_one(task: dict[str, Any], receipt_dir: Path, transaction_dir: Path) -
         }
     atomic_json(transaction, intent)
     try:
-        response = _request(endpoint, payload)
+        with paid_video_submission_context():
+            response = _request(endpoint, payload)
     except (Exception, SystemExit) as exc:
         intent.update({"state": "RESPONSE_LOST_PENDING_LEDGER_RECONCILIATION", "response_lost_at": utc_now(), "error": str(exc)})
         atomic_json(transaction, intent)

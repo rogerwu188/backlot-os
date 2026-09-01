@@ -32,6 +32,12 @@ def default_local_lora_memory() -> Path:
 
 
 DEFAULT_LOCAL_LORA_MEMORY = default_local_lora_memory()
+DEFAULT_TASK2_1_REFERENCE_LIBRARY = (
+    Path(__file__).resolve().parent
+    / "reference-libraries/hell_grind_western_martial_action_v1.json"
+)
+TASK2_1_REFERENCE_LIBRARY_ID = "HELL_GRIND_WESTERN_MARTIAL_ACTION_REFERENCE_V1"
+TASK2_1_REFERENCE_PROFILE = "AMERICAN_HOLLYWOOD"
 STATIC_ACTOR_MOTION_TERMS = (
     "静止", "完全不动", "纹丝不动", "定格", "保持姿势", "保持原位",
     "仍在原区", "尚未启动", "留在安全区", "留在后方", "frozen", "freeze", "motionless",
@@ -52,6 +58,72 @@ EXPRESSIVE_DIALOGUE_FIELDS = (
     "psychological_state", "emotion", "emotion_intensity", "pace", "pause_map",
     "emphasis_words", "volume_arc", "breath_pattern", "delivery_transition", "body_sync",
 )
+
+
+def load_task2_1_reference_library(config: object) -> tuple[str, dict | None]:
+    """Load the opt-in, SHA-bound Hell Grind action-rule reference package."""
+    if config is None:
+        return "", None
+    if not isinstance(config, dict):
+        raise ValueError("task2_1_reference_library must be an object")
+    if config.get("library_id") != TASK2_1_REFERENCE_LIBRARY_ID:
+        raise ValueError("unsupported task2_1_reference_library.library_id")
+    requested_profile = config.get("profile_id", TASK2_1_REFERENCE_PROFILE)
+    if requested_profile != TASK2_1_REFERENCE_PROFILE:
+        raise ValueError("task2_1_reference_library must remain AMERICAN_HOLLYWOOD")
+    raw = DEFAULT_TASK2_1_REFERENCE_LIBRARY.read_bytes()
+    library_sha = hashlib.sha256(raw).hexdigest()
+    expected_sha = config.get("expected_sha256")
+    if not expected_sha:
+        raise ValueError("task2_1_reference_library expected_sha256 is required")
+    if expected_sha != library_sha:
+        raise ValueError("task2_1_reference_library expected_sha256 mismatch")
+    try:
+        library = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("task2_1_reference_library is not valid JSON") from exc
+    required = {
+        "schema": "backlotos.task2_1.reference_library.v1",
+        "library_id": TASK2_1_REFERENCE_LIBRARY_ID,
+        "status": "APPROVED_FOR_TASK2_1_REFERENCE",
+        "training_target": "PROMPT_RULE_ADAPTER_NOT_MODEL_WEIGHTS",
+        "profile_id": TASK2_1_REFERENCE_PROFILE,
+        "reference_kind": "WESTERN_MARTIAL_ACTION",
+    }
+    for key, value in required.items():
+        if library.get(key) != value:
+            raise ValueError(f"task2_1_reference_library invalid {key}")
+    lineage = library.get("source_lineage")
+    if not isinstance(lineage, dict) or lineage.get("raw_source_prompts_embedded") is not False:
+        raise ValueError("task2_1_reference_library must not embed raw source prompts")
+    if lineage.get("model_weights_sha256") is not None:
+        raise ValueError("task2_1_reference_library must not carry model weights")
+    forbidden = set(library.get("forbidden_profile_ids", []))
+    if not {"EASTERN_WUXIA", "EASTERN_KUNGFU"}.issubset(forbidden):
+        raise ValueError("task2_1_reference_library missing Eastern profile isolation")
+    rules = library.get("rule_set")
+    if not isinstance(rules, list) or not rules:
+        raise ValueError("task2_1_reference_library requires rule_set")
+    if any(not isinstance(row, dict) or not row.get("id") or not row.get("instruction") for row in rules):
+        raise ValueError("task2_1_reference_library has an invalid rule")
+    rules_sha = hashlib.sha256(
+        json.dumps(rules, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    prompt = "\n【task2-1 西方武侠打斗参考包｜SHA绑定】\n" + "\n".join(
+        f"{row['id']}：{row['instruction']}" for row in rules
+    ) + "\n此参考包仅用于 AMERICAN_HOLLYWOOD 西方类型动作；不得调用或混入东方武侠、东方功夫配置。\n"
+    return prompt, {
+        "library_id": library["library_id"],
+        "profile_id": library["profile_id"],
+        "reference_kind": library["reference_kind"],
+        "library_path": str(DEFAULT_TASK2_1_REFERENCE_LIBRARY),
+        "library_sha256": library_sha,
+        "rule_set_sha256": rules_sha,
+        "source_lineage": lineage["library_id"],
+        "raw_source_prompts_embedded": False,
+        "model_weights_sha256": None,
+        "stage_e_binding": "REFERENCE_LIBRARY_SHA_BOUND",
+    }
 
 # Action-camera vocabulary is selected by dramatic function, never sampled as
 # decorative motion. Short accents stay short so the action remains readable.
@@ -873,13 +945,19 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         raise ValueError(f"unsupported mode: {mode}")
     dialogue_mode = enforce_dialogue_mode_consistency(spec)
     expressive_voice_prompt, expressive_voice_contract = compile_expressive_voice_contract(spec, dialogue_mode)
+    reference_prompt, reference_library = load_task2_1_reference_library(
+        spec.get("task2_1_reference_library")
+    )
     if mode == "multi_keyframe_long_take":
         prompt, manifest = compile_multi_keyframe_long_take(spec)
         manifest["dialogue_mode"] = dialogue_mode
         manifest["dialogue_mode_gate"] = "PASS"
         manifest["expressive_voice_contract"] = expressive_voice_contract
         manifest["gates"].append("EXPRESSIVE_VOICE_PSYCHOLOGY_AND_PROSODY")
-        prompt += expressive_voice_prompt
+        prompt += expressive_voice_prompt + reference_prompt
+        if reference_library:
+            manifest["task2_1_reference_library"] = reference_library
+            manifest["gates"].append("TASK2_1_WESTERN_MARTIAL_ACTION_REFERENCE_SHA_BOUND")
         manifest["prompt_sha256"] = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
         return prompt, manifest
     entities = require(spec.get("entities"), "entities are required")
@@ -932,7 +1010,7 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         contract = "single_unbroken_shot_first_last_frames"
 
     cinematic_prompt, cinematic_contract = compile_cinematic_shot_language_contract(spec, len(shots))
-    prompt = f"{header}\n\n{body}{combat_prompt}{expressive_voice_prompt}{cinematic_prompt}\n\n{tail.strip()}\n"
+    prompt = f"{header}\n\n{body}{combat_prompt}{expressive_voice_prompt}{cinematic_prompt}{reference_prompt}\n\n{tail.strip()}\n"
     post_only_glyphs = enforce_post_only_glyph_contract(prompt, spec)
     manifest = {
         "schema": "qingshan.seedance2_prompt_compilation.v2" if visual_contract else "qingshan.seedance2_prompt_compilation.v1",
@@ -952,6 +1030,9 @@ def compile_prompt(spec: dict) -> tuple[str, dict]:
         "cinematic_shot_language_contract": cinematic_contract,
         "cinematic_shot_language_gate": "PASS_SECTIONED_AND_TIME_CODED" if cinematic_contract else "NOT_APPLICABLE",
     }
+    if reference_library:
+        manifest["task2_1_reference_library"] = reference_library
+        manifest["task2_1_reference_library_gate"] = "PASS_SHA_BOUND_AMERICAN_HOLLYWOOD_ONLY"
     if version:
         manifest["visual_benchmark_contract_version"] = version
         manifest["script_state_locked"] = True

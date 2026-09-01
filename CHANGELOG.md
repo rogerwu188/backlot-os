@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.2.51
+
+- Close the installed-runtime prompt-lineage bypass for E50+ Seedance 2 Pro
+  tasks. The deployed paid submitter now invokes the active project's rich
+  prompt validator at the final transaction boundary, so calling the installed
+  entrypoint directly cannot skip exact prompt recompilation or required-field
+  checks.
+- Restrict low-level paid video transport to an in-process context opened only
+  by the durable submitter after validation and transaction intent recording.
+  Direct low-level video POSTs now fail before network access.
+- Preserve scoped owner-authorized model overrides in source and add regression
+  coverage for missing/executed project hooks, pre-E50 compatibility, supported
+  model transport, and direct-POST rejection.
+
 ## 0.2.50
 
 - Migrate the governed series video route by episode: E40 and earlier remain
