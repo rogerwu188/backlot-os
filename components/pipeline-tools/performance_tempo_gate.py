@@ -48,9 +48,16 @@ def _looks_like_action(task: dict[str, Any], text: str) -> bool:
 
 
 def _fight_or_chase(text: str, task: dict[str, Any]) -> bool:
-    return bool(task.get("combat_choreography_contract")) or any(
-        cue in text for cue in FIGHT_PURPOSE_CUES
-    )
+    if task.get("combat_choreography_contract"):
+        return True
+    declared = [
+        task[name]
+        for name in ("fight_or_chase", "combat_or_chase")
+        if isinstance(task.get(name), bool)
+    ]
+    if declared:
+        return any(declared)
+    return any(cue in text for cue in FIGHT_PURPOSE_CUES)
 
 
 def _evaluate_atomic_windows(
