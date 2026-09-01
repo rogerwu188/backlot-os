@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.54
+
+- Isolate project-owned paid-boundary prompt hooks from the installed
+  runtime's already-loaded `tools` namespace. Project sibling modules now
+  resolve from the active project's `tools/` directory first, with regression
+  coverage for the namespace-shadowing failure.
+
 ## 0.2.53
 
 - Carry the already-supported exact owner-scoped model override through the

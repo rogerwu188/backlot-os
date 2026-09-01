@@ -49,6 +49,33 @@ class SubmitGiggleVideoManifestV2Tests(unittest.TestCase):
             finally:
                 submitter.ROOT = previous
 
+    def test_project_hook_can_import_sibling_tool_when_installed_tools_is_loaded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tools = root / "tools"
+            tools.mkdir()
+            (tools / "project_sibling.py").write_text(
+                "def marker():\n    return 'PROJECT_SIBLING_RESOLVED'\n",
+                encoding="utf-8",
+            )
+            (tools / "submit_giggle_video_manifest_v2.py").write_text(
+                "from project_sibling import marker\n"
+                "def validate_task(task):\n"
+                "    raise ValueError(marker())\n",
+                encoding="utf-8",
+            )
+            previous = submitter.ROOT
+            submitter.ROOT = root
+            try:
+                with self.assertRaisesRegex(ValueError, "PROJECT_SIBLING_RESOLVED"):
+                    submitter.run_project_prompt_lineage_gate({
+                        "task_key": "E50-VU-001",
+                        "episode": "E50",
+                        "model": "seedance-2.0-pro",
+                    })
+            finally:
+                submitter.ROOT = previous
+
     def test_pre_e50_task_does_not_require_project_specific_prompt_hook(self):
         with tempfile.TemporaryDirectory() as tmp:
             previous = submitter.ROOT
