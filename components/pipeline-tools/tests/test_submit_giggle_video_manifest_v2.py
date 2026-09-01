@@ -13,6 +13,55 @@ from exact_first_frame_transport import IMAGE_TO_VIDEO_ENDPOINT, raw_rgb_sha256
 
 
 class SubmitGiggleVideoManifestV2Tests(unittest.TestCase):
+    def test_e50_sd2_deployed_entrypoint_requires_project_prompt_lineage_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            previous = submitter.ROOT
+            submitter.ROOT = root
+            try:
+                with self.assertRaisesRegex(ValueError, "project-owned paid prompt lineage gate"):
+                    submitter.run_project_prompt_lineage_gate({
+                        "task_key": "E50-VU-001",
+                        "episode": "E50",
+                        "model": "seedance-2.0-pro",
+                    })
+            finally:
+                submitter.ROOT = previous
+
+    def test_e50_sd2_deployed_entrypoint_executes_project_prompt_lineage_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tools = root / "tools"
+            tools.mkdir()
+            (tools / "submit_giggle_video_manifest_v2.py").write_text(
+                "def validate_task(task):\n    raise ValueError('PROJECT_PROMPT_LINEAGE_GATE_CALLED')\n",
+                encoding="utf-8",
+            )
+            previous = submitter.ROOT
+            submitter.ROOT = root
+            try:
+                with self.assertRaisesRegex(ValueError, "PROJECT_PROMPT_LINEAGE_GATE_CALLED"):
+                    submitter.run_project_prompt_lineage_gate({
+                        "task_key": "E50-VU-001",
+                        "episode": "E50",
+                        "model": "seedance-2.0-pro",
+                    })
+            finally:
+                submitter.ROOT = previous
+
+    def test_pre_e50_task_does_not_require_project_specific_prompt_hook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            previous = submitter.ROOT
+            submitter.ROOT = Path(tmp)
+            try:
+                submitter.run_project_prompt_lineage_gate({
+                    "task_key": "E49-VU-001",
+                    "episode": "E49",
+                    "model": "seedance-2.0-pro",
+                })
+            finally:
+                submitter.ROOT = previous
+
     def test_precheck_uses_installed_style_project_root_without_post_or_transaction(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
